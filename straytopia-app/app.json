@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "Straytopia",
+    "slug": "straytopia",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "straytopia",
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFCEF"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.straytopia.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#FFFCEF"
+      },
+      "package": "com.straytopia.app"
+    },
+    "newArchEnabled": true
+  }
+}

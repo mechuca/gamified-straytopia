@@ -1,0 +1,133 @@
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const storage = createJSONStorage(() => AsyncStorage);
+
+export type MissionType = 'feeding' | 'water' | 'rescue' | 'medical' | 'urgent';
+export type MissionStatus = 'available' | 'accepted' | 'in-progress' | 'proof-pending' | 'verifying' | 'completed' | 'rejected' | 'review';
+export type AnimalType = 'dog' | 'cat' | 'bird' | 'other';
+
+export interface Mission {
+  id: string;
+  type: MissionType;
+  title: string;
+  description: string;
+  animalType: AnimalType;
+  location: string;
+  distance: string;
+  estimatedTime: number;
+  urgency: 'low' | 'medium' | 'high' | 'critical';
+  proofRequired: string;
+  impactPoints: number;
+  safetyNote: string;
+  status: MissionStatus;
+  acceptedAt: number | null;
+  completedAt: number | null;
+  verificationResult: 'verified' | 'review' | 'rejected' | null;
+}
+
+export interface MissionState {
+  missions: Mission[];
+  activeMissionId: string | null;
+  completedCount: number;
+  acceptMission: (id: string) => void;
+  startProof: (id: string) => void;
+  submitProof: (id: string) => void;
+  verifyMission: (id: string, result: 'verified' | 'review' | 'rejected') => void;
+  completeMission: (id: string) => void;
+  setActiveMission: (id: string | null) => void;
+  reset: () => void;
+}
+
+const seedMissions: Mission[] = [
+  {
+    id: 'm1', type: 'feeding', title: 'Feed two dogs near 12th Main',
+    description: 'Two friendly street dogs are waiting near the corner shop on 12th Main. They need a meal.',
+    animalType: 'dog', location: '12th Main, Indiranagar', distance: '0.3 km',
+    estimatedTime: 15, urgency: 'medium', proofRequired: 'Photo of food bowl with dogs',
+    impactPoints: 50, safetyNote: 'Approach slowly. Keep distance if they seem nervous.',
+    status: 'available', acceptedAt: null, completedAt: null, verificationResult: null,
+  },
+  {
+    id: 'm2', type: 'water', title: 'Refill water bowls at Park Street',
+    description: 'The water station near Park Street is dry. Three cats and a dog rely on it.',
+    animalType: 'cat', location: 'Park Street corner', distance: '0.5 km',
+    estimatedTime: 10, urgency: 'high', proofRequired: 'Photo of filled water bowl',
+    impactPoints: 30, safetyNote: 'Use clean water. Avoid plastic containers.',
+    status: 'available', acceptedAt: null, completedAt: null, verificationResult: null,
+  },
+  {
+    id: 'm3', type: 'rescue', title: 'Injured puppy near bus stop',
+    description: 'A small puppy with a limp was spotted near the 100 Feet Road bus stop.',
+    animalType: 'dog', location: '100 Feet Road bus stop', distance: '0.8 km',
+    estimatedTime: 30, urgency: 'critical', proofRequired: 'Photo of the animal and location',
+    impactPoints: 100, safetyNote: 'Do not attempt to pick up. Call the volunteer number if available.',
+    status: 'available', acceptedAt: null, completedAt: null, verificationResult: null,
+  },
+  {
+    id: 'm4', type: 'medical', title: 'Check on nursing mother cat',
+    description: 'A mother cat with kittens was reported behind the temple. Needs a wellness check.',
+    animalType: 'cat', location: 'Behind Old Temple, 80 Feet Road', distance: '1.2 km',
+    estimatedTime: 20, urgency: 'high', proofRequired: 'Photo of mother and kittens',
+    impactPoints: 75, safetyNote: 'Observe from a distance. Do not disturb the nest.',
+    status: 'available', acceptedAt: null, completedAt: null, verificationResult: null,
+  },
+  {
+    id: 'm5', type: 'urgent', title: 'Dog trapped in drain near Market',
+    description: 'A dog fell into an open drain near the main market. Needs immediate help.',
+    animalType: 'dog', location: 'Main Market, 1st cross', distance: '0.6 km',
+    estimatedTime: 25, urgency: 'critical', proofRequired: 'Photo showing the situation',
+    impactPoints: 120, safetyNote: 'Do not enter the drain. Alert nearby volunteers.',
+    status: 'available', acceptedAt: null, completedAt: null, verificationResult: null,
+  },
+  {
+    id: 'm6', type: 'feeding', title: 'Feed the colony near school',
+    description: 'A colony of 5-6 dogs gathers near the school gate after 4 PM.',
+    animalType: 'dog', location: 'Government School, 5th Main', distance: '0.9 km',
+    estimatedTime: 20, urgency: 'low', proofRequired: 'Photo of food bowls',
+    impactPoints: 40, safetyNote: 'Best time: after 4 PM when school ends.',
+    status: 'available', acceptedAt: null, completedAt: null, verificationResult: null,
+  },
+];
+
+export const useMissions = create<MissionState>()(
+  persist(
+    (set, get) => ({
+      missions: seedMissions,
+      activeMissionId: null,
+      completedCount: 0,
+      acceptMission: (id) => set((state) => ({
+        missions: state.missions.map((m) =>
+          m.id === id ? { ...m, status: 'accepted' as const, acceptedAt: Date.now() } : m
+        ),
+        activeMissionId: id,
+      })),
+      startProof: (id) => set((state) => ({
+        missions: state.missions.map((m) =>
+          m.id === id ? { ...m, status: 'in-progress' as const } : m
+        ),
+      })),
+      submitProof: (id) => set((state) => ({
+        missions: state.missions.map((m) =>
+          m.id === id ? { ...m, status: 'verifying' as const } : m
+        ),
+      })),
+      verifyMission: (id, result) => set((state) => ({
+        missions: state.missions.map((m) =>
+          m.id === id ? { ...m, status: result === 'verified' ? 'completed' as const : result === 'review' ? 'review' as const : 'rejected' as const, verificationResult: result, completedAt: result === 'verified' ? Date.now() : null } : m
+        ),
+        completedCount: result === 'verified' ? get().completedCount + 1 : get().completedCount,
+      })),
+      completeMission: (id) => set((state) => ({
+        missions: state.missions.map((m) =>
+          m.id === id ? { ...m, status: 'completed' as const, completedAt: Date.now(), verificationResult: 'verified' } : m
+        ),
+        completedCount: get().completedCount + 1,
+      })),
+      setActiveMission: (id) => set({ activeMissionId: id }),
+      reset: () => set({ missions: seedMissions, activeMissionId: null, completedCount: 0 }),
+    }),
+    { name: 'straytopia-missions', storage }
+  )
+);

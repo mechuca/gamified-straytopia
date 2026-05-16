@@ -1,0 +1,41 @@
+import { MascotMessage, MascotSceneRule } from './mascot.types';
+
+export const MASCOT_MESSAGES: Record<string, MascotMessage> = {
+  idle: { state: 'idle', text: 'How can I help?' },
+  welcome: { state: 'welcome', text: 'Welcome to Straytopia', sub: 'Animals near you need care. Let us start.' },
+  guideMission: { state: 'guideMission', text: 'A mission is waiting', sub: 'Tap the glowing node to begin.' },
+  missionOpen: { state: 'missionOpen', text: 'You can do this', sub: 'Follow the checklist. Take your time.' },
+  missionComplete: { state: 'missionComplete', text: 'Well done', sub: 'That animal is better because of you.' },
+  unlockNext: { state: 'unlockNext', text: 'New mission unlocked', sub: 'Your care opens the next step.' },
+  impactProud: { state: 'impactProud', text: 'Look what you have done', sub: 'Every action adds up.' },
+  confirmParticipation: { state: 'confirmParticipation', text: 'Ready to join?', sub: 'Your care can inspire others nearby.' },
+  participationConfirmed: { state: 'participationConfirmed', text: 'You are in', sub: '+1 Trust Step. Your care now counts publicly.' },
+  cancelNeutral: { state: 'cancelNeutral', text: 'No changes made', sub: 'You can join anytime from your profile.' },
+  leaderboardCTA: { state: 'leaderboardCTA', text: 'See how your area cares', sub: 'Join to track your impact and inspire others.' },
+  profileEmpty: { state: 'profileEmpty', text: 'Set up your profile', sub: 'Tell us your name and pick your care zone.' },
+  profileComplete: { state: 'profileComplete', text: 'Your profile looks great', sub: 'Keep caring. Your streak matters.' },
+  errorSupport: { state: 'errorSupport', text: 'Something went wrong', sub: 'Try again. We will figure it out together.' },
+  curious: { state: 'curious', text: 'What will you do next?', sub: 'Complete a mission to unlock more.' },
+  celebrating: { state: 'celebrating', text: 'Amazing work', sub: 'You are making a real difference.' },
+  worried: { state: 'worried', text: 'I know it feels locked', sub: 'Complete the previous mission to unlock this one.' },
+  proud: { state: 'proud', text: 'Your impact is growing', sub: 'Consistent care changes lives.' },
+  calmNeutral: { state: 'calmNeutral', text: 'Take your time', sub: 'Care does not rush.' },
+};
+
+export const SCENE_RULES: MascotSceneRule[] = [
+  { trigger: 'onboarding_start', state: 'welcome', message: 'Welcome to Straytopia', sub: 'Animals near you need care. Let us start.' },
+  { trigger: 'home_first_mission_visible', state: 'guideMission', message: 'A mission is waiting', sub: 'Tap the glowing node to begin.' },
+  { trigger: 'mission_clicked', state: 'missionOpen', message: 'You can do this', sub: 'Follow the checklist. Take your time.' },
+  { trigger: 'mission_completed', state: 'missionComplete', message: 'Well done', sub: 'That animal is better because of you.' },
+  { trigger: 'second_mission_unlocked', state: 'unlockNext', message: 'New mission unlocked', sub: 'Your care opens the next step.' },
+  { trigger: 'impact_viewed', state: 'impactProud', message: 'Look what you have done', sub: 'Every action adds up.' },
+  { trigger: 'participation_dialog_open', state: 'confirmParticipation', message: 'Ready to join?', sub: 'Your care can inspire others nearby.' },
+  { trigger: 'participation_confirmed', state: 'participationConfirmed', message: 'You are in', sub: '+1 Trust Step. Your care now counts publicly.' },
+  { trigger: 'participation_cancelled', state: 'cancelNeutral', message: 'No changes made', sub: 'You can join anytime from your profile.' },
+  { trigger: 'leaderboard_viewed', state: 'leaderboardCTA', message: 'See how your area cares', sub: 'Join to track your impact and inspire others.' },
+  { trigger: 'profile_empty', state: 'profileEmpty', message: 'Set up your profile', sub: 'Tell us your name and pick your care zone.' },
+  { trigger: 'profile_complete', state: 'profileComplete', message: 'Your profile looks great', sub: 'Keep caring. Your streak matters.' },
+  { trigger: 'error', state: 'errorSupport', message: 'Something went wrong', sub: 'Try again. We will figure it out together.' },
+  { trigger: 'locked_node', state: 'worried', message: 'I know it feels locked', sub: 'Complete the previous mission to unlock this one.' },
+  { trigger: 'idle', state: 'idle', message: 'How can I help?' },
+];
