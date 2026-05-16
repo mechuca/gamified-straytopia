@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { missionChecklists } from '@/lib/mock';
 
 export type Screen =
   | 'splash'
@@ -133,14 +134,19 @@ export const useApp = create<AppState>((set, get) => ({
   setActiveMission: (id) => set({ activeMission: id }),
   completeSplash: () => set({ hasSeenSplash: true, screen: 'onboarding' }),
   completeOnboarding: () => set({ hasSeenOnboarding: true, screen: 'home' }),
-  startMission: (id) => set({
-    activeMission: id,
-    missionStatus: { ...get().missionStatus, [id as keyof MissionStatus]: 'in_progress' },
-    checklistDone: false,
-    checklistItems: { ...defaultChecklistItems },
-    proofPhoto: null,
-    proofNote: '',
-  }),
+  startMission: (id) => {
+    const missionChecklist = missionChecklists[id] || [];
+    const newChecklistItems: Record<string, boolean> = {};
+    missionChecklist.forEach((c) => { newChecklistItems[c.key] = false; });
+    set({
+      activeMission: id,
+      missionStatus: { ...get().missionStatus, [id as keyof MissionStatus]: 'in_progress' },
+      checklistDone: false,
+      checklistItems: newChecklistItems,
+      proofPhoto: null,
+      proofNote: '',
+    });
+  },
   toggleChecklistItem: (item) => {
     const current = get().checklistItems;
     set({ checklistItems: { ...current, [item]: !current[item] } });
@@ -213,7 +219,7 @@ export const useApp = create<AppState>((set, get) => ({
     missionsCompleted: 0, animalsHelped: 0, activeMission: null,
     lastCompletedMission: null,
     missionStatus: { ...defaultMissionStatus }, proofPhoto: null, proofNote: '',
-    checklistDone: false, checklistItems: { ...defaultChecklistItems },
+    checklistDone: false, checklistItems: {},
     earnedBadges: [], newlyEarnedBadge: null, missionHistory: [], impactEvents: [],
     proofs: [], savedAnimalNames: [],
     notifications: { mission_reminders: true, urgent_alerts: true, badge_updates: true, leaderboard_updates: false },

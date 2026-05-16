@@ -142,6 +142,45 @@ export const missions: Mission[] = [
   { id: 'm6', title: 'Invite a Care Buddy', subtitle: 'Build your care circle', description: 'Invite one trusted person to join your local care path.', icon: Users, status: 'locked', order: 6, unlocksAfterMissionId: 'm5', rewardPoints: 30, rewardHearts: 2, requiresProof: false, location: 'Your area', distance: '—', time: 5, urgency: 'low', safety: 'Only invite people who genuinely care.', tone: 'jungle', lat: 12.9716, lng: 77.6412 },
 ];
 
+export const missionChecklists: Record<string, { key: string; label: string }[]> = {
+  m1: [
+    { key: 'safe_spot', label: 'Found a safe, quiet spot to approach' },
+    { key: 'offered_food', label: 'Offered safe food (no spices, no bones)' },
+    { key: 'kept_distance', label: 'Kept a respectful distance' },
+    { key: 'ready_proof', label: 'Ready to take a proof photo' },
+  ],
+  m2: [
+    { key: 'clean_bowl', label: 'Found or placed a clean water bowl' },
+    { key: 'fresh_water', label: 'Filled with fresh, clean water' },
+    { key: 'shaded_spot', label: 'Placed bowl in a shaded, safe spot' },
+    { key: 'ready_proof', label: 'Ready to take a proof photo' },
+  ],
+  m3: [
+    { key: 'observed_animal', label: 'Observed the animal from a distance' },
+    { key: 'noted_condition', label: 'Noted the animal\'s condition (healthy/injured/pregnant)' },
+    { key: 'checked_surroundings', label: 'Checked surroundings for hazards' },
+    { key: 'ready_proof', label: 'Ready to upload photo and location' },
+  ],
+  m4: [
+    { key: 'recalled_interaction', label: 'Recalled your interaction with the animal' },
+    { key: 'wrote_story', label: 'Wrote a short, respectful care story' },
+    { key: 'added_details', label: 'Added location and date details' },
+    { key: 'ready_share', label: 'Ready to share the story' },
+  ],
+  m5: [
+    { key: 'spotted_animal', label: 'Spotted an animal that may need help' },
+    { key: 'assessed_condition', label: 'Assessed condition from a safe distance' },
+    { key: 'noted_location', label: 'Noted exact location and landmarks' },
+    { key: 'ready_proof', label: 'Ready to take a photo and pin location' },
+  ],
+  m6: [
+    { key: 'identified_buddy', label: 'Identified a trusted person to invite' },
+    { key: 'shared_mission', label: 'Shared Straytopia mission with them' },
+    { key: 'explained_care', label: 'Explained how care missions work' },
+    { key: 'confirmed_interest', label: 'Confirmed their interest in joining' },
+  ],
+};
+
 export const impactMetrics: ImpactMetric[] = [
   { id: 'im1', title: 'Animals Helped', value: 0, subtitle: 'unique animals', icon: Heart, detailTitle: 'Animals You Helped', detailDescription: 'Complete your first mission to start helping animals.', relatedEvents: [], ctaLabel: 'Start First Mission' },
   { id: 'im2', title: 'Meals Offered', value: 0, subtitle: 'feeding missions', icon: PawPrint, detailTitle: 'Meals Offered', detailDescription: 'Complete feeding missions to provide meals.', relatedEvents: [], ctaLabel: 'Start Feeding Mission' },
