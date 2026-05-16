@@ -158,10 +158,10 @@ function SuccessToast({ message, sub, onClose }: { message: string; sub?: string
 
 function TabBar({ active, onChange }: { active: string; onChange: (t: string) => void }) {
   const tabs = [
-    { id: 'home', label: 'Missions', icon: Home },
+    { id: 'home', label: 'Home', icon: Home },
     { id: 'stories', label: 'Community', icon: BookOpen },
     { id: 'league', label: 'Leaderboard', icon: Trophy },
-    { id: 'profile', label: 'Profile', icon: User },
+    { id: 'profile', label: 'You', icon: User },
   ];
   return (
     <div style={{ position: 'fixed', left: 14, right: 14, bottom: 22, height: 76, backgroundColor: COLOR.surface, borderRadius: 28, border: `2.5px solid ${COLOR.hairline}`, borderBottomWidth: 4, display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', alignItems: 'center', padding: '0 4px', zIndex: 50, maxWidth: 500, margin: '0 auto' }}>
