@@ -159,7 +159,7 @@ function SuccessToast({ message, sub, onClose }: { message: string; sub?: string
 function TabBar({ active, onChange }: { active: string; onChange: (t: string) => void }) {
   const tabs = [
     { id: 'home', label: 'Home', icon: Home },
-    { id: 'stories', label: 'Community', icon: BookOpen },
+    { id: 'stories', label: 'Impact', icon: BookOpen },
     { id: 'league', label: 'Leaderboard', icon: Trophy },
     { id: 'profile', label: 'You', icon: User },
   ];
@@ -277,13 +277,13 @@ function SimpleOnboardingScreen({ onComplete }: { onComplete: () => void }) {
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 24px', textAlign: 'center', gap: 16 }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 24px 24px', textAlign: 'center', gap: 16 }}>
         <MascotView scene="onboarding_mission" size="lg" showBubble={false} />
         <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 26, color: COLOR.ink, lineHeight: 1.2 }}>Where do you care?</div>
         <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 15, color: COLOR.ink2, maxWidth: 280, lineHeight: 1.5 }}>Pick your area so we can show nearby animals and missions.</div>
       </div>
 
-      <div style={{ padding: '0 24px 40px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ padding: '0 24px', display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 80 }}>
         <motion.button
           whileTap={{ scale: 0.98 }}
           onClick={handleDetectLocation}
@@ -320,9 +320,10 @@ function SimpleOnboardingScreen({ onComplete }: { onComplete: () => void }) {
             }}>{n}</motion.button>
           ))}
         </div>
-        <div style={{ marginTop: 8 }}>
-          <Btn variant="jungle" size="lg" onClick={handleContinue}>Get Started</Btn>
-        </div>
+      </div>
+
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '16px 24px 28px', backgroundColor: COLOR.paper, borderTop: `1px solid ${COLOR.hairline}`, maxWidth: 480, margin: '0 auto' }}>
+        <Btn variant="jungle" size="lg" onClick={handleContinue}>Get Started</Btn>
       </div>
     </div>
   );
