@@ -248,6 +248,100 @@ function SplashScreen({ onComplete }: { onComplete: () => void }) {
   );
 }
 
+function OnboardingIntroScreen() {
+  const { onboardingPhase, advanceOnboarding } = useApp();
+
+  const slides = [
+    {
+      icon: PawPrint,
+      title: 'What You Can Do',
+      subtitle: 'Small actions, big impact',
+      features: [
+        { icon: PawPrint, label: 'Feed strays', desc: 'Offer safe food to animals near you' },
+        { icon: Droplets, label: 'Refill water', desc: 'Keep water bowls full, especially in summer' },
+        { icon: AlertTriangle, label: 'Spot & report', desc: 'Flag animals that need urgent help' },
+        { icon: BookOpen, label: 'Share stories', desc: 'Document care journeys to inspire others' },
+      ],
+    },
+    {
+      icon: Users,
+      title: 'Community Power',
+      subtitle: 'Together we make a difference',
+      features: [
+        { icon: Heart, label: '12,000+ animals helped', desc: 'Across India by everyday citizens' },
+        { icon: MapPin, label: '100+ water points', desc: 'Maintained by local volunteers' },
+        { icon: Trophy, label: 'Care leaderboards', desc: 'Friendly competition to save more lives' },
+        { icon: Shield, label: 'Verified rescues', desc: 'AI-verified reports for faster response' },
+      ],
+    },
+  ];
+
+  const slide = slides[onboardingPhase] || slides[0];
+  const isLast = onboardingPhase === slides.length - 1;
+  const Icon = slide.icon;
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 24px 24px', textAlign: 'center', gap: 20 }}>
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+        >
+          <div style={{ width: 80, height: 80, borderRadius: 24, backgroundColor: COLOR.jungleSoft, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon size={40} color={COLOR.jungle} />
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+        >
+          <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 28, color: COLOR.ink, lineHeight: 1.2 }}>{slide.title}</div>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 16, color: COLOR.ink2, marginTop: 8 }}>{slide.subtitle}</div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.3 }}
+          style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}
+        >
+          {slide.features.map((f, i) => (
+            <motion.div
+              key={f.label}
+              initial={{ opacity: 0, x: -16 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: 0.4 + i * 0.1 }}
+              style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', backgroundColor: COLOR.surface, borderRadius: 16, border: `2px solid ${COLOR.hairline}` }}
+            >
+              <div style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: COLOR.jungleSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <f.icon size={22} color={COLOR.jungle} />
+              </div>
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 15, color: COLOR.ink }}>{f.label}</div>
+                <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: COLOR.ink2 }}>{f.desc}</div>
+              </div>
+            </motion.div>
+          ))}
+        </motion.div>
+      </div>
+
+      <div style={{ padding: '0 24px 24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 20 }}>
+          {slides.map((_, i) => (
+            <div key={i} style={{ width: i === onboardingPhase ? 24 : 8, height: 8, borderRadius: 4, backgroundColor: i === onboardingPhase ? COLOR.jungle : COLOR.paper2, transition: 'all 0.3s ease' }} />
+          ))}
+        </div>
+        <Btn variant="jungle" size="lg" onClick={advanceOnboarding}>
+          {isLast ? 'Choose Your Area' : 'Continue'}
+        </Btn>
+      </div>
+    </div>
+  );
+}
+
 function SimpleOnboardingScreen({ onComplete }: { onComplete: () => void }) {
   const { neighborhood, setNeighborhood } = useApp();
   const [search, setSearch] = useState('');
@@ -1648,7 +1742,7 @@ export default function App() {
     phone, setPhone, gender, setGender, neighborhood,
     impactEvents, startMission, completeMission, toggleChecklistItem, checklistItems,
     setLeaderboardOptedIn, leaderboardOptedIn, logAnalytics, setActiveMission, lastCompletedMission,
-    newlyEarnedBadge,
+    newlyEarnedBadge, onboardingPhase,
   } = useApp();
   const [showActionSheet, setShowActionSheet] = useState(false);
   const [toast, setToast] = useState<{ message: string; sub?: string } | null>(null);
@@ -1734,6 +1828,15 @@ export default function App() {
   }
 
   if (!hasSeenOnboarding) {
+    if (onboardingPhase < 2) {
+      return (
+        <div style={{ minHeight: '100dvh', backgroundColor: COLOR.paper, position: 'relative', overflow: 'hidden', fontFamily: 'Nunito, sans-serif', color: COLOR.ink }}>
+          <div style={{ maxWidth: 480, margin: '0 auto', height: '100dvh', display: 'flex', flexDirection: 'column' }}>
+            <OnboardingIntroScreen />
+          </div>
+        </div>
+      );
+    }
     return (
       <div style={{ minHeight: '100dvh', backgroundColor: COLOR.paper, position: 'relative', overflow: 'hidden', fontFamily: 'Nunito, sans-serif', color: COLOR.ink }}>
         <div style={{ maxWidth: 480, margin: '0 auto', height: '100dvh', display: 'flex', flexDirection: 'column' }}>

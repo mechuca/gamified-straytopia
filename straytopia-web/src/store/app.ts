@@ -11,7 +11,8 @@ export type Screen =
   | 'lb-user-detail' | 'lb-privacy'
   | 'settings' | 'action-report' | 'action-sos' | 'action-invite'
   | 'care-zone-detail' | 'animal-detail' | 'metric-detail' | 'event-detail' | 'proof-detail'
-  | 'locked-modal' | 'badge-earned';
+  | 'locked-modal' | 'badge-earned'
+  | 'onboarding-intro' | 'onboarding-location';
 
 export interface MissionStatus {
   m1: 'locked' | 'available' | 'in_progress' | 'proof_required' | 'completed';
@@ -78,6 +79,8 @@ interface AppState {
   toggleDarkMode: () => void;
   resetDemo: () => void;
   logAnalytics: (event: string, data?: Record<string, unknown>) => void;
+  onboardingPhase: number;
+  advanceOnboarding: () => void;
 }
 
 const defaultMissionStatus: MissionStatus = {
@@ -124,6 +127,13 @@ export const useApp = create<AppState>((set, get) => ({
   impactEvents: [],
   proofs: [],
   savedAnimalNames: [],
+  onboardingPhase: 0,
+  advanceOnboarding: () => {
+    const current = get().onboardingPhase;
+    if (current === 0) set({ onboardingPhase: 1 });
+    else if (current === 1) set({ onboardingPhase: 2 });
+    else set({ hasSeenOnboarding: true, screen: 'home' });
+  },
   navigate: (s) => set({ screen: s }),
   setName: (n) => set({ name: n }),
   setPhone: (p) => set({ phone: p }),
@@ -132,7 +142,7 @@ export const useApp = create<AppState>((set, get) => ({
   setAvatarIndex: (i) => set({ avatarIndex: i }),
   setOnboardingStep: (n) => set({ onboardingStep: n }),
   setActiveMission: (id) => set({ activeMission: id }),
-  completeSplash: () => set({ hasSeenSplash: true, screen: 'onboarding' }),
+  completeSplash: () => set({ hasSeenSplash: true, screen: 'onboarding-intro' }),
   completeOnboarding: () => set({ hasSeenOnboarding: true, screen: 'home' }),
   startMission: (id) => {
     const missionChecklist = missionChecklists[id] || [];
@@ -224,6 +234,7 @@ export const useApp = create<AppState>((set, get) => ({
     proofs: [], savedAnimalNames: [],
     notifications: { mission_reminders: true, urgent_alerts: true, badge_updates: true, leaderboard_updates: false },
     darkMode: true,
+    onboardingPhase: 0,
   }),
   logAnalytics: (event, data) => {
     if (process.env.NODE_ENV === 'development') {
