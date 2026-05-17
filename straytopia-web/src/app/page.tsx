@@ -97,8 +97,8 @@ function BuddyAvatar({ name, online, tone = 'sky' }: { name: string; online: boo
   const c = colors[tone] || colors.sky;
   return (
     <div style={{ position: 'relative', display: 'inline-flex' }}>
-      <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: c.bg, color: c.fg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Fredoka', fontWeight: 600, fontSize: 16, border: '2.5px solid #fff' }}>{name[0]}</div>
-      {online && <div style={{ position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: '50%', backgroundColor: C.jungle, border: '2px solid #fff' }} />}
+      <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: c.bg, color: c.fg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Fredoka', fontWeight: 600, fontSize: 16, border: `2.5px solid ${C.paper}` }}>{name[0]}</div>
+      {online && <div style={{ position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: '50%', backgroundColor: C.jungle, border: `2px solid ${C.paper}` }} />}
     </div>
   );
 }
@@ -136,7 +136,7 @@ function useReducedMotion() {
 }
 
 function Card({ children, tone = 'surface', style = {}, onClick }: { children: React.ReactNode; tone?: string; style?: React.CSSProperties; onClick?: () => void }) {
-  const bg = tone === 'surface' ? C.surface : COLOR[tone as keyof typeof COLOR] || C.paper2;
+  const bg = tone === 'surface' ? C.surface : C[tone as keyof typeof C] || C.paper2;
   const bordered = tone === 'surface';
   return (
     <div onClick={onClick} role={onClick ? 'button' : undefined} tabIndex={onClick ? 0 : undefined} style={{ backgroundColor: bg, borderRadius: 24, padding: 16, ...(bordered ? { border: `2.5px solid ${C.hairline}`, borderBottomWidth: 4 } : {}), ...style }}>{children}</div>
@@ -151,7 +151,7 @@ function Pill({ children, tone = 'paper', variant = 'soft' }: { children: React.
     paper: { bg: C.paper2, fg: C.ink2 },
   };
   const c = colors[tone] || colors.paper;
-  const bg = variant === 'solid' ? COLOR[tone as keyof typeof COLOR] || C.paper2 : c.bg;
+  const bg = variant === 'solid' ? C[tone as keyof typeof C] || C.paper2 : c.bg;
   const fg = variant === 'solid' ? (tone === 'gold' ? C.goldInk : '#fff') : c.fg;
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 14px', borderRadius: 9999, backgroundColor: bg, fontSize: 13, fontWeight: 800, fontFamily: 'Nunito, sans-serif', color: fg }}>{children}</span>
@@ -166,7 +166,7 @@ function Avatar({ name, size = 40, tone = 'sky' }: { name: string; size?: number
   };
   const c = colors[tone] || colors.sky;
   return (
-    <div style={{ width: size, height: size, borderRadius: '50%', backgroundColor: c.bg, color: c.fg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Fredoka, sans-serif', fontWeight: 600, fontSize: size * 0.42, border: '2.5px solid #fff', flexShrink: 0 }}>{name[0]}</div>
+    <div style={{ width: size, height: size, borderRadius: '50%', backgroundColor: c.bg, color: c.fg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Fredoka, sans-serif', fontWeight: 600, fontSize: size * 0.42, border: `2.5px solid ${C.paper}`, flexShrink: 0 }}>{name[0]}</div>
   );
 }
 
@@ -296,7 +296,7 @@ function TabBar({ active, onChange }: { active: string; onChange: (t: string) =>
         </motion.button>
       ))}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <motion.button whileTap={{ scale: 0.95 }} onClick={() => { haptic('heavy'); onChange('action'); }} aria-label="Quick actions" style={{ width: 64, height: 64, borderRadius: 22, backgroundColor: C.coral, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: -28, boxShadow: `0 4px 0 0 ${C.coralDeep}`, cursor: 'pointer', border: '3px solid #fff' }}>
+        <motion.button whileTap={{ scale: 0.95 }} onClick={() => { haptic('heavy'); onChange('action'); }} aria-label="Quick actions" style={{ width: 64, height: 64, borderRadius: 22, backgroundColor: C.coral, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: -28, boxShadow: `0 4px 0 0 ${C.coralDeep}`, cursor: 'pointer', border: `3px solid ${C.paper}` }}>
           <Plus size={30} color="#fff" />
         </motion.button>
       </div>
@@ -423,8 +423,8 @@ function OnboardingIntroScreen() {
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.3 }} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
           {slide.features.map((f, i) => (
-            <motion.div key={f.label} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.4 + i * 0.1 }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', backgroundColor: C.surface, borderRadius: 14, border: `2px solid ${C.hairline}` }}>
-              <div style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: C[f.color + 'Soft' as keyof typeof C] || C.jungleSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <motion.div key={f.label} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.4 + i * 0.1 }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', backgroundColor: C.surface, borderRadius: 16, border: `2px solid ${C.hairline}` }}>
+              <div style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: C[f.color + 'Soft' as keyof typeof C] || C.jungleSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <f.icon size={20} color={C[f.color as keyof typeof C] || C.jungle} />
               </div>
               <div style={{ textAlign: 'left' }}>
@@ -512,7 +512,7 @@ function SimpleOnboardingScreen({ onComplete }: { onComplete: () => void }) {
         <div style={{ maxHeight: 180, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
           {filtered.map((n) => (
             <motion.button key={n} whileTap={{ scale: 0.98 }} onClick={() => setSelected(n)} style={{
-              padding: '12px 16px', borderRadius: 14, textAlign: 'left',
+              padding: '12px 16px', borderRadius: 16, textAlign: 'left',
               backgroundColor: selected === n ? C.jungleSoft : 'transparent',
               border: `2px solid ${selected === n ? C.jungle : 'transparent'}`,
               fontFamily: 'Nunito', fontWeight: 700, fontSize: 15, color: selected === n ? C.jungleDeep : C.ink,
@@ -536,7 +536,7 @@ function MissionPathNode({ mission, status, index, total, onPress }: { mission: 
   const isInProgress = status === 'in_progress';
   const isLast = index === total - 1;
 
-  const nodeBg = isCompleted ? C.jungle : isInProgress ? C.gold : isLocked ? C.paper2 : COLOR[mission.tone as keyof typeof COLOR] || C.jungle;
+  const nodeBg = isCompleted ? C.jungle : isInProgress ? C.gold : isLocked ? C.paper2 : C[mission.tone as keyof typeof C] || C.jungle;
   const nodeFg = isCompleted ? '#fff' : isInProgress ? C.goldInk : isLocked ? C.muted : '#fff';
   const opacity = isLocked ? 0.5 : 1;
 
@@ -564,8 +564,8 @@ function MissionPathNode({ mission, status, index, total, onPress }: { mission: 
   );
 }
 
-function toneShadow(tone: string): keyof typeof COLOR {
-  const map: Record<string, keyof typeof COLOR> = { jungle: 'jungleDeep', sky: 'skyDeep', plum: 'plumDeep', coral: 'coralDeep', gold: 'goldDeep' };
+function toneShadow(tone: string): keyof typeof C {
+  const map: Record<string, keyof typeof C> = { jungle: 'jungleDeep', sky: 'skyDeep', plum: 'plumDeep', coral: 'coralDeep', gold: 'goldDeep' };
   return map[tone] || 'jungleDeep';
 }
 
@@ -687,8 +687,8 @@ function HomeScreen({ setScreen, missions, missionStatus, points, streak, hearts
           {mockBadges.slice(0, 4).map((b) => {
             const earned = earnedBadges.includes(b.id);
             return (
-              <div key={b.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: 12, backgroundColor: earned ? COLOR[b.tone as keyof typeof COLOR] + '22' : C.paper2, borderRadius: 16, opacity: earned ? 1 : 0.4 }}>
-                <b.icon size={22} color={earned ? COLOR[b.tone as keyof typeof COLOR] : C.muted} />
+              <div key={b.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: 12, backgroundColor: earned ? C[b.tone as keyof typeof C] + '22' : C.paper2, borderRadius: 16, opacity: earned ? 1 : 0.4 }}>
+                <b.icon size={22} color={earned ? C[b.tone as keyof typeof C] : C.muted} />
                 <div style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 10, color: C.ink, textAlign: 'center' }}>{b.title}</div>
               </div>
             );
@@ -748,7 +748,7 @@ function MissionMap({ lat, lng, location, distance }: { lat: number; lng: number
           title="Mission location map"
         />
         <div style={{ position: 'absolute', bottom: 12, left: 12, right: 12 }}>
-          <div style={{ backgroundColor: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)', borderRadius: 14, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
+          <div style={{ backgroundColor: C.surface, backdropFilter: 'blur(8px)', borderRadius: 14, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: C.jungle, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <MapPin size={16} color="#fff" />
@@ -800,7 +800,7 @@ function MissionDetailScreen({ mission, onBack, onStart, status }: { mission: ty
           { icon: Zap, label: `+${mission.rewardPoints} pts` },
           { icon: Shield, label: 'Verified by AI' },
         ].map((item, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', backgroundColor: C.surface, borderRadius: 14, border: `2px solid ${C.hairline}` }}>
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', backgroundColor: C.surface, borderRadius: 16, border: `2px solid ${C.hairline}` }}>
             <item.icon size={20} color={C.ink2} />
             <span style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 15, color: C.ink }}>{item.label}</span>
           </div>
@@ -944,7 +944,7 @@ function BadgeUnlockAnimation({ badgeId, onComplete }: { badgeId: string; onComp
         transition={{ type: 'spring', stiffness: 200, damping: 12, delay: 0.2 }}
         style={{
           width: 200, padding: 32, borderRadius: 32,
-          backgroundColor: COLOR[badge.tone as keyof typeof COLOR],
+          backgroundColor: C[badge.tone as keyof typeof C],
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
           boxShadow: `0 20px 60px rgba(0,0,0,0.4)`,
         }}
@@ -1120,7 +1120,7 @@ function ImpactScreen({ setScreen, impactEvents, profile }: { setScreen: (s: Scr
             <div style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 12, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.06, marginBottom: 8 }}>Helpers involved</div>
             <div style={{ display: 'flex', gap: 8 }}>
               {selectedStory.helpers.map((h) => (
-                <div key={h} style={{ width: 36, height: 36, borderRadius: '50%', backgroundColor: C.sky, color: '#fff', fontSize: 14, fontWeight: 700, fontFamily: 'Fredoka', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #fff' }}>{h}</div>
+                <div key={h} style={{ width: 36, height: 36, borderRadius: '50%', backgroundColor: C.sky, color: '#fff', fontSize: 14, fontWeight: 700, fontFamily: 'Fredoka', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${C.paper}` }}>{h}</div>
               ))}
             </div>
           </div>
@@ -1451,8 +1451,8 @@ function ProfileScreen({ profile, badges, onReset }: { profile: any; badges: any
               {badges.map((b) => {
                 const earned = profile.earnedBadgeIds?.includes(b.id);
                 return (
-                  <div key={b.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: 12, backgroundColor: earned ? COLOR[b.tone as keyof typeof COLOR] + '22' : C.paper2, borderRadius: 16, opacity: earned ? 1 : 0.4 }}>
-                    <b.icon size={22} color={earned ? COLOR[b.tone as keyof typeof COLOR] : C.muted} />
+                  <div key={b.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: 12, backgroundColor: earned ? C[b.tone as keyof typeof C] + '22' : C.paper2, borderRadius: 16, opacity: earned ? 1 : 0.4 }}>
+                    <b.icon size={22} color={earned ? C[b.tone as keyof typeof C] : C.muted} />
                     <div style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 11, color: C.ink, textAlign: 'center' }}>{b.title}</div>
                   </div>
                 );
@@ -1502,9 +1502,9 @@ function ActionSheet({ open, onClose, onAction }: { open: boolean; onClose: () =
         <div style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: C.hairline2, margin: '0 auto 20px' }} />
         <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 20, color: C.ink, marginBottom: 20 }}>Quick Actions</div>
         {actions.map((a) => (
-          <motion.button key={a.label} whileTap={{ scale: 0.98 }} onClick={() => { onAction(a.action); onClose(); }} style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: '14px 12px', background: 'none', border: 'none', cursor: 'pointer', borderRadius: 14 }}>
-            <div style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: COLOR[a.tone] + '22', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <a.icon size={24} color={COLOR[a.tone]} />
+          <motion.button key={a.label} whileTap={{ scale: 0.98 }} onClick={() => { onAction(a.action); onClose(); }} style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: '14px 12px', background: 'none', border: 'none', cursor: 'pointer', borderRadius: 16 }}>
+            <div style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: C[a.tone] + '22', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <a.icon size={24} color={C[a.tone]} />
             </div>
             <div style={{ textAlign: 'left' }}>
               <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 16, color: C.ink }}>{a.label}</div>
