@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { missionChecklists } from '@/lib/mock';
+import { resolveSystemTheme, type ThemeMode } from '@/lib/theme';
 
 export type Screen =
   | 'splash'
@@ -90,6 +91,10 @@ interface AppState {
   setProofPhoto: (p: string | null) => void;
   setNotification: (key: string, value: boolean) => void;
   darkMode: boolean;
+  themeMode: ThemeMode;
+  setThemeMode: (mode: ThemeMode) => void;
+  initializeTheme: () => void;
+  syncSystemTheme: () => void;
   toggleDarkMode: () => void;
   toggleLikeStory: (id: string) => void;
   toggleBookmarkStory: (id: string) => void;
@@ -146,6 +151,7 @@ export const useApp = create<AppState>((set, get) => ({
   checklistItems: { ...defaultChecklistItems },
   notifications: { mission_reminders: true, urgent_alerts: true, badge_updates: true, leaderboard_updates: false },
   darkMode: false,
+  themeMode: 'system',
   earnedBadges: [],
   newlyEarnedBadge: null,
   missionHistory: [],
@@ -258,7 +264,30 @@ export const useApp = create<AppState>((set, get) => ({
   setLbDisplayName: (n) => set({ lbDisplayName: n }),
   setProofPhoto: (p) => set({ proofPhoto: p }),
   setNotification: (key, value) => set((s) => ({ notifications: { ...s.notifications, [key]: value } })),
-  toggleDarkMode: () => set((s) => ({ darkMode: !s.darkMode })),
+  setThemeMode: (mode) => {
+    const resolved = mode === 'system' ? resolveSystemTheme() : mode === 'dark';
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('straytopia-theme-mode', mode);
+    }
+    set({ themeMode: mode, darkMode: resolved });
+  },
+  initializeTheme: () => {
+    const stored = typeof window !== 'undefined' ? window.localStorage.getItem('straytopia-theme-mode') : null;
+    const themeMode = stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
+    const darkMode = themeMode === 'system' ? resolveSystemTheme() : themeMode === 'dark';
+    set({ themeMode, darkMode });
+  },
+  syncSystemTheme: () => {
+    if (get().themeMode !== 'system') return;
+    set({ darkMode: resolveSystemTheme() });
+  },
+  toggleDarkMode: () => {
+    const nextMode = get().darkMode ? 'light' : 'dark';
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('straytopia-theme-mode', nextMode);
+    }
+    set({ themeMode: nextMode, darkMode: nextMode === 'dark' });
+  },
   toggleLikeStory: (id) => set((s) => ({
     likedStories: s.likedStories.includes(id) ? s.likedStories.filter((i) => i !== id) : [...s.likedStories, id],
   })),
@@ -287,7 +316,7 @@ export const useApp = create<AppState>((set, get) => ({
     streakFreeze: false, locationHistory: [], pushNotifications: true,
     buddyMode: false, hapticEnabled: true, skeletonLoading: false,
     notifications: { mission_reminders: true, urgent_alerts: true, badge_updates: true, leaderboard_updates: false },
-    darkMode: false, onboardingPhase: 0, lastResetDate: new Date().toDateString(), allTasksDoneToday: false, hasSeenHomeTour: false,
+    darkMode: false, themeMode: 'system', onboardingPhase: 0, lastResetDate: new Date().toDateString(), allTasksDoneToday: false, hasSeenHomeTour: false,
   }),
   logAnalytics: (event, data) => {
     if (process.env.NODE_ENV === 'development') {

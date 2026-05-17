@@ -50,14 +50,14 @@ export function Button({
   const C = getTheme(darkMode);
 
   const colors: Record<ButtonVariant, { bg: string; shadow: string; fg: string }> = {
-    jungle: { bg: C.jungle, shadow: C.jungleDeep, fg: '#fff' },
-    coral: { bg: C.coral, shadow: C.coralDeep, fg: '#fff' },
-    gold: { bg: C.gold, shadow: C.goldDeep, fg: C.goldInk },
-    sky: { bg: C.sky, shadow: C.skyDeep, fg: '#fff' },
+    jungle: { bg: C.primary, shadow: C.primaryHover, fg: '#fff' },
+    coral: { bg: C.danger, shadow: C.coralDeep, fg: '#fff' },
+    gold: { bg: C.warning, shadow: C.goldDeep, fg: C.goldInk },
+    sky: { bg: C.info, shadow: C.skyDeep, fg: '#fff' },
     plum: { bg: C.plum, shadow: C.plumDeep, fg: '#fff' },
-    ink: { bg: C.ink, shadow: '#000', fg: C.paper },
-    paper: { bg: C.surface, shadow: C.hairline2, fg: C.ink },
-    ghost: { bg: 'transparent', shadow: 'transparent', fg: C.ink2 },
+    ink: { bg: C.textPrimary, shadow: '#000', fg: C.background },
+    paper: { bg: C.surfaceElevated, shadow: C.borderStrong, fg: C.textPrimary },
+    ghost: { bg: 'transparent', shadow: 'transparent', fg: C.textSecondary },
   };
 
   const c = colors[variant];
@@ -82,11 +82,11 @@ export function Button({
         fontSize: sz.fontSize,
         fontFamily: 'Fredoka, sans-serif',
         letterSpacing: 0.01,
-        border: isGhost ? `2.5px solid ${C.hairline2}` : 'none',
+        border: isGhost ? `1px solid ${C.borderStrong}` : 'none',
         opacity: disabled ? 0.5 : 1,
         cursor: disabled ? 'not-allowed' : 'pointer',
         marginBottom: isGhost ? 0 : 4,
-        boxShadow: isGhost ? 'none' : `0 4px 0 0 ${c.shadow}`,
+        boxShadow: isGhost ? 'none' : `0 10px 18px ${C.shadow}, 0 4px 0 0 ${c.shadow}`,
       }}
     >
       {leftIcon}

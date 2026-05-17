@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence, TargetAndTransition } from 'framer-motion';
 import { BUDDY_POSES, SCENE_TO_POSE } from '@/lib/masko';
 import { Saathi } from './Saathi';
-import { LIGHT as COLOR } from '@/lib/theme';
+import { getTheme } from '@/lib/theme';
+import { useApp } from '@/store/app';
 
 interface BuddyMascotProps {
   scene: string;
@@ -52,6 +53,8 @@ const POSE_ANIMATIONS: Record<string, TargetAndTransition> = {
 };
 
 export function BuddyMascot({ scene, size = 80, prefersReducedMotion = false }: BuddyMascotProps) {
+  const darkMode = useApp((s) => s.darkMode);
+  const COLOR = getTheme(darkMode);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const poseName = SCENE_TO_POSE[scene] || 'idle';

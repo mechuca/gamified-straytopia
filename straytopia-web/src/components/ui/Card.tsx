@@ -17,13 +17,13 @@ export function Card({ children, tone = 'surface', className = '', style, onClic
   const C = getTheme(darkMode);
 
   const bgMap: Record<CardTone, string> = {
-    surface: C.surface,
-    jungle: C.jungle,
-    coral: C.coral,
-    gold: C.gold,
-    sky: C.sky,
+    surface: C.card,
+    jungle: C.primary,
+    coral: C.danger,
+    gold: C.warning,
+    sky: C.info,
     plum: C.plum,
-    paper: C.paper2,
+    paper: C.cardMuted,
   };
 
   const bg = bgMap[tone];
@@ -37,7 +37,7 @@ export function Card({ children, tone = 'surface', className = '', style, onClic
       className={`rounded-3xl p-4 ${className}`}
       style={{
         backgroundColor: bg,
-        ...(bordered ? { border: `2.5px solid ${C.hairline}`, borderBottomWidth: 4 } : {}),
+        ...(bordered ? { border: `1px solid ${C.borderStrong}`, boxShadow: `0 10px 24px ${C.shadow}` } : {}),
         ...style,
       }}
     >

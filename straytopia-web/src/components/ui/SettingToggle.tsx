@@ -37,7 +37,7 @@ export function SettingToggle({ icon: Icon, label, description, checked, onChang
         onChange();
       }}
       className={`flex items-center justify-between w-full p-3.5 rounded-2xl border-none cursor-pointer ${className}`}
-      style={{ backgroundColor: C.surface }}
+      style={{ backgroundColor: C.surfaceElevated, border: `1px solid ${C.border}` }}
     >
       <div className="flex items-center gap-3">
         <div
@@ -45,7 +45,7 @@ export function SettingToggle({ icon: Icon, label, description, checked, onChang
           style={{
             width: 40,
             height: 40,
-            backgroundColor: C.paper2,
+            backgroundColor: C.cardMuted,
           }}
         >
           <Icon size={20} color={checked ? C.jungle : C.muted} />
@@ -56,7 +56,7 @@ export function SettingToggle({ icon: Icon, label, description, checked, onChang
               fontFamily: 'Fredoka',
               fontWeight: 600,
               fontSize: 15,
-              color: C.ink,
+              color: C.textPrimary,
             }}
           >
             {label}
@@ -66,7 +66,7 @@ export function SettingToggle({ icon: Icon, label, description, checked, onChang
               fontFamily: 'Nunito',
               fontWeight: 500,
               fontSize: 13,
-              color: C.ink2,
+              color: C.textSecondary,
             }}
           >
             {description}
@@ -79,7 +79,7 @@ export function SettingToggle({ icon: Icon, label, description, checked, onChang
           width: 48,
           height: 28,
           borderRadius: 14,
-          backgroundColor: checked ? C.jungle : C.hairline2,
+          backgroundColor: checked ? C.primary : C.borderStrong,
           transition: 'background-color 0.2s',
         }}
       >

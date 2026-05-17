@@ -79,9 +79,9 @@ function Tooltip({ text, children }: { text: string; children: React.ReactNode }
     <div style={{ position: 'relative', display: 'inline-flex' }} onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)} onFocus={() => setShow(true)} onBlur={() => setShow(false)}>
       {children}
       {show && (
-        <div style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 8, padding: '8px 12px', backgroundColor: C.ink, color: C.paper, borderRadius: 10, fontFamily: 'Nunito', fontWeight: 600, fontSize: 12, whiteSpace: 'nowrap', zIndex: 100, maxWidth: 200 }}>
+        <div style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 8, padding: '8px 12px', backgroundColor: C.surfaceElevated, color: C.textPrimary, borderRadius: 10, fontFamily: 'Nunito', fontWeight: 600, fontSize: 12, whiteSpace: 'nowrap', zIndex: 100, maxWidth: 200, border: `1px solid ${C.borderStrong}`, boxShadow: `0 10px 24px ${C.shadow}` }}>
           {text}
-          <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', border: '6px solid transparent', borderTopColor: C.ink }} />
+          <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', border: '6px solid transparent', borderTopColor: C.surfaceElevated }} />
         </div>
       )}
     </div>
@@ -194,6 +194,48 @@ function SettingToggle({ icon: Icon, label, description, checked, onChange }: { 
   );
 }
 
+function ThemeModeSelector({
+  mode,
+  onChange,
+}: {
+  mode: 'light' | 'dark' | 'system';
+  onChange: (mode: 'light' | 'dark' | 'system') => void;
+}) {
+  const options: Array<{ key: 'light' | 'dark' | 'system'; label: string }> = [
+    { key: 'light', label: 'Light' },
+    { key: 'dark', label: 'Dark' },
+    { key: 'system', label: 'System' },
+  ];
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, padding: 8, borderRadius: 18, backgroundColor: C.cardMuted }}>
+      {options.map((option) => {
+        const active = option.key === mode;
+        return (
+          <motion.button
+            key={option.key}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => { haptic('select'); onChange(option.key); }}
+            style={{
+              minHeight: 44,
+              borderRadius: 14,
+              border: active ? `1px solid ${C.borderStrong}` : '1px solid transparent',
+              background: active ? C.surfaceElevated : 'transparent',
+              color: active ? C.textPrimary : C.textSecondary,
+              fontFamily: 'Nunito',
+              fontWeight: 800,
+              fontSize: 13,
+              cursor: 'pointer',
+            }}
+          >
+            {option.label}
+          </motion.button>
+        );
+      })}
+    </div>
+  );
+}
+
 function useReducedMotion() {
   const [reduced, setReduced] = useState(false);
   useEffect(() => {
@@ -295,8 +337,8 @@ function Confetti({ disabled = false }: { disabled?: boolean }) {
 function Modal({ open, onClose, children }: { open: boolean; onClose: () => void; children: React.ReactNode }) {
   if (!open) return null;
   return (
-    <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }} onClick={onClose}>
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} onClick={(e) => e.stopPropagation()} style={{ backgroundColor: C.paper, borderRadius: 24, padding: 24, width: '85%', maxWidth: 380, maxHeight: '80vh', overflowY: 'auto' }}>{children}</motion.div>
+    <div style={{ position: 'fixed', inset: 0, backgroundColor: C.overlay, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }} onClick={onClose}>
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} onClick={(e) => e.stopPropagation()} style={{ backgroundColor: C.surfaceElevated, borderRadius: 24, padding: 24, width: '85%', maxWidth: 380, maxHeight: '80vh', overflowY: 'auto', border: `1px solid ${C.borderStrong}`, boxShadow: `0 20px 36px ${C.shadow}` }}>{children}</motion.div>
     </div>
   );
 }
@@ -304,8 +346,8 @@ function Modal({ open, onClose, children }: { open: boolean; onClose: () => void
 function ConfirmationDialog({ open, title, body, confirmLabel, cancelLabel, onConfirm, onCancel, confirmVariant = 'jungle' }: { open: boolean; title: string; body: string; confirmLabel: string; cancelLabel: string; onConfirm: () => void; onCancel: () => void; confirmVariant?: string }) {
   if (!open) return null;
   return (
-    <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300 }} onClick={onCancel}>
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} onClick={(e) => e.stopPropagation()} style={{ backgroundColor: C.paper, borderRadius: 24, padding: 24, width: '85%', maxWidth: 380 }}>
+    <div style={{ position: 'fixed', inset: 0, backgroundColor: C.overlay, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300 }} onClick={onCancel}>
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} onClick={(e) => e.stopPropagation()} style={{ backgroundColor: C.surfaceElevated, borderRadius: 24, padding: 24, width: '85%', maxWidth: 380, border: `1px solid ${C.borderStrong}`, boxShadow: `0 20px 36px ${C.shadow}` }}>
         <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 22, color: C.ink, marginBottom: 12, textAlign: 'center' }}>{title}</div>
         <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 15, color: C.ink2, marginBottom: 24, textAlign: 'center', lineHeight: 1.6 }}>{body}</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -335,7 +377,7 @@ function SuccessToast({ message, sub, onClose }: { message: string; sub?: string
 
   return (
     <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} style={{ position: 'fixed', top: 16, left: 16, right: 16, zIndex: 400, maxWidth: 500, margin: '0 auto' }}>
-      <div style={{ backgroundColor: C.jungle, borderRadius: 16, padding: '14px 20px', boxShadow: '0 8px 24px rgba(0,0,0,0.3)', overflow: 'hidden', position: 'relative' }}>
+      <div style={{ backgroundColor: C.success, borderRadius: 16, padding: '14px 20px', boxShadow: `0 14px 28px ${C.shadow}`, overflow: 'hidden', position: 'relative' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <CheckCircle size={22} color="#fff" />
           <div style={{ flex: 1 }}>
@@ -359,17 +401,17 @@ function TabBar({ active, onChange }: { active: string; onChange: (t: string) =>
     { id: 'profile', label: 'You', icon: User },
   ];
   return (
-    <div style={{ position: 'fixed', left: 14, right: 14, bottom: 18, height: 78, background: `linear-gradient(180deg, ${C.surface}ee 0%, ${C.paper2}f4 100%)`, backdropFilter: 'blur(18px)', borderRadius: 30, border: `1px solid ${C.hairline}`, display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', alignItems: 'center', padding: '0 6px', zIndex: 50, maxWidth: 500, margin: '0 auto', boxShadow: '0 20px 40px rgba(0,0,0,0.12)' }}>
+    <div style={{ position: 'fixed', left: 14, right: 14, bottom: 18, height: 78, background: C.navBackground, backdropFilter: 'blur(18px)', borderRadius: 30, border: `1px solid ${C.border}`, display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', alignItems: 'center', padding: '0 6px', zIndex: 50, maxWidth: 500, margin: '0 auto', boxShadow: `0 20px 40px ${C.shadow}` }}>
       {tabs.map((t) => (
-        <motion.button key={t.id} whileTap={{ scale: 0.94 }} onClick={() => { haptic('select'); onChange(t.id); }} aria-label={t.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, background: active === t.id ? `${C.jungle}12` : 'transparent', border: 'none', cursor: 'pointer', color: active === t.id ? C.jungleDeep : C.muted, minHeight: 54, borderRadius: 18, margin: '0 2px' }}>
-          <div style={{ width: 34, height: 34, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: active === t.id ? `${C.jungle}18` : 'transparent' }}>
-            <t.icon size={21} color={active === t.id ? C.jungleDeep : C.muted} />
+        <motion.button key={t.id} whileTap={{ scale: 0.94 }} onClick={() => { haptic('select'); onChange(t.id); }} aria-label={t.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, background: active === t.id ? C.primarySoft : 'transparent', border: 'none', cursor: 'pointer', color: active === t.id ? C.navActive : C.navInactive, minHeight: 54, borderRadius: 18, margin: '0 2px' }}>
+          <div style={{ width: 34, height: 34, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: active === t.id ? C.primarySoft : 'transparent' }}>
+            <t.icon size={21} color={active === t.id ? C.navActive : C.navInactive} />
           </div>
           <span style={{ fontSize: 10, fontWeight: 800, fontFamily: 'Nunito', textTransform: 'uppercase', letterSpacing: 0.06 }}>{t.label}</span>
         </motion.button>
       ))}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <motion.button whileTap={{ scale: 0.95 }} onClick={() => { haptic('heavy'); onChange('action'); }} aria-label="Quick actions" style={{ width: 64, height: 64, borderRadius: 24, background: `linear-gradient(135deg, ${C.coral} 0%, ${C.coralDeep} 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: -30, boxShadow: `0 16px 28px ${C.coral}40`, cursor: 'pointer', border: `3px solid ${C.paper}` }}>
+        <motion.button whileTap={{ scale: 0.95 }} onClick={() => { haptic('heavy'); onChange('action'); }} aria-label="Quick actions" style={{ width: 64, height: 64, borderRadius: 24, background: `linear-gradient(135deg, ${C.danger} 0%, ${C.coralDeep} 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: -30, boxShadow: `0 16px 28px ${C.shadow}`, cursor: 'pointer', border: `3px solid ${C.background}` }}>
           <Plus size={30} color="#fff" />
         </motion.button>
       </div>
@@ -379,14 +421,14 @@ function TabBar({ active, onChange }: { active: string; onChange: (t: string) =>
 
 function StatStrip({ points, streak, hearts }: { points: number; streak: number; hearts: number }) {
   return (
-    <div style={{ marginBottom: 18, overflow: 'hidden', borderRadius: 22, background: `linear-gradient(135deg, ${C.surface} 0%, ${C.paper2} 100%)`, boxShadow: `inset 0 -1px 0 ${C.hairline}` }}>
+    <div style={{ marginBottom: 18, overflow: 'hidden', borderRadius: 22, background: `linear-gradient(135deg, ${C.card} 0%, ${C.cardMuted} 100%)`, boxShadow: `inset 0 -1px 0 ${C.border}` }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)' }}>
         {[
           { icon: Flame, label: 'Streak', value: streak, color: C.coral, tone: C.coralDeep },
           { icon: Zap, label: 'Points', value: points, color: C.gold, tone: C.goldDeep },
           { icon: Heart, label: 'Hearts', value: hearts, color: C.coral, tone: C.coralDeep },
         ].map((item, index) => (
-          <div key={item.label} style={{ padding: '14px 10px', textAlign: 'center', borderLeft: index === 0 ? 'none' : `1px solid ${C.hairline}` }}>
+          <div key={item.label} style={{ padding: '14px 10px', textAlign: 'center', borderLeft: index === 0 ? 'none' : `1px solid ${C.border}` }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: 12, backgroundColor: `${item.color}18`, marginBottom: 8 }}>
               <item.icon size={18} color={item.color} fill={item.color} />
             </div>
@@ -1689,7 +1731,7 @@ function LeaderboardScreen({ setScreen, users, profile, onJoin, onCancel, name, 
 }
 
 function ProfileScreen({ profile, badges, onReset }: { profile: any; badges: any[]; onReset: () => void }) {
-  const { darkMode, toggleDarkMode, hapticEnabled, toggleHapticEnabled, buddyMode, toggleBuddyMode, pushNotifications, togglePushNotifications, streakFreeze, toggleStreakFreeze, locationHistory } = useApp();
+  const { themeMode, setThemeMode, hapticEnabled, toggleHapticEnabled, buddyMode, toggleBuddyMode, pushNotifications, togglePushNotifications, streakFreeze, toggleStreakFreeze, locationHistory } = useApp();
   const [showReset, setShowReset] = useState(false);
   return (
     <div style={{ padding: '0 16px 100px' }}>
@@ -1733,7 +1775,11 @@ function ProfileScreen({ profile, badges, onReset }: { profile: any; badges: any
         <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: C.ink, marginBottom: 6 }}>Preferences</div>
         <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: C.ink2, marginBottom: 12 }}>Control how Straytopia feels and reminds you.</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 12, borderRadius: 22, backgroundColor: C.paper2 }}>
-          <SettingToggle icon={Moon} label="Dark Mode" description="Switch to dark theme" checked={darkMode} onChange={toggleDarkMode} />
+          <div style={{ padding: '4px 4px 10px' }}>
+            <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 15, color: C.ink, marginBottom: 4 }}>Theme</div>
+            <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: C.ink2, marginBottom: 12 }}>Choose Light, Dark, or follow your device setting.</div>
+            <ThemeModeSelector mode={themeMode} onChange={setThemeMode} />
+          </div>
           <SettingToggle icon={Smartphone} label="Haptic Feedback" description="Vibrate on interactions" checked={hapticEnabled} onChange={toggleHapticEnabled} />
           <SettingToggle icon={Bell} label="Push Notifications" description="Get mission reminders" checked={pushNotifications} onChange={togglePushNotifications} />
           <SettingToggle icon={Users} label="Buddy Mode" description="Show nearby helpers" checked={buddyMode} onChange={toggleBuddyMode} />
@@ -2406,7 +2452,7 @@ export default function App() {
     phone, setPhone, gender, setGender, neighborhood,
     impactEvents, startMission, completeMission, toggleChecklistItem, checklistItems,
     setLeaderboardOptedIn, leaderboardOptedIn, logAnalytics, setActiveMission, lastCompletedMission,
-    newlyEarnedBadge, onboardingPhase, darkMode, skipOnboarding, setSkeletonLoading,
+    newlyEarnedBadge, onboardingPhase, darkMode, skipOnboarding, setSkeletonLoading, initializeTheme, syncSystemTheme,
   } = useApp();
   C = getTheme(darkMode);
   const [showActionSheet, setShowActionSheet] = useState(false);
@@ -2414,6 +2460,22 @@ export default function App() {
   const [showLockedModal, setShowLockedModal] = useState(false);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const reducedMotion = useReducedMotion();
+
+  useEffect(() => {
+    initializeTheme();
+  }, [initializeTheme]);
+
+  useEffect(() => {
+    const mediaQuery = typeof window !== 'undefined' ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+    const handleChange = () => syncSystemTheme();
+    mediaQuery?.addEventListener('change', handleChange);
+    return () => mediaQuery?.removeEventListener('change', handleChange);
+  }, [syncSystemTheme]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    document.documentElement.classList.toggle('dark', darkMode);
+  }, [darkMode]);
 
   // Simulate skeleton loading on initial load
   useEffect(() => {
@@ -2501,7 +2563,7 @@ export default function App() {
 
   if (!hasSeenSplash) {
     return (
-      <div style={{ minHeight: '100dvh', backgroundColor: C.jungle, position: 'relative', overflow: 'hidden', fontFamily: 'Nunito, sans-serif', color: C.ink }}>
+      <div style={{ minHeight: '100dvh', backgroundColor: C.primary, position: 'relative', overflow: 'hidden', fontFamily: 'Nunito, sans-serif', color: C.textPrimary }}>
         <div style={{ maxWidth: 480, margin: '0 auto', height: '100dvh', display: 'flex', flexDirection: 'column' }}>
           <SplashScreen onComplete={completeSplash} />
         </div>
@@ -2512,7 +2574,7 @@ export default function App() {
   if (!hasSeenOnboarding) {
     if (onboardingPhase < 2) {
       return (
-        <div style={{ minHeight: '100dvh', backgroundColor: C.paper, position: 'relative', overflow: 'hidden', fontFamily: 'Nunito, sans-serif', color: C.ink }}>
+        <div style={{ minHeight: '100dvh', backgroundColor: C.background, position: 'relative', overflow: 'hidden', fontFamily: 'Nunito, sans-serif', color: C.textPrimary }}>
           <div style={{ maxWidth: 480, margin: '0 auto', height: '100dvh', display: 'flex', flexDirection: 'column' }}>
             <OnboardingIntroScreen />
           </div>
@@ -2520,7 +2582,7 @@ export default function App() {
       );
     }
     return (
-      <div style={{ minHeight: '100dvh', backgroundColor: C.paper, position: 'relative', overflow: 'hidden', fontFamily: 'Nunito, sans-serif', color: C.ink }}>
+      <div style={{ minHeight: '100dvh', backgroundColor: C.background, position: 'relative', overflow: 'hidden', fontFamily: 'Nunito, sans-serif', color: C.textPrimary }}>
         <div style={{ maxWidth: 480, margin: '0 auto', height: '100dvh', display: 'flex', flexDirection: 'column' }}>
           <SimpleOnboardingScreen onComplete={completeOnboarding} />
         </div>
@@ -2529,7 +2591,7 @@ export default function App() {
   }
 
   return (
-    <div style={{ minHeight: '100dvh', backgroundColor: C.paper, position: 'relative', overflow: 'hidden', fontFamily: 'Nunito, sans-serif', color: C.ink }}>
+    <div style={{ minHeight: '100dvh', backgroundColor: C.background, position: 'relative', overflow: 'hidden', fontFamily: 'Nunito, sans-serif', color: C.textPrimary }}>
       <div style={{ maxWidth: 480, margin: '0 auto', height: '100dvh', display: 'flex', flexDirection: 'column' }}>
       <AnimatePresence mode="wait">
         <motion.div key={screen} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} style={{ flex: 1, overflowY: 'auto', paddingBottom: 100 }}>
