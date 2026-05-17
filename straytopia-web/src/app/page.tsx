@@ -88,6 +88,77 @@ function Tooltip({ text, children }: { text: string; children: React.ReactNode }
   );
 }
 
+function TourBubble({
+  title,
+  body,
+  stepLabel,
+  isLast = false,
+  onNext,
+  onSkip,
+}: {
+  title: string;
+  body: string;
+  stepLabel: string;
+  isLast?: boolean;
+  onNext: () => void;
+  onSkip: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      style={{
+        backgroundColor: C.ink,
+        color: C.paper,
+        borderRadius: 20,
+        padding: 16,
+        boxShadow: '0 14px 32px rgba(0,0,0,0.26)',
+      }}
+    >
+      <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, color: 'rgba(255,255,255,0.64)', textTransform: 'uppercase', letterSpacing: 0.08, marginBottom: 6 }}>{stepLabel}</div>
+      <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: '#fff', marginBottom: 6 }}>{title}</div>
+      <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 14, color: 'rgba(255,255,255,0.82)', lineHeight: 1.55, marginBottom: 14 }}>{body}</div>
+      <div style={{ display: 'flex', gap: 10 }}>
+        <button
+          onClick={() => { haptic('light'); onSkip(); }}
+          style={{
+            flex: 1,
+            minHeight: 44,
+            borderRadius: 14,
+            border: '1px solid rgba(255,255,255,0.16)',
+            background: 'transparent',
+            color: 'rgba(255,255,255,0.82)',
+            fontFamily: 'Nunito',
+            fontWeight: 800,
+            fontSize: 13,
+            cursor: 'pointer',
+          }}
+        >
+          Skip
+        </button>
+        <button
+          onClick={() => { haptic('medium'); onNext(); }}
+          style={{
+            flex: 1,
+            minHeight: 44,
+            borderRadius: 14,
+            border: 'none',
+            backgroundColor: C.jungle,
+            color: '#fff',
+            fontFamily: 'Fredoka',
+            fontWeight: 600,
+            fontSize: 14,
+            cursor: 'pointer',
+            boxShadow: `0 4px 0 0 ${C.jungleDeep}`,
+          }}
+        >
+          {isLast ? 'Finish' : 'Next'}
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
 // Buddy avatar component
 function BuddyAvatar({ name, online, tone = 'sky' }: { name: string; online: boolean; tone?: string }) {
   const colors: Record<string, { bg: string; fg: string }> = {
@@ -288,15 +359,17 @@ function TabBar({ active, onChange }: { active: string; onChange: (t: string) =>
     { id: 'profile', label: 'You', icon: User },
   ];
   return (
-    <div style={{ position: 'fixed', left: 14, right: 14, bottom: 22, height: 76, backgroundColor: C.surface, borderRadius: 28, border: `2.5px solid ${C.hairline}`, borderBottomWidth: 4, display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', alignItems: 'center', padding: '0 4px', zIndex: 50, maxWidth: 500, margin: '0 auto' }}>
+    <div style={{ position: 'fixed', left: 14, right: 14, bottom: 18, height: 78, background: `linear-gradient(180deg, ${C.surface}ee 0%, ${C.paper2}f4 100%)`, backdropFilter: 'blur(18px)', borderRadius: 30, border: `1px solid ${C.hairline}`, display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', alignItems: 'center', padding: '0 6px', zIndex: 50, maxWidth: 500, margin: '0 auto', boxShadow: '0 20px 40px rgba(0,0,0,0.12)' }}>
       {tabs.map((t) => (
-        <motion.button key={t.id} whileTap={{ scale: 0.9 }} onClick={() => { haptic('select'); onChange(t.id); }} aria-label={t.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', color: active === t.id ? C.jungleDeep : C.muted, minHeight: 44 }}>
-          <t.icon size={24} fill={active === t.id ? C.jungleDeep : 'none'} color={active === t.id ? C.jungleDeep : C.muted} />
+        <motion.button key={t.id} whileTap={{ scale: 0.94 }} onClick={() => { haptic('select'); onChange(t.id); }} aria-label={t.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, background: active === t.id ? `${C.jungle}12` : 'transparent', border: 'none', cursor: 'pointer', color: active === t.id ? C.jungleDeep : C.muted, minHeight: 54, borderRadius: 18, margin: '0 2px' }}>
+          <div style={{ width: 34, height: 34, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: active === t.id ? `${C.jungle}18` : 'transparent' }}>
+            <t.icon size={21} color={active === t.id ? C.jungleDeep : C.muted} />
+          </div>
           <span style={{ fontSize: 10, fontWeight: 800, fontFamily: 'Nunito', textTransform: 'uppercase', letterSpacing: 0.06 }}>{t.label}</span>
         </motion.button>
       ))}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <motion.button whileTap={{ scale: 0.95 }} onClick={() => { haptic('heavy'); onChange('action'); }} aria-label="Quick actions" style={{ width: 64, height: 64, borderRadius: 22, backgroundColor: C.coral, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: -28, boxShadow: `0 4px 0 0 ${C.coralDeep}`, cursor: 'pointer', border: `3px solid ${C.paper}` }}>
+        <motion.button whileTap={{ scale: 0.95 }} onClick={() => { haptic('heavy'); onChange('action'); }} aria-label="Quick actions" style={{ width: 64, height: 64, borderRadius: 24, background: `linear-gradient(135deg, ${C.coral} 0%, ${C.coralDeep} 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: -30, boxShadow: `0 16px 28px ${C.coral}40`, cursor: 'pointer', border: `3px solid ${C.paper}` }}>
           <Plus size={30} color="#fff" />
         </motion.button>
       </div>
@@ -306,10 +379,22 @@ function TabBar({ active, onChange }: { active: string; onChange: (t: string) =>
 
 function StatStrip({ points, streak, hearts }: { points: number; streak: number; hearts: number }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16, padding: '12px 16px', backgroundColor: C.surface, borderRadius: 18, border: `2px solid ${C.hairline}` }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Flame size={22} color={C.coral} fill={C.coral} /><span style={{ fontFamily: 'Fredoka', fontWeight: 700, fontSize: 20, color: C.coralDeep }}>{streak}</span></div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Zap size={22} color={C.gold} fill={C.gold} /><span style={{ fontFamily: 'Fredoka', fontWeight: 700, fontSize: 20, color: C.goldDeep }}>{points}</span></div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Heart size={22} color={C.coral} fill={C.coral} /><span style={{ fontFamily: 'Fredoka', fontWeight: 700, fontSize: 20, color: C.coralDeep }}>{hearts}</span></div>
+    <div style={{ marginBottom: 18, overflow: 'hidden', borderRadius: 22, background: `linear-gradient(135deg, ${C.surface} 0%, ${C.paper2} 100%)`, boxShadow: `inset 0 -1px 0 ${C.hairline}` }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)' }}>
+        {[
+          { icon: Flame, label: 'Streak', value: streak, color: C.coral, tone: C.coralDeep },
+          { icon: Zap, label: 'Points', value: points, color: C.gold, tone: C.goldDeep },
+          { icon: Heart, label: 'Hearts', value: hearts, color: C.coral, tone: C.coralDeep },
+        ].map((item, index) => (
+          <div key={item.label} style={{ padding: '14px 10px', textAlign: 'center', borderLeft: index === 0 ? 'none' : `1px solid ${C.hairline}` }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: 12, backgroundColor: `${item.color}18`, marginBottom: 8 }}>
+              <item.icon size={18} color={item.color} fill={item.color} />
+            </div>
+            <div style={{ fontFamily: 'Fredoka', fontWeight: 700, fontSize: 22, color: item.tone, lineHeight: 1 }}>{item.value}</div>
+            <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.08, marginTop: 4 }}>{item.label}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -384,7 +469,6 @@ function OnboardingIntroScreen() {
         { icon: PawPrint, label: 'Feed a stray', desc: 'Leave safe food where animals gather', color: 'jungle' as const },
         { icon: Droplets, label: 'Leave water', desc: 'A small bowl saves lives in summer heat', color: 'sky' as const },
         { icon: AlertTriangle, label: 'Report danger', desc: 'Alert rescuers about injured animals', color: 'coral' as const },
-        { icon: Heart, label: 'Track your impact', desc: 'See how your care adds up over time', color: 'gold' as const },
       ],
     },
     {
@@ -395,7 +479,6 @@ function OnboardingIntroScreen() {
         { icon: Heart, label: '12,400+ animals saved', desc: 'By regular people like you', color: 'coral' as const },
         { icon: MapPin, label: '340+ neighborhoods', desc: 'Active care zones across India', color: 'sky' as const },
         { icon: Users, label: '8,200+ helpers', desc: 'Feeding, watering, and reporting daily', color: 'jungle' as const },
-        { icon: Trophy, label: 'Compete for good', desc: 'Leaderboards that celebrate kindness', color: 'gold' as const },
       ],
     },
   ];
@@ -409,27 +492,28 @@ function OnboardingIntroScreen() {
       <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 10 }}>
         <motion.button whileTap={{ scale: 0.95 }} onClick={skipOnboarding} style={{ padding: '8px 14px', borderRadius: 12, border: 'none', backgroundColor: C.paper2, fontFamily: 'Nunito', fontWeight: 700, fontSize: 13, color: C.ink2, cursor: 'pointer' }}>Skip</motion.button>
       </div>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 24px 16px', textAlign: 'center', gap: 16, overflowY: 'auto' }}>
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: `radial-gradient(circle at top, ${C.jungleSoft} 0%, transparent 38%)` }} />
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '28px 24px 16px', textAlign: 'center', gap: 18, overflowY: 'auto' }}>
         <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.5, ease: 'easeOut' }}>
-          <div style={{ width: 72, height: 72, borderRadius: 20, backgroundColor: C.jungleSoft, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 86, height: 86, borderRadius: 28, background: `linear-gradient(135deg, ${C.jungleSoft} 0%, ${C.surface} 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 12px 28px ${C.jungle}22` }}>
             <Icon size={36} color={C.jungle} />
           </div>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.2 }}>
-          <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 26, color: C.ink, lineHeight: 1.2 }}>{slide.title}</div>
-          <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 15, color: C.ink2, marginTop: 6 }}>{slide.subtitle}</div>
+          <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 32, color: C.ink, lineHeight: 1.08, maxWidth: 320 }}>{slide.title}</div>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 15, color: C.ink2, marginTop: 10, maxWidth: 300, lineHeight: 1.65 }}>{slide.subtitle}</div>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.3 }} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.3 }} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12, marginTop: 6 }}>
           {slide.features.map((f, i) => (
-            <motion.div key={f.label} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.4 + i * 0.1 }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', backgroundColor: C.surface, borderRadius: 16, border: `2px solid ${C.hairline}` }}>
-              <div style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: C[f.color + 'Soft' as keyof typeof C] || C.jungleSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <f.icon size={20} color={C[f.color as keyof typeof C] || C.jungle} />
+            <motion.div key={f.label} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.4 + i * 0.1 }} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 18px', background: `linear-gradient(180deg, ${C.surface} 0%, ${C.paper2} 100%)`, borderRadius: 20, border: `1px solid ${C.hairline}`, boxShadow: `0 10px 24px rgba(0,0,0,0.04)` }}>
+              <div style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: C[f.color + 'Soft' as keyof typeof C] || C.jungleSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <f.icon size={22} color={C[f.color as keyof typeof C] || C.jungle} />
               </div>
               <div style={{ textAlign: 'left' }}>
-                <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 14, color: C.ink }}>{f.label}</div>
-                <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 12, color: C.ink2 }}>{f.desc}</div>
+                <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 15, color: C.ink, marginBottom: 3 }}>{f.label}</div>
+                <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: C.ink2, lineHeight: 1.55 }}>{f.desc}</div>
               </div>
             </motion.div>
           ))}
@@ -603,24 +687,76 @@ function HomeScreen({ setScreen, missions, missionStatus, points, streak, hearts
   points: number; streak: number; hearts: number; missionsCompleted: number; animalsHelped: number;
   earnedBadges: string[]; onSelectMission: (id: string) => void; onLockedMission: () => void;
 }) {
-  const { likedStories, bookmarkedStories, toggleLikeStory, toggleBookmarkStory, buddyMode, checkAndResetDaily, allTasksDoneToday } = useApp();
+  const { likedStories, bookmarkedStories, toggleLikeStory, toggleBookmarkStory, buddyMode, checkAndResetDaily, hasSeenHomeTour, completeHomeTour } = useApp();
+  const [tourStep, setTourStep] = useState<number | null>(null);
+  const statsTourRef = useRef<HTMLDivElement | null>(null);
+  const pathTourRef = useRef<HTMLDivElement | null>(null);
+  const storiesTourRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => { checkAndResetDaily(); }, [checkAndResetDaily]);
+  useEffect(() => {
+    checkAndResetDaily();
+  }, [checkAndResetDaily]);
+
+  useEffect(() => {
+    if (!hasSeenHomeTour) {
+      const timer = setTimeout(() => setTourStep(0), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [hasSeenHomeTour]);
+
+  useEffect(() => {
+    if (tourStep === null) return;
+    const ref = tourStep === 0 ? statsTourRef : tourStep === 1 ? pathTourRef : tourStep === 2 ? storiesTourRef : null;
+    if (!ref?.current) return;
+    const timer = setTimeout(() => {
+      ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 120);
+    return () => clearTimeout(timer);
+  }, [tourStep]);
 
   const firstAvailable = missions.find((m) => missionStatus[m.id as keyof MissionStatus] === 'available');
   const mascotScene: MascotScene = missionsCompleted === 0 && !firstAvailable ? 'home_empty' : firstAvailable ? 'mission_available' : 'home_empty';
   const completedCount = missions.filter((m) => missionStatus[m.id as keyof MissionStatus] === 'completed').length;
   const progress = missions.length > 0 ? (completedCount / missions.length) * 100 : 0;
   const allDone = completedCount === missions.length && missions.length > 0;
+  const closeTour = () => {
+    setTourStep(null);
+    completeHomeTour();
+  };
+  const nextTourStep = () => {
+    if (tourStep === 3) {
+      closeTour();
+      return;
+    }
+    setTourStep((current) => (current === null ? 0 : current + 1));
+  };
 
   return (
     <div style={{ padding: '0 16px 100px' }}>
-      <StatStrip points={points} streak={streak} hearts={hearts} />
+      {tourStep !== null && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(9, 12, 18, 0.34)', backdropFilter: 'blur(4px)', zIndex: 40 }} />
+      )}
+      <div ref={statsTourRef} style={{ position: 'relative', zIndex: tourStep === 0 ? 120 : 'auto', marginBottom: tourStep === 0 ? 96 : 0 }}>
+        <div>
+          <StatStrip points={points} streak={streak} hearts={hearts} />
+        </div>
+        {tourStep === 0 && (
+          <div style={{ position: 'absolute', top: 'calc(100% - 4px)', left: 0, right: 0, zIndex: 20 }}>
+            <TourBubble
+              stepLabel="Step 1 of 4"
+              title="This is your daily score"
+              body="Track your streak, care points, and hearts here. These go up as you complete missions."
+              onNext={nextTourStep}
+              onSkip={closeTour}
+            />
+          </div>
+        )}
+      </div>
       {missionsCompleted > 0 && (
-        <div style={{ marginBottom: 16, padding: '12px 16px', backgroundColor: C.surface, borderRadius: 16, border: `2px solid ${C.hairline}` }}>
+        <div style={{ marginBottom: 16, padding: '14px 16px', background: `linear-gradient(180deg, ${C.surface} 0%, ${C.paper2} 100%)`, borderRadius: 20, border: `1px solid ${C.hairline}` }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <span style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 14, color: C.ink }}>Mission Progress</span>
-            <span style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 13, color: C.jungleDeep }}>{completedCount}/{missions.length}</span>
+            <span style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 14, color: C.ink }}>Today&apos;s progress</span>
+            <span style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 12, color: C.jungleDeep, textTransform: 'uppercase', letterSpacing: 0.08 }}>{completedCount}/{missions.length} done</span>
           </div>
           <div style={{ height: 8, borderRadius: 4, backgroundColor: C.paper2, overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${progress}%`, backgroundColor: C.jungle, borderRadius: 4, transition: 'width 0.5s ease' }} />
@@ -639,12 +775,32 @@ function HomeScreen({ setScreen, missions, missionStatus, points, streak, hearts
           </div>
         </div>
       )}
-      <Card tone="jungle" style={{ marginBottom: 20, padding: 18 }} onClick={() => {}}>
-        <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 12, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 0.08, marginBottom: 4 }}>Indiranagar Care Zone</div>
-        <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 16, color: '#fff' }}>
-          {missionsCompleted === 0 ? 'No care actions yet. Start your first mission.' : `${animalsHelped} animal${animalsHelped !== 1 ? 's' : ''} helped near you.`}
+      <div style={{ marginBottom: 22, padding: '22px 20px', borderRadius: 28, background: `linear-gradient(135deg, ${C.jungle} 0%, ${C.jungleDeep} 100%)`, color: '#fff', boxShadow: `0 18px 32px ${C.jungle}30` }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 18 }}>
+          <div>
+            <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, color: 'rgba(255,255,255,0.72)', textTransform: 'uppercase', letterSpacing: 0.1, marginBottom: 8 }}>Indiranagar care zone</div>
+            <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 28, lineHeight: 1.05, marginBottom: 8 }}>Today, one small act can change an animal&apos;s day.</div>
+            <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 14, lineHeight: 1.65, color: 'rgba(255,255,255,0.84)', maxWidth: 280 }}>
+              {missionsCompleted === 0 ? 'Start your first care mission and build your kindness streak.' : `${animalsHelped} animal${animalsHelped !== 1 ? 's' : ''} already helped near you. Keep the momentum going.`}
+            </div>
+          </div>
+          <div style={{ width: 56, height: 56, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.16)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <PawPrint size={28} color="#fff" />
+          </div>
         </div>
-      </Card>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+          {[
+            { value: animalsHelped, label: 'Helped' },
+            { value: missionsCompleted, label: 'Completed' },
+            { value: Math.max(1, streak), label: 'Streak' },
+          ].map((item) => (
+            <div key={item.label} style={{ padding: '12px 10px', borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(6px)', textAlign: 'center' }}>
+              <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 22, color: '#fff' }}>{item.value}</div>
+              <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, color: 'rgba(255,255,255,0.74)', textTransform: 'uppercase', letterSpacing: 0.08 }}>{item.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
       {allDone ? (
         <div style={{ textAlign: 'center', padding: '24px 16px', marginBottom: 16 }}>
           <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 200, damping: 15 }}>
@@ -660,8 +816,12 @@ function HomeScreen({ setScreen, missions, missionStatus, points, streak, hearts
           </div>
         </div>
       ) : (
-        <>
-          <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: C.ink, marginBottom: 16 }}>Today's Care Path</div>
+        <div ref={pathTourRef} style={{ position: 'relative', zIndex: tourStep === 1 ? 120 : 'auto', marginBottom: tourStep === 1 ? 110 : 0 }}>
+          <div>
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 20, color: C.ink, marginBottom: 4 }}>Today&apos;s Care Path</div>
+            <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 14, color: C.ink2, lineHeight: 1.55 }}>Move from one simple act of care to the next. Finish the full path before tomorrow resets it.</div>
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '8px 0' }}>
             {missions.map((m, i) => (
               <Tooltip key={m.id} text={m.title}>
@@ -679,10 +839,25 @@ function HomeScreen({ setScreen, missions, missionStatus, points, streak, hearts
               </Tooltip>
             ))}
           </div>
-        </>
+          </div>
+          {tourStep === 1 && (
+            <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20 }}>
+              <TourBubble
+                stepLabel="Step 2 of 4"
+                title="Your tasks reset every day"
+                body="Follow this path to complete today's missions. Finish them all, then come back tomorrow for a fresh set."
+                onNext={nextTourStep}
+                onSkip={closeTour}
+              />
+            </div>
+          )}
+        </div>
       )}
-      <div style={{ marginTop: 24 }}>
-        <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: C.ink, marginBottom: 12 }}>Badges</div>
+      <div style={{ marginTop: 28 }}>
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: C.ink, marginBottom: 2 }}>Badges</div>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: C.ink2 }}>Your growing record of care</div>
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
           {mockBadges.slice(0, 4).map((b) => {
             const earned = earnedBadges.includes(b.id);
@@ -695,9 +870,12 @@ function HomeScreen({ setScreen, missions, missionStatus, points, streak, hearts
           })}
         </div>
       </div>
-      <div style={{ marginTop: 24 }}>
+      <div ref={storiesTourRef} style={{ position: 'relative', zIndex: tourStep === 2 ? 120 : 'auto', marginTop: 28, marginBottom: tourStep === 2 ? 112 : 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: C.ink }}>Care Stories Near You</div>
+          <div>
+            <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: C.ink, marginBottom: 2 }}>Care Stories Near You</div>
+            <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: C.ink2 }}>Real moments from your community</div>
+          </div>
           <span style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 13, color: C.jungleDeep }}>{careStories.length} stories</span>
         </div>
         <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8, scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
@@ -706,30 +884,70 @@ function HomeScreen({ setScreen, missions, missionStatus, points, streak, hearts
             const isBookmarked = bookmarkedStories.includes(s.id);
             return (
               <div key={s.id} style={{ minWidth: 260, scrollSnapAlign: 'start' }}>
-                <Card tone="surface" style={{ padding: 14 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                    <Pill tone={s.badgeTone} variant="soft">{s.badge}</Pill>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
-                      <motion.button whileTap={{ scale: 0.8 }} onClick={() => { haptic("select"); toggleLikeStory(s.id); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                        <Heart size={16} color={isLiked ? C.coral : C.muted} fill={isLiked ? C.coral : 'none'} />
-                      </motion.button>
-                      <motion.button whileTap={{ scale: 0.8 }} onClick={() => { haptic("select"); toggleBookmarkStory(s.id); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                        <Bookmark size={16} color={isBookmarked ? C.gold : C.muted} fill={isBookmarked ? C.gold : 'none'} />
-                      </motion.button>
+                <Card tone="surface" style={{ padding: 0, overflow: 'hidden' }}>
+                  {s.imageUrl && (
+                    <div style={{ position: 'relative' }}>
+                      <img src={s.imageUrl} alt={s.title} style={{ width: '100%', height: 132, objectFit: 'cover', display: 'block' }} />
+                      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.24), transparent 55%)' }} />
+                      <div style={{ position: 'absolute', top: 10, left: 10, display: 'flex', gap: 8 }}>
+                        <Pill tone={s.badgeTone} variant="soft">{s.badge}</Pill>
+                        {s.mediaType === 'video' && <Pill tone="sky" variant="soft">Video</Pill>}
+                      </div>
+                    </div>
+                  )}
+                  <div style={{ padding: 14 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                      {!s.imageUrl && <Pill tone={s.badgeTone} variant="soft">{s.badge}</Pill>}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
+                        <motion.button whileTap={{ scale: 0.8 }} onClick={() => { haptic("select"); toggleLikeStory(s.id); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                          <Heart size={16} color={isLiked ? C.coral : C.muted} fill={isLiked ? C.coral : 'none'} />
+                        </motion.button>
+                        <motion.button whileTap={{ scale: 0.8 }} onClick={() => { haptic("select"); toggleBookmarkStory(s.id); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                          <Bookmark size={16} color={isBookmarked ? C.gold : C.muted} fill={isBookmarked ? C.gold : 'none'} />
+                        </motion.button>
+                      </div>
+                    </div>
+                    <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 15, color: C.ink, marginBottom: 6, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{s.title}</div>
+                    <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: C.ink2, lineHeight: 1.55, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: 60 }}>{s.body}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12 }}>
+                      <span style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 11, color: C.muted }}>{s.location}</span>
+                      <span style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 11, color: C.muted }}>•</span>
+                      <span style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 11, color: C.muted }}>{s.date}</span>
                     </div>
                   </div>
-                  <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 15, color: C.ink, marginBottom: 6, lineHeight: 1.3 }}>{s.title}</div>
-                  <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: C.ink2, lineHeight: 1.5 }}>{s.body}</div>
                 </Card>
               </div>
             );
           })}
         </div>
+        {tourStep === 2 && (
+          <div style={{ position: 'absolute', top: 'calc(100% + 8px)', left: 0, right: 0, zIndex: 20 }}>
+            <TourBubble
+              stepLabel="Step 3 of 4"
+              title="Stories keep the community connected"
+              body="Open real care updates from your area, follow what happened, and see verified case outcomes in one place."
+              onNext={nextTourStep}
+              onSkip={closeTour}
+            />
+          </div>
+        )}
       </div>
       <Card tone="paper" style={{ marginTop: 20, padding: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
         <Shield size={20} color={C.jungle} />
         <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 13, color: C.ink2 }}>Always keep a safe distance from stray animals. Never force interaction.</div>
       </Card>
+      {tourStep === 3 && (
+        <div style={{ position: 'fixed', left: 16, right: 16, bottom: 112, zIndex: 120, maxWidth: 480, margin: '0 auto' }}>
+          <TourBubble
+            stepLabel="Step 4 of 4"
+            title="Use the + button for quick help"
+            body="Tap the floating button anytime to report an animal, send an SOS, or invite a care buddy."
+            isLast
+            onNext={nextTourStep}
+            onSkip={closeTour}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -1006,51 +1224,60 @@ function BadgeUnlockAnimation({ badgeId, onComplete }: { badgeId: string; onComp
 function SuccessScreen({ mission, onHome, onViewImpact, newlyEarnedBadge }: { mission: typeof mockMissions[0]; onHome: () => void; onViewImpact: () => void; newlyEarnedBadge: string | null }) {
   const [showBadgeAnimation, setShowBadgeAnimation] = useState(!!newlyEarnedBadge);
   const [badgeDismissed, setBadgeDismissed] = useState(false);
+  const nextMissionLabel = mission.id === 'm1' ? 'Refill Water' : mission.id === 'm2' ? 'Report Animal' : 'Next Mission';
 
   return (
     <div style={{ padding: '0 16px 100px', position: 'relative' }}>
       <Confetti />
       <ScreenHeader title="Mission Complete!" onBack={onHome} />
-      <MascotView scene="mission_success" size="lg" showBubble={false} />
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, padding: '16px 0' }}>
-        <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 28, color: C.ink, textAlign: 'center' }}>First care mission completed</div>
-        <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 16, color: C.ink2, textAlign: 'center', maxWidth: 280, lineHeight: 1.6 }}>You helped one animal today.</div>
-        <div style={{ display: 'flex', gap: 12, width: '100%', maxWidth: 300 }}>
-          <Card tone="gold" style={{ flex: 1, textAlign: 'center' }}>
-            <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 24, color: C.goldInk }}>+{mission.rewardPoints}</div>
-            <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 13, color: C.goldDeep }}>Care Points</div>
-          </Card>
-          <Card tone="coral" style={{ flex: 1, textAlign: 'center' }}>
-            <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 24, color: '#fff' }}>+1</div>
-            <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>Kindness Heart</div>
-          </Card>
-          <Card tone="jungle" style={{ flex: 1, textAlign: 'center' }}>
-            <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 24, color: '#fff' }}>+1</div>
-            <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>Day Streak</div>
-          </Card>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, padding: '8px 0 0' }}>
+        <div style={{ width: '100%', padding: '24px 20px', borderRadius: 30, background: `linear-gradient(135deg, ${C.jungle} 0%, ${C.jungleDeep} 100%)`, color: '#fff', boxShadow: `0 18px 36px ${C.jungle}26`, textAlign: 'center' }}>
+          <div style={{ marginBottom: 14 }}>
+            <MascotView scene="mission_success" size="lg" showBubble={false} />
+          </div>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 0.1, marginBottom: 8 }}>Care mission verified</div>
+          <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 32, color: '#fff', textAlign: 'center', lineHeight: 1.05, marginBottom: 10 }}>You made this neighborhood kinder today.</div>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 15, color: 'rgba(255,255,255,0.84)', textAlign: 'center', maxWidth: 300, lineHeight: 1.65, margin: '0 auto 18px' }}>Your action has been counted, your rewards have been added, and the next act of care is ready when you are.</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+            {[
+              { value: `+${mission.rewardPoints}`, label: 'Points', background: C.goldSoft, color: C.goldInk },
+              { value: '+1', label: 'Heart', background: 'rgba(255,255,255,0.14)', color: '#fff' },
+              { value: '+1', label: 'Streak', background: 'rgba(255,255,255,0.14)', color: '#fff' },
+            ].map((item) => (
+              <div key={item.label} style={{ padding: '12px 10px', borderRadius: 18, backgroundColor: item.background, color: item.color }}>
+                <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 24 }}>{item.value}</div>
+                <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.08, opacity: 0.82 }}>{item.label}</div>
+              </div>
+            ))}
+          </div>
         </div>
         {!badgeDismissed && newlyEarnedBadge && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
+            style={{ width: '100%' }}
           >
-            <Card tone={newlyEarnedBadge === 'b1' ? 'gold' : 'sky'} style={{ width: '100%', maxWidth: 300, textAlign: 'center', padding: 20, cursor: 'pointer' }} onClick={() => setShowBadgeAnimation(true)}>
-              <Award size={32} color={newlyEarnedBadge === 'b1' ? C.goldInk : C.sky} style={{ marginBottom: 8 }} />
-              <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: newlyEarnedBadge === 'b1' ? C.goldInk : C.sky, marginBottom: 4 }}>
-                {newlyEarnedBadge === 'b1' ? 'First Feeder' : 'Water Bearer'}
+            <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.08, marginBottom: 10 }}>New reward</div>
+            <Card tone={newlyEarnedBadge === 'b1' ? 'gold' : 'sky'} style={{ width: '100%', textAlign: 'left', padding: 20, cursor: 'pointer' }} onClick={() => setShowBadgeAnimation(true)}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{ width: 54, height: 54, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Award size={28} color={newlyEarnedBadge === 'b1' ? C.goldInk : '#fff'} />
+                </div>
+                <div>
+                  <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 19, color: newlyEarnedBadge === 'b1' ? C.goldInk : '#fff', marginBottom: 4 }}>{newlyEarnedBadge === 'b1' ? 'First Feeder' : 'Water Bearer'}</div>
+                  <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 13, color: newlyEarnedBadge === 'b1' ? C.goldDeep : 'rgba(255,255,255,0.82)' }}>Tap to open your badge celebration</div>
+                </div>
               </div>
-              <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 14, color: newlyEarnedBadge === 'b1' ? C.goldDeep : C.skyDeep }}>Tap to view badge animation</div>
             </Card>
           </motion.div>
         )}
-        <Card tone="jungle" style={{ width: '100%', maxWidth: 300, textAlign: 'center', padding: 16 }}>
-          <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 16, color: '#fff', marginBottom: 4 }}>
-            {mission.id === 'm1' ? 'Refill Water' : mission.id === 'm2' ? 'Report Animal' : 'Next Mission'} unlocked
-          </div>
-          <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 14, color: 'rgba(255,255,255,0.8)' }}>Your next care mission is now available.</div>
+        <Card tone="surface" style={{ width: '100%', padding: 18 }}>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.08, marginBottom: 8 }}>Next unlock</div>
+          <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 20, color: C.ink, marginBottom: 6 }}>{nextMissionLabel} is now ready for you</div>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 14, color: C.ink2, lineHeight: 1.6 }}>Stay consistent, keep your streak alive, and turn today&apos;s small win into a lasting care habit.</div>
         </Card>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 300 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
           <Btn variant="jungle" size="lg" onClick={onHome}>Continue to Home</Btn>
           <Btn variant="ghost" size="md" onClick={onViewImpact}>View Impact</Btn>
         </div>
@@ -1076,6 +1303,11 @@ function ImpactScreen({ setScreen, impactEvents, profile }: { setScreen: (s: Scr
   if (selectedStory) {
     const isLiked = likedStories.includes(selectedStory.id);
     const isBookmarked = bookmarkedStories.includes(selectedStory.id);
+    const verifiedCaseMetrics = [
+      { label: 'Verification', value: 'AI + local helper' },
+      { label: 'Response time', value: selectedStory.respondent ? '14 min' : 'Pending' },
+      { label: 'Helpers', value: `${Math.max(selectedStory.helpers.length, 1)}` },
+    ];
     return (
       <div style={{ padding: '0 16px 100px' }}>
         <ScreenHeader title="Story" onBack={() => setSelectedStory(null)} />
@@ -1105,12 +1337,23 @@ function ImpactScreen({ setScreen, impactEvents, profile }: { setScreen: (s: Scr
             </motion.button>
           </div>
         </div>
-        <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 22, color: C.ink, marginBottom: 8, lineHeight: 1.3 }}>{selectedStory.title}</div>
+        <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 24, color: C.ink, marginBottom: 8, lineHeight: 1.2 }}>{selectedStory.title}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
           <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 13, color: C.muted }}>{selectedStory.date}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><MapPin size={12} color={C.muted} /><span style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 13, color: C.muted }}>{selectedStory.location}</span></div>
         </div>
-        <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 15, color: C.ink2, lineHeight: 1.7, marginBottom: 20 }}>{selectedStory.fullBody}</div>
+        <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 15, color: C.ink2, lineHeight: 1.75, marginBottom: 20 }}>{selectedStory.fullBody}</div>
+        <div style={{ marginBottom: 20, padding: '16px 16px', background: `linear-gradient(180deg, ${C.surface} 0%, ${C.paper2} 100%)`, borderRadius: 20, border: `1px solid ${C.hairline}` }}>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.08, marginBottom: 10 }}>Verified case metrics</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+            {verifiedCaseMetrics.map((metric) => (
+              <div key={metric.label} style={{ padding: '10px 8px', borderRadius: 16, backgroundColor: C.surface, textAlign: 'center' }}>
+                <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 14, color: C.ink, lineHeight: 1.25 }}>{metric.value}</div>
+                <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.08, marginTop: 4 }}>{metric.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
         <div style={{ display: 'flex', gap: 16, marginBottom: 20, padding: '14px 16px', backgroundColor: C.surface, borderRadius: 16, border: `2px solid ${C.hairline}` }}>
           <div style={{ flex: 1 }}><div style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.06, marginBottom: 4 }}>Reported by</div><div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 14, color: C.ink }}>{selectedStory.reporter}</div></div>
           <div style={{ flex: 1 }}><div style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.06, marginBottom: 4 }}>Responded by</div><div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 14, color: C.ink }}>{selectedStory.respondent}</div></div>
@@ -1159,6 +1402,8 @@ function ImpactScreen({ setScreen, impactEvents, profile }: { setScreen: (s: Scr
           <>
             <Card tone="jungle" style={{ marginBottom: 20, padding: 18 }}>
               <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 0.08, marginBottom: 12 }}>{data.name}</div>
+              <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 24, color: '#fff', lineHeight: 1.1, marginBottom: 8 }}>Verified local care, visible in one place.</div>
+              <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: 'rgba(255,255,255,0.78)', lineHeight: 1.6, marginBottom: 14 }}>Track how care actions, verified reports, and rescue follow-through are improving your area over time.</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
                 <div style={{ textAlign: 'center' }}><div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 22, color: '#fff' }}>{typeof data.helpers === 'number' ? data.helpers.toLocaleString() : data.helpers}</div><div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>Helpers</div></div>
                 <div style={{ textAlign: 'center' }}><div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 22, color: '#fff' }}>{typeof data.animalsHelped === 'number' ? data.animalsHelped.toLocaleString() : data.animalsHelped}</div><div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>Animals</div></div>
@@ -1166,7 +1411,10 @@ function ImpactScreen({ setScreen, impactEvents, profile }: { setScreen: (s: Scr
               </div>
             </Card>
 
-            <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: C.ink, marginBottom: 12 }}>Care Feed</div>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: C.ink, marginBottom: 2 }}>Care Feed</div>
+              <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: C.ink2 }}>Verified stories, rescue moments, and community follow-up from your area.</div>
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
               {careStories.map((s) => {
                 const isLiked = likedStories.includes(s.id);
@@ -1174,7 +1422,12 @@ function ImpactScreen({ setScreen, impactEvents, profile }: { setScreen: (s: Scr
                 return (
                   <motion.div key={s.id} whileTap={{ scale: 0.98 }} onClick={() => setSelectedStory(s)} style={{ cursor: 'pointer' }}>
                     <Card tone="surface" style={{ padding: 0, overflow: 'hidden' }}>
-                      {s.imageUrl && <img src={s.imageUrl} alt={s.title} style={{ width: '100%', height: 160, objectFit: 'cover', display: 'block' }} />}
+                      {s.imageUrl && (
+                        <div style={{ position: 'relative' }}>
+                          <img src={s.imageUrl} alt={s.title} style={{ width: '100%', height: 184, objectFit: 'cover', display: 'block' }} />
+                          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.28), transparent 55%)' }} />
+                        </div>
+                      )}
                       <div style={{ padding: 14 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                           <Pill tone={s.badgeTone} variant="soft">{s.badge}</Pill>
@@ -1256,39 +1509,54 @@ function LeaderboardScreen({ setScreen, users, profile, onJoin, onCancel, name, 
       <div style={{ padding: '0 16px 100px' }}>
         <ScreenHeader title="Ranks" />
         <MascotView scene="leaderboard_success" compact />
-        <Card tone="jungle" style={{ marginBottom: 16, marginTop: 12, padding: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ marginBottom: 18, marginTop: 12, padding: '22px 18px', borderRadius: 28, background: `linear-gradient(135deg, ${C.sky} 0%, ${C.plum} 100%)`, boxShadow: `0 18px 34px ${C.sky}2a` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
             <Avatar name={profile.name} size={44} tone={profile.avatarTone} />
             <div style={{ flex: 1 }}>
               <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 16, color: '#fff' }}>{profile.name}</div>
               <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>Rank #{users.length + 1} · {profile.points} pts</div>
             </div>
           </div>
-        </Card>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+            {[
+              { value: users.length + 1, label: 'Your rank' },
+              { value: users.length, label: 'Helpers' },
+              { value: users.reduce((sum, u) => sum + u.points, 0) + profile.points, label: 'Zone pts' },
+            ].map((item) => (
+              <div key={item.label} style={{ textAlign: 'center', padding: '12px 8px', borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.14)' }}>
+                <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 20, color: '#fff' }}>{item.value}</div>
+                <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, color: 'rgba(255,255,255,0.72)', textTransform: 'uppercase', letterSpacing: 0.08 }}>{item.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
         <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 16, color: C.ink, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
           <MapPin size={16} color={C.coral} />
           {profile.neighborhood || 'Indiranagar'} Care Zone
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
-          <Card tone="surface" style={{ textAlign: 'center', padding: 12 }}>
-            <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: C.jungleDeep }}>{users.length + 1}</div>
-            <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: C.muted }}>Your Rank</div>
-          </Card>
-          <Card tone="surface" style={{ textAlign: 'center', padding: 12 }}>
-            <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: C.skyDeep }}>{users.length}</div>
-            <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: C.muted }}>Zone Helpers</div>
-          </Card>
-          <Card tone="surface" style={{ textAlign: 'center', padding: 12 }}>
-            <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: C.goldDeep }}>{users.reduce((sum, u) => sum + u.points, 0) + profile.points}</div>
-            <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: C.muted }}>Zone Points</div>
-          </Card>
+        <div style={{ display: 'grid', gap: 10, marginBottom: 16 }}>
+          {users.slice(0, 3).map((u, index) => (
+            <div key={u.id} style={{ padding: '14px 14px', borderRadius: 22, background: index === 0 ? `linear-gradient(135deg, ${C.goldSoft} 0%, ${C.surface} 100%)` : C.surface, border: `1px solid ${index === 0 ? C.gold : C.hairline}`, boxShadow: index === 0 ? `0 10px 24px ${C.gold}22` : 'none' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 34, textAlign: 'center', fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: index === 0 ? C.goldDeep : C.muted }}>{['🥇', '🥈', '🥉'][u.rank - 1]}</div>
+                <Avatar name={u.name} size={40} tone={u.tone} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 16, color: C.ink }}>{u.name}</div>
+                  <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 12, color: C.muted }}>{u.zone}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 17, color: C.goldDeep }}>{u.points} pts</div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
-        <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 14, color: C.ink, marginBottom: 8 }}>Top Helpers</div>
-        {users.map((u) => (
+        <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 14, color: C.ink, marginBottom: 8 }}>All Helpers</div>
+        {users.slice(3).map((u) => (
           <Card tone="surface" key={u.id} style={{ marginBottom: 8, padding: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 16, color: C.muted, width: 28, textAlign: 'center' }}>
-                {u.rank <= 3 ? ['🥇', '🥈', '🥉'][u.rank - 1] : u.rank}
+                {u.rank}
               </div>
               <Avatar name={u.name} size={36} tone={u.tone} />
               <div style={{ flex: 1 }}>
@@ -1342,7 +1610,7 @@ function LeaderboardScreen({ setScreen, users, profile, onJoin, onCancel, name, 
           <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 15, color: C.ink2, marginBottom: 20, lineHeight: 1.6 }}>We sent a code to {localPhone}</div>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 24 }}>
             {[0, 1, 2, 3].map((i) => (
-              <input key={i} value={otp[i] || ''} onChange={(e) => { const val = e.target.value.replace(/\D/g, ''); if (val) { const newOtp = otp.split(''); newOtp[i] = val; setOtp(newOtp.join('')); if (i < 3) { const next = (e.target as HTMLElement).nextElementSibling as HTMLInputElement; if (next) next.focus(); } } }} onKeyDown={(e) => { if (e.key === 'Backspace' && !otp[i] && i > 0) { const prev = (e.target as HTMLElement).previousElementSibling as HTMLInputElement; if (prev) prev.focus(); } }} maxLength={1} style={{ width: 56, height: 64, textAlign: 'center', borderRadius: 16, border: `2px solid ${C.hairline}`, fontFamily: 'Fredoka', fontSize: 28, color: C.ink, backgroundColor: C.surface, outline: 'none' }} />
+              <input key={i} value={otp[i] || ''} onChange={(e) => { const val = e.target.value.replace(/\D/g, ''); if (val) { const newOtp = otp.split(''); newOtp[i] = val; setOtp(newOtp.join('')); if (i < 3) { const next = (e.target as HTMLElement).nextElementSibling as HTMLInputElement; if (next) next.focus(); } } }} onKeyDown={(e) => { if (e.key === 'Backspace' && !otp[i] && i > 0) { const prev = (e.target as HTMLElement).previousElementSibling as HTMLInputElement; if (prev) prev.focus(); } }} maxLength={1} inputMode="numeric" pattern="[0-9]*" type="tel" autoComplete={i === 0 ? 'one-time-code' : 'off'} style={{ width: 56, height: 64, textAlign: 'center', borderRadius: 16, border: `2px solid ${C.hairline}`, fontFamily: 'Fredoka', fontSize: 28, color: C.ink, backgroundColor: C.surface, outline: 'none' }} />
             ))}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1462,8 +1730,9 @@ function ProfileScreen({ profile, badges, onReset }: { profile: any; badges: any
         </>
       )}
       <div style={{ marginBottom: 20 }}>
-        <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: C.ink, marginBottom: 12 }}>Settings</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: C.ink, marginBottom: 6 }}>Preferences</div>
+        <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: C.ink2, marginBottom: 12 }}>Control how Straytopia feels and reminds you.</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 12, borderRadius: 22, backgroundColor: C.paper2 }}>
           <SettingToggle icon={Moon} label="Dark Mode" description="Switch to dark theme" checked={darkMode} onChange={toggleDarkMode} />
           <SettingToggle icon={Smartphone} label="Haptic Feedback" description="Vibrate on interactions" checked={hapticEnabled} onChange={toggleHapticEnabled} />
           <SettingToggle icon={Bell} label="Push Notifications" description="Get mission reminders" checked={pushNotifications} onChange={togglePushNotifications} />
@@ -1481,7 +1750,9 @@ function ProfileScreen({ profile, badges, onReset }: { profile: any; badges: any
           </div>
         </div>
       )}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 16, borderRadius: 22, backgroundColor: C.coralSoft }}>
+        <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 17, color: C.coralDeep }}>Danger Zone</div>
+        <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: C.coralInk, lineHeight: 1.55 }}>Clear your demo progress, badges, and journey data if you want to restart from the beginning.</div>
         <Btn variant="coral" size="md" leftIcon={<RotateCcw size={18} />} onClick={() => setShowReset(true)}>Reset Demo Journey</Btn>
       </div>
       <ConfirmationDialog open={showReset} title="Reset Demo Journey?" body="This will clear all progress, missions, and badges. You'll start fresh." confirmLabel="Reset" cancelLabel="Cancel" confirmVariant="coral" onConfirm={() => { onReset(); setShowReset(false); }} onCancel={() => setShowReset(false)} />
@@ -1589,9 +1860,28 @@ function InviteBuddyScreen({ onBack }: { onBack: () => void }) {
       <ScreenHeader title="Invite Care Buddy" onBack={onBack} />
       <MascotView scene="onboarding_welcome" compact={false} />
       <div style={{ textAlign: 'center', marginTop: 8 }}>
-        <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 22, color: C.ink, marginBottom: 8 }}>Share Straytopia</div>
-        <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 15, color: C.ink2, maxWidth: 280, margin: '0 auto 24px', lineHeight: 1.6 }}>Invite friends to join your care circle and help more animals together.</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, maxWidth: 300, margin: '0 auto' }}>
+        <div style={{ padding: '22px 20px', borderRadius: 28, background: `linear-gradient(135deg, ${C.plum} 0%, ${C.sky} 100%)`, marginBottom: 22, color: '#fff' }}>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, color: 'rgba(255,255,255,0.72)', textTransform: 'uppercase', letterSpacing: 0.08, marginBottom: 8 }}>Grow your care circle</div>
+          <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 28, lineHeight: 1.08, marginBottom: 10 }}>Bring one more kind human into the journey.</div>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 14, lineHeight: 1.65, color: 'rgba(255,255,255,0.84)', maxWidth: 290, margin: '0 auto 18px' }}>Invite friends to join Straytopia, complete local missions together, and help more animals consistently.</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+            {[
+              { value: '8.2k+', label: 'Helpers' },
+              { value: '340+', label: 'Zones' },
+              { value: '12.4k+', label: 'Saved' },
+            ].map((item) => (
+              <div key={item.label} style={{ padding: '12px 8px', borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.14)' }}>
+                <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 20, color: '#fff' }}>{item.value}</div>
+                <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, color: 'rgba(255,255,255,0.72)', textTransform: 'uppercase', letterSpacing: 0.08 }}>{item.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{ textAlign: 'left', marginBottom: 14 }}>
+          <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: C.ink, marginBottom: 4 }}>Share Straytopia</div>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: C.ink2 }}>Send a quick invite on the platform your buddy already uses.</div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, maxWidth: 340, margin: '0 auto' }}>
           {sharePlatforms.map((p) => (
             <motion.button
               key={p.name}
@@ -1608,8 +1898,8 @@ function InviteBuddyScreen({ onBack }: { onBack: () => void }) {
               }}
               style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-                padding: '16px 8px', borderRadius: 16, border: 'none', cursor: 'pointer',
-                backgroundColor: C.paper2,
+                padding: '18px 10px', borderRadius: 18, border: `1px solid ${C.hairline}`, cursor: 'pointer',
+                background: `linear-gradient(180deg, ${C.surface} 0%, ${C.paper2} 100%)`,
               }}
             >
               {p.icon}
@@ -1852,8 +2142,8 @@ function ReportSuccessScreen({ condition, urgency, photo, onBack, onSuccess }: {
           <CheckCircle2 size={40} color={C.coralDeep} />
         </motion.div>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 24, color: C.ink, marginBottom: 4 }}>Report Submitted</div>
-          <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 14, color: C.muted }}>Case #{reportId}</div>
+          <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 24, color: C.ink, marginBottom: 4 }}>Rescue report verified and shared</div>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 14, color: C.muted }}>Case #{reportId} is now active in the local care network</div>
         </div>
 
         <Card tone="paper" style={{ width: '100%', maxWidth: 300, padding: 16 }}>
@@ -1872,7 +2162,24 @@ function ReportSuccessScreen({ condition, urgency, photo, onBack, onSuccess }: {
         </Card>
 
         <div style={{ width: '100%', maxWidth: 300 }}>
-          <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: C.ink, marginBottom: 16 }}>Case Journey</div>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.08, marginBottom: 10 }}>Verified case metrics</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+            {[
+              { label: 'Status', value: 'Verified' },
+              { label: 'ETA', value: '14 min' },
+              { label: 'Helpers', value: '4' },
+            ].map((metric) => (
+              <div key={metric.label} style={{ padding: '12px 8px', borderRadius: 16, background: `linear-gradient(180deg, ${C.surface} 0%, ${C.paper2} 100%)`, border: `1px solid ${C.hairline}`, textAlign: 'center' }}>
+                <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 15, color: C.ink }}>{metric.value}</div>
+                <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.08, marginTop: 4 }}>{metric.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ width: '100%', maxWidth: 300 }}>
+          <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: C.ink, marginBottom: 6 }}>Case Journey</div>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: C.ink2, lineHeight: 1.55, marginBottom: 16 }}>You&apos;ll be able to follow what happens next, from dispatch to rescue follow-through.</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
             {caseJourney.map((item, i) => {
               const isLast = i === caseJourney.length - 1;

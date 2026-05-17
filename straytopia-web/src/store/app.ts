@@ -66,6 +66,7 @@ interface AppState {
   skeletonLoading: boolean;
   lastResetDate: string;
   allTasksDoneToday: boolean;
+  hasSeenHomeTour: boolean;
   navigate: (s: Screen) => void;
   setName: (n: string) => void;
   setPhone: (p: string) => void;
@@ -98,6 +99,7 @@ interface AppState {
   toggleBuddyMode: () => void;
   toggleHapticEnabled: () => void;
   setSkeletonLoading: (v: boolean) => void;
+  completeHomeTour: () => void;
   resetDemo: () => void;
   checkAndResetDaily: () => void;
   logAnalytics: (event: string, data?: Record<string, unknown>) => void;
@@ -160,6 +162,7 @@ export const useApp = create<AppState>((set, get) => ({
   skeletonLoading: false,
   lastResetDate: new Date().toDateString(),
   allTasksDoneToday: false,
+  hasSeenHomeTour: false,
   onboardingPhase: 0,
   advanceOnboarding: () => {
     const current = get().onboardingPhase;
@@ -270,6 +273,7 @@ export const useApp = create<AppState>((set, get) => ({
   toggleBuddyMode: () => set((s) => ({ buddyMode: !s.buddyMode })),
   toggleHapticEnabled: () => set((s) => ({ hapticEnabled: !s.hapticEnabled })),
   setSkeletonLoading: (v) => set({ skeletonLoading: v }),
+  completeHomeTour: () => set({ hasSeenHomeTour: true }),
   resetDemo: () => set({
     screen: 'splash', hasSeenSplash: false, hasSeenOnboarding: false, onboardingStep: 0,
     name: '', phone: '', gender: '', neighborhood: '', avatarIndex: 0, avatarTone: 'jungle',
@@ -283,7 +287,7 @@ export const useApp = create<AppState>((set, get) => ({
     streakFreeze: false, locationHistory: [], pushNotifications: true,
     buddyMode: false, hapticEnabled: true, skeletonLoading: false,
     notifications: { mission_reminders: true, urgent_alerts: true, badge_updates: true, leaderboard_updates: false },
-    darkMode: false, onboardingPhase: 0, lastResetDate: new Date().toDateString(), allTasksDoneToday: false,
+    darkMode: false, onboardingPhase: 0, lastResetDate: new Date().toDateString(), allTasksDoneToday: false, hasSeenHomeTour: false,
   }),
   logAnalytics: (event, data) => {
     if (process.env.NODE_ENV === 'development') {
