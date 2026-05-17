@@ -64,6 +64,8 @@ interface AppState {
   buddyMode: boolean;
   hapticEnabled: boolean;
   skeletonLoading: boolean;
+  lastResetDate: string;
+  allTasksDoneToday: boolean;
   navigate: (s: Screen) => void;
   setName: (n: string) => void;
   setPhone: (p: string) => void;
@@ -97,6 +99,7 @@ interface AppState {
   toggleHapticEnabled: () => void;
   setSkeletonLoading: (v: boolean) => void;
   resetDemo: () => void;
+  checkAndResetDaily: () => void;
   logAnalytics: (event: string, data?: Record<string, unknown>) => void;
   onboardingPhase: number;
   advanceOnboarding: () => void;
@@ -155,12 +158,28 @@ export const useApp = create<AppState>((set, get) => ({
   buddyMode: false,
   hapticEnabled: true,
   skeletonLoading: false,
+  lastResetDate: new Date().toDateString(),
+  allTasksDoneToday: false,
   onboardingPhase: 0,
   advanceOnboarding: () => {
     const current = get().onboardingPhase;
     if (current === 0) set({ onboardingPhase: 1 });
     else if (current === 1) set({ onboardingPhase: 2 });
     else set({ hasSeenOnboarding: true, screen: 'home' });
+  },
+  checkAndResetDaily: () => {
+    const today = new Date().toDateString();
+    const lastReset = get().lastResetDate;
+    if (lastReset !== today) {
+      set({
+        missionStatus: { ...defaultMissionStatus },
+        checklistItems: { ...defaultChecklistItems },
+        checklistDone: false,
+        activeMission: null,
+        lastResetDate: today,
+        allTasksDoneToday: false,
+      });
+    }
   },
   skipOnboarding: () => set({ hasSeenOnboarding: true, screen: 'home' }),
   navigate: (s) => set({ screen: s }),
@@ -264,7 +283,7 @@ export const useApp = create<AppState>((set, get) => ({
     streakFreeze: false, locationHistory: [], pushNotifications: true,
     buddyMode: false, hapticEnabled: true, skeletonLoading: false,
     notifications: { mission_reminders: true, urgent_alerts: true, badge_updates: true, leaderboard_updates: false },
-    darkMode: false, onboardingPhase: 0,
+    darkMode: false, onboardingPhase: 0, lastResetDate: new Date().toDateString(), allTasksDoneToday: false,
   }),
   logAnalytics: (event, data) => {
     if (process.env.NODE_ENV === 'development') {

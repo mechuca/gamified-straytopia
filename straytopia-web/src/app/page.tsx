@@ -23,10 +23,17 @@ import { MascotView, Saathi, getMascotState, MascotScene } from '@/mascot';
 let C: ThemeColors = COLOR;
 
 // Haptic feedback simulation
-function haptic() {
-  if (typeof navigator !== 'undefined' && navigator.vibrate) {
-    navigator.vibrate(10);
-  }
+function haptic(type: 'light' | 'medium' | 'heavy' | 'success' | 'error' | 'select' = 'light') {
+  if (typeof navigator === 'undefined' || !navigator.vibrate) return;
+  const patterns = {
+    light: 10,
+    medium: 20,
+    heavy: 40,
+    success: [30, 50, 60],
+    error: [50, 30, 80],
+    select: 8,
+  };
+  navigator.vibrate(patterns[type]);
 }
 
 // Skeleton loader component
@@ -99,7 +106,7 @@ function BuddyAvatar({ name, online, tone = 'sky' }: { name: string; online: boo
 // Setting toggle component
 function SettingToggle({ icon: Icon, label, description, checked, onChange }: { icon: any; label: string; description: string; checked: boolean; onChange: () => void }) {
   return (
-    <motion.button whileTap={{ scale: 0.98 }} onClick={onChange} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '14px 16px', backgroundColor: C.surface, borderRadius: 16, border: 'none', cursor: 'pointer' }}>
+    <motion.button whileTap={{ scale: 0.98 }} onClick={() => { haptic('select'); onChange(); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '14px 16px', backgroundColor: C.surface, borderRadius: 16, border: 'none', cursor: 'pointer' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: C.paper2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Icon size={20} color={checked ? C.jungle : C.muted} />
@@ -174,7 +181,7 @@ function Btn({ children, variant = 'jungle', size = 'md', disabled = false, onCl
   const isGhost = variant === 'ghost';
   const sz = size === 'lg' ? { py: 18, px: 24, fs: 16 } : size === 'sm' ? { py: 10, px: 16, fs: 14 } : { py: 16, px: 22, fs: 16 };
   return (
-    <motion.button whileTap={!disabled && !isGhost ? { y: 4 } : {}} onClick={onClick} disabled={disabled} style={{
+    <motion.button whileTap={!disabled && !isGhost ? { y: 4 } : {}} onClick={() => { haptic('medium'); onClick?.(); }} disabled={disabled} style={{
       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
       padding: `${sz.py}px ${sz.px}px`, minHeight: 52, borderRadius: 18,
       backgroundColor: c.bg, color: c.fg, fontSize: sz.fs, fontWeight: 600,
@@ -188,7 +195,7 @@ function Btn({ children, variant = 'jungle', size = 'md', disabled = false, onCl
 }
 
 function BackBtn({ onClick }: { onClick: () => void }) {
-  return <button onClick={onClick} aria-label="Go back" style={{ background: 'none', border: 'none', padding: 8, cursor: 'pointer', display: 'flex', minHeight: 44, minWidth: 44, alignItems: 'center' }}><ArrowLeft size={22} color={C.ink2} /></button>;
+  return <button onClick={() => { haptic('select'); onClick(); }} aria-label="Go back" style={{ background: 'none', border: 'none', padding: 8, cursor: 'pointer', display: 'flex', minHeight: 44, minWidth: 44, alignItems: 'center' }}><ArrowLeft size={22} color={C.ink2} /></button>;
 }
 
 function ScreenHeader({ title, onBack, right }: { title: string; onBack?: () => void; right?: React.ReactNode }) {
@@ -283,13 +290,13 @@ function TabBar({ active, onChange }: { active: string; onChange: (t: string) =>
   return (
     <div style={{ position: 'fixed', left: 14, right: 14, bottom: 22, height: 76, backgroundColor: C.surface, borderRadius: 28, border: `2.5px solid ${C.hairline}`, borderBottomWidth: 4, display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', alignItems: 'center', padding: '0 4px', zIndex: 50, maxWidth: 500, margin: '0 auto' }}>
       {tabs.map((t) => (
-        <motion.button key={t.id} whileTap={{ scale: 0.9 }} onClick={() => onChange(t.id)} aria-label={t.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', color: active === t.id ? C.jungleDeep : C.muted, minHeight: 44 }}>
+        <motion.button key={t.id} whileTap={{ scale: 0.9 }} onClick={() => { haptic('select'); onChange(t.id); }} aria-label={t.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', color: active === t.id ? C.jungleDeep : C.muted, minHeight: 44 }}>
           <t.icon size={24} fill={active === t.id ? C.jungleDeep : 'none'} color={active === t.id ? C.jungleDeep : C.muted} />
           <span style={{ fontSize: 10, fontWeight: 800, fontFamily: 'Nunito', textTransform: 'uppercase', letterSpacing: 0.06 }}>{t.label}</span>
         </motion.button>
       ))}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <motion.button whileTap={{ scale: 0.95 }} onClick={() => onChange('action')} aria-label="Quick actions" style={{ width: 64, height: 64, borderRadius: 22, backgroundColor: C.coral, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: -28, boxShadow: `0 4px 0 0 ${C.coralDeep}`, cursor: 'pointer', border: '3px solid #fff' }}>
+        <motion.button whileTap={{ scale: 0.95 }} onClick={() => { haptic('heavy'); onChange('action'); }} aria-label="Quick actions" style={{ width: 64, height: 64, borderRadius: 22, backgroundColor: C.coral, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: -28, boxShadow: `0 4px 0 0 ${C.coralDeep}`, cursor: 'pointer', border: '3px solid #fff' }}>
           <Plus size={30} color="#fff" />
         </motion.button>
       </div>
@@ -371,24 +378,24 @@ function OnboardingIntroScreen() {
   const slides = [
     {
       icon: PawPrint,
-      title: 'What You Can Do',
-      subtitle: 'Small actions, big impact',
+      title: 'Your neighborhood needs you',
+      subtitle: 'Every day, stray animals need food, water, and care. You can help — in just 2 minutes.',
       features: [
-        { icon: PawPrint, label: 'Feed strays', desc: 'Offer safe food to animals near you', color: 'jungle' as const },
-        { icon: Droplets, label: 'Refill water', desc: 'Keep water bowls full, especially in summer', color: 'sky' as const },
-        { icon: AlertTriangle, label: 'Spot & report', desc: 'Flag animals that need urgent help', color: 'coral' as const },
-        { icon: BookOpen, label: 'Share stories', desc: 'Document care journeys to inspire others', color: 'gold' as const },
+        { icon: PawPrint, label: 'Feed a stray', desc: 'Leave safe food where animals gather', color: 'jungle' as const },
+        { icon: Droplets, label: 'Leave water', desc: 'A small bowl saves lives in summer heat', color: 'sky' as const },
+        { icon: AlertTriangle, label: 'Report danger', desc: 'Alert rescuers about injured animals', color: 'coral' as const },
+        { icon: Heart, label: 'Track your impact', desc: 'See how your care adds up over time', color: 'gold' as const },
       ],
     },
     {
       icon: Users,
-      title: 'Community Power',
-      subtitle: 'Together we make a difference',
+      title: 'You are not alone',
+      subtitle: 'Thousands of everyday heroes across India are already making a difference.',
       features: [
-        { icon: Heart, label: '12,000+ animals helped', desc: 'Across India by everyday citizens', color: 'coral' as const },
-        { icon: MapPin, label: '100+ water points', desc: 'Maintained by local volunteers', color: 'sky' as const },
-        { icon: Trophy, label: 'Care leaderboards', desc: 'Friendly competition to save more lives', color: 'gold' as const },
-        { icon: Shield, label: 'Verified rescues', desc: 'AI-verified reports for faster response', color: 'plum' as const },
+        { icon: Heart, label: '12,400+ animals saved', desc: 'By regular people like you', color: 'coral' as const },
+        { icon: MapPin, label: '340+ neighborhoods', desc: 'Active care zones across India', color: 'sky' as const },
+        { icon: Users, label: '8,200+ helpers', desc: 'Feeding, watering, and reporting daily', color: 'jungle' as const },
+        { icon: Trophy, label: 'Compete for good', desc: 'Leaderboards that celebrate kindness', color: 'gold' as const },
       ],
     },
   ];
@@ -537,13 +544,13 @@ function MissionPathNode({ mission, status, index, total, onPress }: { mission: 
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', opacity }}>
       <motion.div
         whileTap={!isLocked ? { scale: 0.95 } : {}}
-        onClick={!isLocked ? onPress : undefined}
+        onClick={!isLocked ? () => { haptic(isCompleted ? 'success' : 'medium'); onPress(); } : undefined}
         style={{
           width: 72, height: 72, borderRadius: 36, backgroundColor: nodeBg,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           cursor: isLocked ? 'default' : 'pointer',
           border: `3px solid ${isCompleted ? C.jungleDeep : isLocked ? C.hairline : nodeFg}`,
-          boxShadow: isCompleted ? `0 4px 0 0 ${C.jungleDeep}` : isInProgress ? `0 4px 0 0 ${C.goldDeep}` : isLocked ? 'none' : `0 4px 0 0 ${COLOR[toneShadow(mission.tone)]}`,
+          boxShadow: isCompleted ? `0 4px 0 0 ${C.jungleDeep}` : isInProgress ? `0 4px 0 0 ${C.goldDeep}` : isLocked ? 'none' : `0 4px 0 0 ${C[toneShadow(mission.tone)]}`,
           marginBottom: 8,
         }}
       >
@@ -596,11 +603,15 @@ function HomeScreen({ setScreen, missions, missionStatus, points, streak, hearts
   points: number; streak: number; hearts: number; missionsCompleted: number; animalsHelped: number;
   earnedBadges: string[]; onSelectMission: (id: string) => void; onLockedMission: () => void;
 }) {
-  const { likedStories, bookmarkedStories, toggleLikeStory, toggleBookmarkStory, buddyMode } = useApp();
+  const { likedStories, bookmarkedStories, toggleLikeStory, toggleBookmarkStory, buddyMode, checkAndResetDaily, allTasksDoneToday } = useApp();
+
+  useEffect(() => { checkAndResetDaily(); }, [checkAndResetDaily]);
+
   const firstAvailable = missions.find((m) => missionStatus[m.id as keyof MissionStatus] === 'available');
   const mascotScene: MascotScene = missionsCompleted === 0 && !firstAvailable ? 'home_empty' : firstAvailable ? 'mission_available' : 'home_empty';
   const completedCount = missions.filter((m) => missionStatus[m.id as keyof MissionStatus] === 'completed').length;
   const progress = missions.length > 0 ? (completedCount / missions.length) * 100 : 0;
+  const allDone = completedCount === missions.length && missions.length > 0;
 
   return (
     <div style={{ padding: '0 16px 100px' }}>
@@ -634,24 +645,42 @@ function HomeScreen({ setScreen, missions, missionStatus, points, streak, hearts
           {missionsCompleted === 0 ? 'No care actions yet. Start your first mission.' : `${animalsHelped} animal${animalsHelped !== 1 ? 's' : ''} helped near you.`}
         </div>
       </Card>
-      <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: C.ink, marginBottom: 16 }}>Today's Care Path</div>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '8px 0' }}>
-        {missions.map((m, i) => (
-          <Tooltip key={m.id} text={m.title}>
-            <MissionPathNode
-              mission={m}
-              status={missionStatus[m.id as keyof MissionStatus] || 'locked'}
-              index={i}
-              total={missions.length}
-              onPress={() => {
-                const st = missionStatus[m.id as keyof MissionStatus];
-                if (st === 'locked') onLockedMission();
-                else onSelectMission(m.id);
-              }}
-            />
-          </Tooltip>
-        ))}
-      </div>
+      {allDone ? (
+        <div style={{ textAlign: 'center', padding: '24px 16px', marginBottom: 16 }}>
+          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 200, damping: 15 }}>
+            <div style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: C.jungleSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <CheckCircle2 size={40} color={C.jungle} />
+            </div>
+          </motion.div>
+          <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 22, color: C.ink, marginBottom: 8 }}>All tasks done for today!</div>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 15, color: C.ink2, maxWidth: 280, margin: '0 auto', lineHeight: 1.6 }}>You've completed all your care missions. Come back tomorrow for new tasks and keep your streak going.</div>
+          <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <Flame size={20} color={C.coral} fill={C.coral} />
+            <span style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 16, color: C.coralDeep }}>Streak: {streak} days</span>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: C.ink, marginBottom: 16 }}>Today's Care Path</div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '8px 0' }}>
+            {missions.map((m, i) => (
+              <Tooltip key={m.id} text={m.title}>
+                <MissionPathNode
+                  mission={m}
+                  status={missionStatus[m.id as keyof MissionStatus] || 'locked'}
+                  index={i}
+                  total={missions.length}
+                  onPress={() => {
+                    const st = missionStatus[m.id as keyof MissionStatus];
+                    if (st === 'locked') onLockedMission();
+                    else onSelectMission(m.id);
+                  }}
+                />
+              </Tooltip>
+            ))}
+          </div>
+        </>
+      )}
       <div style={{ marginTop: 24 }}>
         <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: C.ink, marginBottom: 12 }}>Badges</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
@@ -681,10 +710,10 @@ function HomeScreen({ setScreen, missions, missionStatus, points, streak, hearts
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                     <Pill tone={s.badgeTone} variant="soft">{s.badge}</Pill>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
-                      <motion.button whileTap={{ scale: 0.8 }} onClick={() => toggleLikeStory(s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                      <motion.button whileTap={{ scale: 0.8 }} onClick={() => { haptic("select"); toggleLikeStory(s.id); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                         <Heart size={16} color={isLiked ? C.coral : C.muted} fill={isLiked ? C.coral : 'none'} />
                       </motion.button>
-                      <motion.button whileTap={{ scale: 0.8 }} onClick={() => toggleBookmarkStory(s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                      <motion.button whileTap={{ scale: 0.8 }} onClick={() => { haptic("select"); toggleBookmarkStory(s.id); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                         <Bookmark size={16} color={isBookmarked ? C.gold : C.muted} fill={isBookmarked ? C.gold : 'none'} />
                       </motion.button>
                     </div>
@@ -819,7 +848,7 @@ function ActiveMissionScreen({ mission, onComplete, onBack, checklistItems, togg
           <motion.div
             key={c.key}
             whileTap={{ scale: 0.98 }}
-            onClick={() => toggleChecklistItem(c.key)}
+            onClick={() => { haptic('select'); toggleChecklistItem(c.key); }}
             style={{
               display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px',
               backgroundColor: checklistItems[c.key] ? C.jungleSoft : C.surface,
@@ -1065,10 +1094,10 @@ function ImpactScreen({ setScreen, impactEvents, profile }: { setScreen: (s: Scr
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
           <Pill tone={selectedStory.badgeTone} variant="soft">{selectedStory.badge}</Pill>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
-            <motion.button whileTap={{ scale: 0.8 }} onClick={() => toggleLikeStory(selectedStory.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+            <motion.button whileTap={{ scale: 0.8 }} onClick={() => { haptic("select"); toggleLikeStory(selectedStory.id); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
               <Heart size={18} color={isLiked ? C.coral : C.muted} fill={isLiked ? C.coral : 'none'} />
             </motion.button>
-            <motion.button whileTap={{ scale: 0.8 }} onClick={() => toggleBookmarkStory(selectedStory.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+            <motion.button whileTap={{ scale: 0.8 }} onClick={() => { haptic("select"); toggleBookmarkStory(selectedStory.id); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
               <Bookmark size={18} color={isBookmarked ? C.gold : C.muted} fill={isBookmarked ? C.gold : 'none'} />
             </motion.button>
             <motion.button whileTap={{ scale: 0.8 }} onClick={() => { if (navigator.share) navigator.share({ title: selectedStory.title, text: selectedStory.body, url: window.location.href }); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
@@ -1151,10 +1180,10 @@ function ImpactScreen({ setScreen, impactEvents, profile }: { setScreen: (s: Scr
                           <Pill tone={s.badgeTone} variant="soft">{s.badge}</Pill>
                           {s.mediaType === 'video' && <Pill tone="sky" variant="soft">Video</Pill>}
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
-                            <motion.button whileTap={{ scale: 0.8 }} onClick={(e) => { e.stopPropagation(); toggleLikeStory(s.id); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                            <motion.button whileTap={{ scale: 0.8 }} onClick={(e) => { e.stopPropagation(); haptic("select"); toggleLikeStory(s.id); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                               <Heart size={14} color={isLiked ? C.coral : C.muted} fill={isLiked ? C.coral : 'none'} />
                             </motion.button>
-                            <motion.button whileTap={{ scale: 0.8 }} onClick={(e) => { e.stopPropagation(); toggleBookmarkStory(s.id); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                            <motion.button whileTap={{ scale: 0.8 }} onClick={(e) => { e.stopPropagation(); haptic("select"); toggleBookmarkStory(s.id); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                               <Bookmark size={14} color={isBookmarked ? C.gold : C.muted} fill={isBookmarked ? C.gold : 'none'} />
                             </motion.button>
                           </div>
