@@ -120,7 +120,7 @@ export const useApp = create<AppState>((set, get) => ({
   checklistDone: false,
   checklistItems: { ...defaultChecklistItems },
   notifications: { mission_reminders: true, urgent_alerts: true, badge_updates: true, leaderboard_updates: false },
-  darkMode: true,
+  darkMode: false,
   earnedBadges: [],
   newlyEarnedBadge: null,
   missionHistory: [],
@@ -233,7 +233,7 @@ export const useApp = create<AppState>((set, get) => ({
     earnedBadges: [], newlyEarnedBadge: null, missionHistory: [], impactEvents: [],
     proofs: [], savedAnimalNames: [],
     notifications: { mission_reminders: true, urgent_alerts: true, badge_updates: true, leaderboard_updates: false },
-    darkMode: true,
+    darkMode: false,
     onboardingPhase: 0,
   }),
   logAnalytics: (event, data) => {
