@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp, Screen, MissionStatus } from '@/store/app';
-import { COLOR } from '@/lib/theme';
+import { COLOR, getTheme, ThemeColors } from '@/lib/theme';
 import {
   missions as mockMissions, badges as mockBadges,
   leaderboardUsers, careStories, weeklyCareData, communityImpact,
@@ -17,6 +17,9 @@ import {
   Moon, Siren, Clipboard, Users, CheckCircle, Lock,
 } from 'lucide-react';
 import { MascotView, Saathi, getMascotState, MascotScene } from '@/mascot';
+
+// Dynamic theme - updated each render based on darkMode state
+let C: ThemeColors = COLOR;
 
 function useReducedMotion() {
   const [reduced, setReduced] = useState(false);
@@ -160,7 +163,7 @@ function TabBar({ active, onChange }: { active: string; onChange: (t: string) =>
   const tabs = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'stories', label: 'Impact', icon: BookOpen },
-    { id: 'league', label: 'Leaderboard', icon: Trophy },
+    { id: 'league', label: 'Ranks', icon: Trophy },
     { id: 'profile', label: 'You', icon: User },
   ];
   return (
@@ -257,10 +260,10 @@ function OnboardingIntroScreen() {
       title: 'What You Can Do',
       subtitle: 'Small actions, big impact',
       features: [
-        { icon: PawPrint, label: 'Feed strays', desc: 'Offer safe food to animals near you' },
-        { icon: Droplets, label: 'Refill water', desc: 'Keep water bowls full, especially in summer' },
-        { icon: AlertTriangle, label: 'Spot & report', desc: 'Flag animals that need urgent help' },
-        { icon: BookOpen, label: 'Share stories', desc: 'Document care journeys to inspire others' },
+        { icon: PawPrint, label: 'Feed strays', desc: 'Offer safe food to animals near you', color: 'jungle' as const },
+        { icon: Droplets, label: 'Refill water', desc: 'Keep water bowls full, especially in summer', color: 'sky' as const },
+        { icon: AlertTriangle, label: 'Spot & report', desc: 'Flag animals that need urgent help', color: 'coral' as const },
+        { icon: BookOpen, label: 'Share stories', desc: 'Document care journeys to inspire others', color: 'gold' as const },
       ],
     },
     {
@@ -268,10 +271,10 @@ function OnboardingIntroScreen() {
       title: 'Community Power',
       subtitle: 'Together we make a difference',
       features: [
-        { icon: Heart, label: '12,000+ animals helped', desc: 'Across India by everyday citizens' },
-        { icon: MapPin, label: '100+ water points', desc: 'Maintained by local volunteers' },
-        { icon: Trophy, label: 'Care leaderboards', desc: 'Friendly competition to save more lives' },
-        { icon: Shield, label: 'Verified rescues', desc: 'AI-verified reports for faster response' },
+        { icon: Heart, label: '12,000+ animals helped', desc: 'Across India by everyday citizens', color: 'coral' as const },
+        { icon: MapPin, label: '100+ water points', desc: 'Maintained by local volunteers', color: 'sky' as const },
+        { icon: Trophy, label: 'Care leaderboards', desc: 'Friendly competition to save more lives', color: 'gold' as const },
+        { icon: Shield, label: 'Verified rescues', desc: 'AI-verified reports for faster response', color: 'plum' as const },
       ],
     },
   ];
@@ -283,45 +286,26 @@ function OnboardingIntroScreen() {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 24px 24px', textAlign: 'center', gap: 20 }}>
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-        >
-          <div style={{ width: 80, height: 80, borderRadius: 24, backgroundColor: COLOR.jungleSoft, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Icon size={40} color={COLOR.jungle} />
+        <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.5, ease: 'easeOut' }}>
+          <div style={{ width: 80, height: 80, borderRadius: 24, backgroundColor: C.jungleSoft, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon size={40} color={C.jungle} />
           </div>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.2 }}
-        >
-          <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 28, color: COLOR.ink, lineHeight: 1.2 }}>{slide.title}</div>
-          <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 16, color: COLOR.ink2, marginTop: 8 }}>{slide.subtitle}</div>
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.2 }}>
+          <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 28, color: C.ink, lineHeight: 1.2 }}>{slide.title}</div>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 16, color: C.ink2, marginTop: 8 }}>{slide.subtitle}</div>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.3 }}
-          style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.3 }} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
           {slide.features.map((f, i) => (
-            <motion.div
-              key={f.label}
-              initial={{ opacity: 0, x: -16 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3, delay: 0.4 + i * 0.1 }}
-              style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', backgroundColor: COLOR.surface, borderRadius: 16, border: `2px solid ${COLOR.hairline}` }}
-            >
-              <div style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: COLOR.jungleSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <f.icon size={22} color={COLOR.jungle} />
+            <motion.div key={f.label} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.4 + i * 0.1 }} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', backgroundColor: C.surface, borderRadius: 16, border: `2px solid ${C.hairline}` }}>
+              <div style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: C[f.color + 'Soft' as keyof typeof C] || C.jungleSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <f.icon size={22} color={C[f.color as keyof typeof C] || C.jungle} />
               </div>
               <div style={{ textAlign: 'left' }}>
-                <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 15, color: COLOR.ink }}>{f.label}</div>
-                <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: COLOR.ink2 }}>{f.desc}</div>
+                <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 15, color: C.ink }}>{f.label}</div>
+                <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: C.ink2 }}>{f.desc}</div>
               </div>
             </motion.div>
           ))}
@@ -331,12 +315,10 @@ function OnboardingIntroScreen() {
       <div style={{ padding: '0 24px 24px' }}>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 20 }}>
           {slides.map((_, i) => (
-            <div key={i} style={{ width: i === onboardingPhase ? 24 : 8, height: 8, borderRadius: 4, backgroundColor: i === onboardingPhase ? COLOR.jungle : COLOR.paper2, transition: 'all 0.3s ease' }} />
+            <div key={i} style={{ width: i === onboardingPhase ? 24 : 8, height: 8, borderRadius: 4, backgroundColor: i === onboardingPhase ? C.jungle : C.paper2, transition: 'all 0.3s ease' }} />
           ))}
         </div>
-        <Btn variant="jungle" size="lg" onClick={advanceOnboarding}>
-          {isLast ? 'Choose Your Area' : 'Continue'}
-        </Btn>
+        <Btn variant="jungle" size="lg" onClick={advanceOnboarding}>{isLast ? 'Get Started' : 'Continue'}</Btn>
       </div>
     </div>
   );
@@ -905,31 +887,61 @@ function SuccessScreen({ mission, onHome, onViewImpact, newlyEarnedBadge }: { mi
 
 function ImpactScreen({ setScreen, impactEvents, profile }: { setScreen: (s: Screen) => void; impactEvents: string[]; profile: any }) {
   const [filter, setFilter] = useState<'zone' | 'city' | 'state'>('zone');
+  const [selectedStory, setSelectedStory] = useState<typeof careStories[0] | null>(null);
   const data = communityImpact[filter === 'state' ? 'national' : filter];
+
+  if (selectedStory) {
+    return (
+      <div style={{ padding: '0 16px 100px' }}>
+        <ScreenHeader title="Story" onBack={() => setSelectedStory(null)} />
+        {selectedStory.imageUrl && (
+          <div style={{ borderRadius: 20, overflow: 'hidden', marginBottom: 16, position: 'relative' }}>
+            <img src={selectedStory.imageUrl} alt={selectedStory.title} style={{ width: '100%', height: 220, objectFit: 'cover', display: 'block' }} />
+            {selectedStory.mediaType === 'video' && (
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
+                <div style={{ width: 64, height: 64, borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill={C.jungle}><polygon points="5,3 19,12 5,21" /></svg>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+          <Pill tone={selectedStory.badgeTone} variant="soft">{selectedStory.badge}</Pill>
+          {selectedStory.hearts > 0 && <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Heart size={14} color={C.coral} fill={C.coral} /><span style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 12, color: C.coralDeep }}>{selectedStory.hearts}</span></div>}
+        </div>
+        <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 22, color: C.ink, marginBottom: 8, lineHeight: 1.3 }}>{selectedStory.title}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 13, color: C.muted }}>{selectedStory.date}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><MapPin size={12} color={C.muted} /><span style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 13, color: C.muted }}>{selectedStory.location}</span></div>
+        </div>
+        <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 15, color: C.ink2, lineHeight: 1.7, marginBottom: 20 }}>{selectedStory.fullBody}</div>
+        <div style={{ display: 'flex', gap: 16, marginBottom: 20, padding: '14px 16px', backgroundColor: C.surface, borderRadius: 16, border: `2px solid ${C.hairline}` }}>
+          <div style={{ flex: 1 }}><div style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.06, marginBottom: 4 }}>Reported by</div><div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 14, color: C.ink }}>{selectedStory.reporter}</div></div>
+          <div style={{ flex: 1 }}><div style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.06, marginBottom: 4 }}>Responded by</div><div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 14, color: C.ink }}>{selectedStory.respondent}</div></div>
+        </div>
+        {selectedStory.helpers.length > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 12, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.06, marginBottom: 8 }}>Helpers involved</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {selectedStory.helpers.map((h) => (
+                <div key={h} style={{ width: 36, height: 36, borderRadius: '50%', backgroundColor: C.sky, color: '#fff', fontSize: 14, fontWeight: 700, fontFamily: 'Fredoka', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #fff' }}>{h}</div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: '0 16px 100px' }}>
-      <ScreenHeader title="Community Impact" />
+      <ScreenHeader title="Impact" />
       <MascotView scene="impact_updated" compact />
       <div style={{ marginTop: 8 }}>
         <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-          {[
-            { key: 'zone' as const, label: 'Neighbourhood' },
-            { key: 'city' as const, label: 'City' },
-            { key: 'state' as const, label: 'National' },
-          ].map((f) => (
-            <motion.button
-              key={f.key}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setFilter(f.key)}
-              style={{
-                flex: 1, padding: '10px 8px', borderRadius: 12, border: 'none',
-                backgroundColor: filter === f.key ? COLOR.jungle : COLOR.surface,
-                color: filter === f.key ? '#fff' : COLOR.ink2,
-                fontFamily: 'Nunito', fontWeight: 800, fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.06,
-                cursor: 'pointer',
-              }}
-            >{f.label}</motion.button>
+          {[{ key: 'zone' as const, label: 'Neighbourhood' }, { key: 'city' as const, label: 'City' }, { key: 'state' as const, label: 'National' }].map((f) => (
+            <motion.button key={f.key} whileTap={{ scale: 0.95 }} onClick={() => setFilter(f.key)} style={{ flex: 1, padding: '10px 8px', borderRadius: 12, border: 'none', backgroundColor: filter === f.key ? C.jungle : C.surface, color: filter === f.key ? '#fff' : C.ink2, fontFamily: 'Nunito', fontWeight: 800, fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.06, cursor: 'pointer' }}>{f.label}</motion.button>
           ))}
         </div>
 
@@ -942,53 +954,66 @@ function ImpactScreen({ setScreen, impactEvents, profile }: { setScreen: (s: Scr
           </div>
         </Card>
 
-        <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: COLOR.ink, marginBottom: 12 }}>Care Stories Near You</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
-          {careStories.slice(0, 4).map((s) => (
-            <Card tone="surface" key={s.id} style={{ padding: 14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <Pill tone={s.badgeTone} variant="soft">{s.badge}</Pill>
-                {s.hearts > 0 && <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 'auto' }}><Heart size={14} color={COLOR.coral} fill={COLOR.coral} /><span style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 12, color: COLOR.coralDeep }}>{s.hearts}</span></div>}
-              </div>
-              <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 15, color: COLOR.ink, marginBottom: 6, lineHeight: 1.3 }}>{s.title}</div>
-              <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: COLOR.ink2, lineHeight: 1.5 }}>{s.body}</div>
-              {s.helpers.length > 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 10 }}>
-                  <span style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: COLOR.muted }}>Helpers:</span>
-                  <div style={{ display: 'flex' }}>
-                    {s.helpers.map((h, i) => (
-                      <div key={h} style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: COLOR.sky, color: '#fff', fontSize: 10, fontWeight: 700, fontFamily: 'Fredoka', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: i > 0 ? -6 : 0, border: '2px solid #fff' }}>{h}</div>
-                    ))}
+        <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: C.ink, marginBottom: 12 }}>Care Feed</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
+          {careStories.map((s) => (
+            <motion.div key={s.id} whileTap={{ scale: 0.98 }} onClick={() => setSelectedStory(s)} style={{ cursor: 'pointer' }}>
+              <Card tone="surface" style={{ padding: 0, overflow: 'hidden' }}>
+                {s.imageUrl && <img src={s.imageUrl} alt={s.title} style={{ width: '100%', height: 160, objectFit: 'cover', display: 'block' }} />}
+                <div style={{ padding: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <Pill tone={s.badgeTone} variant="soft">{s.badge}</Pill>
+                    {s.mediaType === 'video' && <Pill tone="sky" variant="soft">Video</Pill>}
+                    {s.hearts > 0 && <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 'auto' }}><Heart size={14} color={C.coral} fill={C.coral} /><span style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 12, color: C.coralDeep }}>{s.hearts}</span></div>}
+                  </div>
+                  <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 15, color: C.ink, marginBottom: 6, lineHeight: 1.3 }}>{s.title}</div>
+                  <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: C.ink2, lineHeight: 1.5 }}>{s.body}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
+                    <span style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: C.muted }}>{s.date}</span>
+                    <span style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: C.muted }}>·</span>
+                    <span style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: C.muted }}>{s.location}</span>
                   </div>
                 </div>
-              )}
-            </Card>
+              </Card>
+            </motion.div>
           ))}
         </div>
 
         <Card tone="paper" style={{ marginTop: 8, padding: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Heart size={18} color={COLOR.coral} />
-          <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 13, color: COLOR.ink2 }}>Every mission you complete adds to your community's impact. Check your personal stats on the leaderboard.</div>
+          <Heart size={18} color={C.coral} />
+          <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 13, color: C.ink2 }}>Every mission you complete adds to your community's impact. Check your personal stats on the Ranks tab.</div>
         </Card>
       </div>
     </div>
   );
 }
 
-function LeaderboardScreen({ setScreen, users, profile, onJoin, onCancel, name, setName, phone, setPhone, gender, setGender }: {
+function LeaderboardScreen({ setScreen, users, profile, onJoin, onCancel, name, setName, phone, setPhone, gender, setGender, neighborhood }: {
   setScreen: (s: Screen) => void; users: any[]; profile: any;
   onJoin: () => void; onCancel: () => void;
   name: string; setName: (n: string) => void;
   phone: string; setPhone: (p: string) => void;
   gender: string; setGender: (g: string) => void;
+  neighborhood: string;
 }) {
   const [showRegister, setShowRegister] = useState(!profile.leaderboardOptIn);
+  const [regStep, setRegStep] = useState<'phone' | 'otp' | 'details'>('phone');
   const [consents, setConsents] = useState({ c1: false, c2: false, c3: false });
   const [localName, setLocalName] = useState(name);
   const [localPhone, setLocalPhone] = useState(phone);
   const [localGender, setLocalGender] = useState(gender);
+  const [otp, setOtp] = useState('');
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [locations, setLocations] = useState<string[]>(neighborhood ? [neighborhood] : []);
+  const [locationSearch, setLocationSearch] = useState('');
   const allConsented = consents.c1 && consents.c2 && consents.c3;
-  const canRegister = allConsented && localName.trim().length > 0;
+  const canRegister = allConsented && localName.trim().length > 0 && otpVerified;
+  const phoneValid = /^(\+91[\s]?)?[6-9]\d{9}$/.test(localPhone.replace(/\s/g, ''));
+
+  const handleSendOtp = () => { if (phoneValid) setOtp(''); setRegStep('otp'); };
+  const handleVerifyOtp = () => { if (otp.length === 4) { setOtpVerified(true); setRegStep('details'); } };
+  const handleAddLocation = (loc: string) => { if (loc && !locations.includes(loc)) setLocations([...locations, loc]); setLocationSearch(''); };
+  const handleRemoveLocation = (loc: string) => setLocations(locations.filter((l) => l !== loc));
 
   const handleJoin = () => {
     setName(localName);
@@ -998,10 +1023,13 @@ function LeaderboardScreen({ setScreen, users, profile, onJoin, onCancel, name, 
     setShowRegister(false);
   };
 
+  const neighborhoods = ['Indiranagar', 'Koramangala', 'HSR Layout', 'Whitefield', 'Electronic City', 'Jayanagar', 'BTM Layout', 'Marathahalli', 'MG Road', 'Jubilee Hills', 'Banjara Hills', 'Gachibowli', 'Madhapur'];
+  const filteredLocations = locationSearch ? neighborhoods.filter((n) => n.toLowerCase().includes(locationSearch.toLowerCase()) && !locations.includes(n)) : [];
+
   if (!showRegister && profile.leaderboardOptIn) {
     return (
       <div style={{ padding: '0 16px 100px' }}>
-        <ScreenHeader title="Leaderboard" onBack={() => setScreen('home')} />
+        <ScreenHeader title="Ranks" />
         <MascotView scene="leaderboard_success" compact />
         <Card tone="jungle" style={{ marginBottom: 16, marginTop: 12, padding: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -1012,43 +1040,43 @@ function LeaderboardScreen({ setScreen, users, profile, onJoin, onCancel, name, 
             </div>
           </div>
         </Card>
-        <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 16, color: COLOR.ink, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <MapPin size={16} color={COLOR.coral} />
+        <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 16, color: C.ink, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <MapPin size={16} color={C.coral} />
           {profile.neighborhood || 'Indiranagar'} Care Zone
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
           <Card tone="surface" style={{ textAlign: 'center', padding: 12 }}>
-            <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: COLOR.jungleDeep }}>{users.length + 1}</div>
-            <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: COLOR.muted }}>Your Rank</div>
+            <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: C.jungleDeep }}>{users.length + 1}</div>
+            <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: C.muted }}>Your Rank</div>
           </Card>
           <Card tone="surface" style={{ textAlign: 'center', padding: 12 }}>
-            <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: COLOR.skyDeep }}>{users.length}</div>
-            <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: COLOR.muted }}>Zone Helpers</div>
+            <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: C.skyDeep }}>{users.length}</div>
+            <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: C.muted }}>Zone Helpers</div>
           </Card>
           <Card tone="surface" style={{ textAlign: 'center', padding: 12 }}>
-            <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: COLOR.goldDeep }}>{users.reduce((sum, u) => sum + u.points, 0) + profile.points}</div>
-            <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: COLOR.muted }}>Zone Points</div>
+            <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: C.goldDeep }}>{users.reduce((sum, u) => sum + u.points, 0) + profile.points}</div>
+            <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: C.muted }}>Zone Points</div>
           </Card>
         </div>
-        <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 14, color: COLOR.ink, marginBottom: 8 }}>Top Helpers</div>
+        <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 14, color: C.ink, marginBottom: 8 }}>Top Helpers</div>
         {users.map((u) => (
           <Card tone="surface" key={u.id} style={{ marginBottom: 8, padding: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 16, color: COLOR.muted, width: 28, textAlign: 'center' }}>
+              <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 16, color: C.muted, width: 28, textAlign: 'center' }}>
                 {u.rank <= 3 ? ['🥇', '🥈', '🥉'][u.rank - 1] : u.rank}
               </div>
               <Avatar name={u.name} size={36} tone={u.tone} />
               <div style={{ flex: 1 }}>
-                <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 15, color: COLOR.ink }}>{u.name}</div>
-                <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: COLOR.muted }}>{u.zone}</div>
+                <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 15, color: C.ink }}>{u.name}</div>
+                <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: C.muted }}>{u.zone}</div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 16, color: COLOR.goldDeep }}>{u.points} pts</div>
+                <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 16, color: C.goldDeep }}>{u.points} pts</div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 2 }}>
-                  {u.change === 'up' && <TrendingUp size={12} color={COLOR.jungle} />}
-                  {u.change === 'down' && <TrendingDown size={12} color={COLOR.coral} />}
-                  {u.change === 'same' && <Minus size={12} color={COLOR.muted} />}
-                  <span style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 11, color: COLOR.muted }}>{u.change}</span>
+                  {u.change === 'up' && <TrendingUp size={12} color={C.jungle} />}
+                  {u.change === 'down' && <TrendingDown size={12} color={C.coral} />}
+                  {u.change === 'same' && <Minus size={12} color={C.muted} />}
+                  <span style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 11, color: C.muted }}>{u.change}</span>
                 </div>
               </div>
             </div>
@@ -1058,73 +1086,108 @@ function LeaderboardScreen({ setScreen, users, profile, onJoin, onCancel, name, 
     );
   }
 
+  if (regStep === 'phone') {
+    return (
+      <div style={{ padding: '0 16px 100px' }}>
+        <ScreenHeader title="Join Ranks" />
+        <MascotView scene="leaderboard_registration" compact />
+        <div style={{ marginTop: 16 }}>
+          <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 20, color: C.ink, marginBottom: 8 }}>Verify your phone</div>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 15, color: C.ink2, marginBottom: 20, lineHeight: 1.6 }}>We'll send a 4-digit OTP to verify your number.</div>
+          <div>
+            <label style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 12, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.06, marginBottom: 6, display: 'block' }}>Phone number *</label>
+            <input value={localPhone} onChange={(e) => setLocalPhone(e.target.value)} placeholder="+91 XXXXX XXXXX" type="tel" style={{ width: '100%', padding: '14px 16px', borderRadius: 16, border: `2px solid ${phoneValid || !localPhone ? C.hairline : C.coral}`, fontFamily: 'Fredoka', fontSize: 18, color: C.ink, backgroundColor: C.surface, outline: 'none' }} />
+            {localPhone && !phoneValid && <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 12, color: C.coral, marginTop: 6 }}>Enter a valid 10-digit Indian number</div>}
+          </div>
+          <div style={{ marginTop: 24 }}>
+            <Btn variant="sky" size="lg" onClick={handleSendOtp} disabled={!phoneValid}>Send OTP</Btn>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (regStep === 'otp') {
+    return (
+      <div style={{ padding: '0 16px 100px' }}>
+        <ScreenHeader title="Join Ranks" onBack={() => setRegStep('phone')} />
+        <MascotView scene="leaderboard_registration" compact />
+        <div style={{ marginTop: 16 }}>
+          <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 20, color: C.ink, marginBottom: 8 }}>Enter OTP</div>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 15, color: C.ink2, marginBottom: 20, lineHeight: 1.6 }}>We sent a code to {localPhone}</div>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 24 }}>
+            {[0, 1, 2, 3].map((i) => (
+              <input key={i} value={otp[i] || ''} onChange={(e) => { const val = e.target.value.replace(/\D/g, ''); if (val) { const newOtp = otp.split(''); newOtp[i] = val; setOtp(newOtp.join('')); if (i < 3) { const next = (e.target as HTMLElement).nextElementSibling as HTMLInputElement; if (next) next.focus(); } } }} onKeyDown={(e) => { if (e.key === 'Backspace' && !otp[i] && i > 0) { const prev = (e.target as HTMLElement).previousElementSibling as HTMLInputElement; if (prev) prev.focus(); } }} maxLength={1} style={{ width: 56, height: 64, textAlign: 'center', borderRadius: 16, border: `2px solid ${C.hairline}`, fontFamily: 'Fredoka', fontSize: 28, color: C.ink, backgroundColor: C.surface, outline: 'none' }} />
+            ))}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <Btn variant="sky" size="lg" onClick={handleVerifyOtp} disabled={otp.length !== 4}>Verify OTP</Btn>
+            <Btn variant="ghost" size="md" onClick={() => { setOtp(''); setRegStep('phone'); }}>Change number</Btn>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: '0 16px 100px' }}>
-      <ScreenHeader title="Join Leaderboard" onBack={() => setShowRegister(false)} />
+      <ScreenHeader title="Join Ranks" onBack={() => setRegStep('otp')} />
       <MascotView scene="leaderboard_registration" compact />
       <div style={{ marginTop: 16 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
           <div>
-            <label style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 12, color: COLOR.muted, textTransform: 'uppercase', letterSpacing: 0.06, marginBottom: 6, display: 'block' }}>Display name *</label>
-            <input
-              value={localName}
-              onChange={(e) => setLocalName(e.target.value)}
-              placeholder="Your name"
-              style={{ width: '100%', padding: '14px 16px', borderRadius: 16, border: `2px solid ${COLOR.hairline}`, fontFamily: 'Fredoka', fontSize: 18, color: COLOR.ink, backgroundColor: COLOR.surface, outline: 'none' }}
-            />
+            <label style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 12, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.06, marginBottom: 6, display: 'block' }}>Display name *</label>
+            <input value={localName} onChange={(e) => setLocalName(e.target.value)} placeholder="Your name" style={{ width: '100%', padding: '14px 16px', borderRadius: 16, border: `2px solid ${C.hairline}`, fontFamily: 'Fredoka', fontSize: 18, color: C.ink, backgroundColor: C.surface, outline: 'none' }} />
           </div>
           <div>
-            <label style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 12, color: COLOR.muted, textTransform: 'uppercase', letterSpacing: 0.06, marginBottom: 6, display: 'block' }}>Phone (optional)</label>
-            <input
-              value={localPhone}
-              onChange={(e) => setLocalPhone(e.target.value)}
-              placeholder="+91 XXXXX XXXXX"
-              style={{ width: '100%', padding: '14px 16px', borderRadius: 16, border: `2px solid ${COLOR.hairline}`, fontFamily: 'Fredoka', fontSize: 18, color: COLOR.ink, backgroundColor: COLOR.surface, outline: 'none' }}
-            />
-          </div>
-          <div>
-            <label style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 12, color: COLOR.muted, textTransform: 'uppercase', letterSpacing: 0.06, marginBottom: 6, display: 'block' }}>Gender (optional)</label>
+            <label style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 12, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.06, marginBottom: 6, display: 'block' }}>Gender</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {['Male', 'Female', 'Non-binary', 'Prefer not to say'].map((g) => (
-                <motion.button key={g} whileTap={{ scale: 0.95 }} onClick={() => setLocalGender(g)} style={{
-                  padding: '8px 14px', borderRadius: 12, border: `2px solid ${localGender === g ? COLOR.sky : COLOR.hairline}`,
-                  backgroundColor: localGender === g ? COLOR.skySoft : COLOR.surface,
-                  fontFamily: 'Nunito', fontWeight: 700, fontSize: 13, color: localGender === g ? COLOR.skyDeep : COLOR.ink,
-                  cursor: 'pointer',
-                }}>{g}</motion.button>
+                <motion.button key={g} whileTap={{ scale: 0.95 }} onClick={() => setLocalGender(g)} style={{ padding: '8px 14px', borderRadius: 12, border: `2px solid ${localGender === g ? C.sky : C.hairline}`, backgroundColor: localGender === g ? C.skySoft : C.surface, fontFamily: 'Nunito', fontWeight: 700, fontSize: 13, color: localGender === g ? C.skyDeep : C.ink, cursor: 'pointer' }}>{g}</motion.button>
               ))}
             </div>
           </div>
         </div>
-        <Card tone="surface" style={{ marginBottom: 20 }}>
-          <div style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 13, color: COLOR.muted, textTransform: 'uppercase', letterSpacing: 0.06, marginBottom: 6 }}>Care zone</div>
-          <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 20, color: COLOR.ink }}>{profile.neighborhood || 'Indiranagar'} Care Zone</div>
-        </Card>
-        <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 16, color: COLOR.ink, marginBottom: 12 }}>Consent</div>
+
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 12, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.06, marginBottom: 8 }}>Care zones</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+            {locations.map((loc) => (
+              <div key={loc} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 9999, backgroundColor: C.jungleSoft, border: `1.5px solid ${C.jungle}` }}>
+                <MapPin size={14} color={C.jungle} />
+                <span style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 13, color: C.jungleDeep }}>{loc}</span>
+                <button onClick={() => handleRemoveLocation(loc)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}><X size={14} color={C.jungleDeep} /></button>
+              </div>
+            ))}
+          </div>
+          <div style={{ position: 'relative' }}>
+            <input value={locationSearch} onChange={(e) => setLocationSearch(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && locationSearch.trim()) handleAddLocation(locationSearch.trim()); }} placeholder="Add another area..." style={{ width: '100%', padding: '12px 16px 12px 40px', borderRadius: 14, border: `2px solid ${C.hairline}`, fontFamily: 'Nunito', fontSize: 15, color: C.ink, backgroundColor: C.surface, outline: 'none' }} />
+            <MapPin size={18} color={C.muted} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+          </div>
+          {filteredLocations.length > 0 && (
+            <div style={{ maxHeight: 120, overflowY: 'auto', marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {filteredLocations.map((n) => (
+                <motion.button key={n} whileTap={{ scale: 0.98 }} onClick={() => handleAddLocation(n)} style={{ padding: '10px 14px', borderRadius: 12, textAlign: 'left', backgroundColor: 'transparent', border: 'none', fontFamily: 'Nunito', fontWeight: 700, fontSize: 14, color: C.ink, cursor: 'pointer' }}>{n}</motion.button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 16, color: C.ink, marginBottom: 12 }}>Consent</div>
         {[
           { key: 'c1', label: 'I agree to show my first name, care zone, points, rank, and badges.' },
           { key: 'c2', label: 'I understand exact proof locations and private reports are not public.' },
           { key: 'c3', label: 'I can turn this off later from Profile.' },
         ].map((c) => (
-          <motion.div
-            key={c.key}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setConsents((prev) => ({ ...prev, [c.key]: !prev[c.key as keyof typeof prev] }))}
-            style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '12px 0', cursor: 'pointer', borderBottom: `1px solid ${COLOR.hairline}` }}
-          >
-            <div style={{
-              width: 24, height: 24, borderRadius: 6, flexShrink: 0, marginTop: 2,
-              backgroundColor: consents[c.key as keyof typeof consents] ? COLOR.jungle : COLOR.paper2,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              border: consents[c.key as keyof typeof consents] ? 'none' : `2px solid ${COLOR.hairline2}`,
-            }}>
+          <motion.div key={c.key} whileTap={{ scale: 0.98 }} onClick={() => setConsents((prev) => ({ ...prev, [c.key]: !prev[c.key as keyof typeof prev] }))} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '12px 0', cursor: 'pointer', borderBottom: `1px solid ${C.hairline}` }}>
+            <div style={{ width: 24, height: 24, borderRadius: 6, flexShrink: 0, marginTop: 2, backgroundColor: consents[c.key as keyof typeof consents] ? C.jungle : C.paper2, display: 'flex', alignItems: 'center', justifyContent: 'center', border: consents[c.key as keyof typeof consents] ? 'none' : `2px solid ${C.hairline2}` }}>
               {consents[c.key as keyof typeof consents] && <Check size={16} color="#fff" />}
             </div>
-            <span style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 14, color: COLOR.ink, lineHeight: 1.5 }}>{c.label}</span>
+            <span style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 14, color: C.ink, lineHeight: 1.5 }}>{c.label}</span>
           </motion.div>
         ))}
         <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <Btn variant="sky" size="lg" onClick={handleJoin} disabled={!canRegister}>Join Leaderboard</Btn>
+          <Btn variant="sky" size="lg" onClick={handleJoin} disabled={!canRegister}>Join Ranks</Btn>
           <Btn variant="ghost" size="md" onClick={() => setShowRegister(false)}>Cancel</Btn>
         </div>
       </div>
@@ -1742,8 +1805,9 @@ export default function App() {
     phone, setPhone, gender, setGender, neighborhood,
     impactEvents, startMission, completeMission, toggleChecklistItem, checklistItems,
     setLeaderboardOptedIn, leaderboardOptedIn, logAnalytics, setActiveMission, lastCompletedMission,
-    newlyEarnedBadge, onboardingPhase,
+    newlyEarnedBadge, onboardingPhase, darkMode,
   } = useApp();
+  C = getTheme(darkMode);
   const [showActionSheet, setShowActionSheet] = useState(false);
   const [toast, setToast] = useState<{ message: string; sub?: string } | null>(null);
   const [showLockedModal, setShowLockedModal] = useState(false);
@@ -1819,7 +1883,7 @@ export default function App() {
 
   if (!hasSeenSplash) {
     return (
-      <div style={{ minHeight: '100dvh', backgroundColor: COLOR.jungle, position: 'relative', overflow: 'hidden', fontFamily: 'Nunito, sans-serif', color: COLOR.ink }}>
+      <div style={{ minHeight: '100dvh', backgroundColor: C.jungle, position: 'relative', overflow: 'hidden', fontFamily: 'Nunito, sans-serif', color: C.ink }}>
         <div style={{ maxWidth: 480, margin: '0 auto', height: '100dvh', display: 'flex', flexDirection: 'column' }}>
           <SplashScreen onComplete={completeSplash} />
         </div>
@@ -1830,7 +1894,7 @@ export default function App() {
   if (!hasSeenOnboarding) {
     if (onboardingPhase < 2) {
       return (
-        <div style={{ minHeight: '100dvh', backgroundColor: COLOR.paper, position: 'relative', overflow: 'hidden', fontFamily: 'Nunito, sans-serif', color: COLOR.ink }}>
+        <div style={{ minHeight: '100dvh', backgroundColor: C.paper, position: 'relative', overflow: 'hidden', fontFamily: 'Nunito, sans-serif', color: C.ink }}>
           <div style={{ maxWidth: 480, margin: '0 auto', height: '100dvh', display: 'flex', flexDirection: 'column' }}>
             <OnboardingIntroScreen />
           </div>
@@ -1838,7 +1902,7 @@ export default function App() {
       );
     }
     return (
-      <div style={{ minHeight: '100dvh', backgroundColor: COLOR.paper, position: 'relative', overflow: 'hidden', fontFamily: 'Nunito, sans-serif', color: COLOR.ink }}>
+      <div style={{ minHeight: '100dvh', backgroundColor: C.paper, position: 'relative', overflow: 'hidden', fontFamily: 'Nunito, sans-serif', color: C.ink }}>
         <div style={{ maxWidth: 480, margin: '0 auto', height: '100dvh', display: 'flex', flexDirection: 'column' }}>
           <SimpleOnboardingScreen onComplete={completeOnboarding} />
         </div>
@@ -1847,7 +1911,7 @@ export default function App() {
   }
 
   return (
-    <div style={{ minHeight: '100dvh', backgroundColor: COLOR.paper, position: 'relative', overflow: 'hidden', fontFamily: 'Nunito, sans-serif', color: COLOR.ink }}>
+    <div style={{ minHeight: '100dvh', backgroundColor: C.paper, position: 'relative', overflow: 'hidden', fontFamily: 'Nunito, sans-serif', color: C.ink }}>
       <div style={{ maxWidth: 480, margin: '0 auto', height: '100dvh', display: 'flex', flexDirection: 'column' }}>
       <AnimatePresence mode="wait">
         <motion.div key={screen} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} style={{ flex: 1, overflowY: 'auto', paddingBottom: 100 }}>
@@ -1898,6 +1962,7 @@ export default function App() {
               setScreen={navigate} users={leaderboardUsers} profile={profile}
               onJoin={handleJoinLeaderboard} onCancel={handleCancelLeaderboard}
               name={name} setName={setName} phone={phone} setPhone={setPhone} gender={gender} setGender={setGender}
+              neighborhood={neighborhood}
             />
           )}
           {screen === 'profile' && (
