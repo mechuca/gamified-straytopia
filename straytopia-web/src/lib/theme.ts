@@ -10,14 +10,14 @@ export const LIGHT = {
 } as const;
 
 export const DARK = {
-  jungle: '#2DC653', jungleDeep: '#3DDC6A', jungleSoft: '#1A3D24', jungleInk: '#A8F0C0',
-  coral: '#FF5A4A', coralDeep: '#FF7A6A', coralSoft: '#3D1A16', coralInk: '#FFB0A8',
-  gold: '#FFC83D', goldDeep: '#FFD86A', goldSoft: '#3D2E0A', goldInk: '#FFE8A0',
-  sky: '#1CB0F6', skyDeep: '#4AC4FF', skySoft: '#0A2D3D',
-  plum: '#A560E8', plumDeep: '#C080FF', plumSoft: '#2D1A3D',
-  paper: '#121214', paper2: '#1A1A1E', paper3: '#222228',
-  surface: '#1E1E22', ink: '#F0F0F2', ink2: '#A0A0A8', muted: '#6A6A72',
-  hairline: '#2A2A30', hairline2: '#34343C',
+  jungle: '#3DDC6A', jungleDeep: '#5AE882', jungleSoft: '#14291C', jungleInk: '#B8F5CC',
+  coral: '#FF6B5A', coralDeep: '#FF8A7A', coralSoft: '#2D1210', coralInk: '#FFC4BA',
+  gold: '#FFD557', goldDeep: '#FFE080', goldSoft: '#2D2208', goldInk: '#FFF0B0',
+  sky: '#3DBBF8', skyDeep: '#6AD4FF', skySoft: '#082030',
+  plum: '#B475F0', plumDeep: '#CC99FF', plumSoft: '#1E1030',
+  paper: '#0C0C0E', paper2: '#16161A', paper3: '#1E1E24',
+  surface: '#1A1A20', ink: '#F2F2F4', ink2: '#A8A8B0', muted: '#62626A',
+  hairline: '#282830', hairline2: '#32323C',
 } as const;
 
 export type ThemeColors = typeof LIGHT;
