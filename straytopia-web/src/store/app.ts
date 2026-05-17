@@ -33,6 +33,7 @@ interface AppState {
   gender: string;
   neighborhood: string;
   avatarIndex: number;
+  avatarTone: string;
   leaderboardOptedIn: boolean;
   lbConsentChecked: boolean;
   lbDisplayName: string;
@@ -55,16 +56,26 @@ interface AppState {
   impactEvents: string[];
   proofs: string[];
   savedAnimalNames: string[];
+  likedStories: string[];
+  bookmarkedStories: string[];
+  streakFreeze: boolean;
+  locationHistory: string[];
+  pushNotifications: boolean;
+  buddyMode: boolean;
+  hapticEnabled: boolean;
+  skeletonLoading: boolean;
   navigate: (s: Screen) => void;
   setName: (n: string) => void;
   setPhone: (p: string) => void;
   setGender: (g: string) => void;
   setNeighborhood: (n: string) => void;
   setAvatarIndex: (i: number) => void;
+  setAvatarTone: (t: string) => void;
   setOnboardingStep: (n: number) => void;
   setActiveMission: (id: string | null) => void;
   completeSplash: () => void;
   completeOnboarding: () => void;
+  skipOnboarding: () => void;
   startMission: (id: string) => void;
   toggleChecklistItem: (item: string) => void;
   completeChecklist: () => void;
@@ -77,6 +88,14 @@ interface AppState {
   setNotification: (key: string, value: boolean) => void;
   darkMode: boolean;
   toggleDarkMode: () => void;
+  toggleLikeStory: (id: string) => void;
+  toggleBookmarkStory: (id: string) => void;
+  toggleStreakFreeze: () => void;
+  addLocationToHistory: (loc: string) => void;
+  togglePushNotifications: () => void;
+  toggleBuddyMode: () => void;
+  toggleHapticEnabled: () => void;
+  setSkeletonLoading: (v: boolean) => void;
   resetDemo: () => void;
   logAnalytics: (event: string, data?: Record<string, unknown>) => void;
   onboardingPhase: number;
@@ -104,6 +123,7 @@ export const useApp = create<AppState>((set, get) => ({
   gender: '',
   neighborhood: '',
   avatarIndex: 0,
+  avatarTone: 'jungle',
   leaderboardOptedIn: false,
   lbConsentChecked: false,
   lbDisplayName: '',
@@ -127,6 +147,14 @@ export const useApp = create<AppState>((set, get) => ({
   impactEvents: [],
   proofs: [],
   savedAnimalNames: [],
+  likedStories: [],
+  bookmarkedStories: [],
+  streakFreeze: false,
+  locationHistory: [],
+  pushNotifications: true,
+  buddyMode: false,
+  hapticEnabled: true,
+  skeletonLoading: false,
   onboardingPhase: 0,
   advanceOnboarding: () => {
     const current = get().onboardingPhase;
@@ -134,12 +162,14 @@ export const useApp = create<AppState>((set, get) => ({
     else if (current === 1) set({ onboardingPhase: 2 });
     else set({ hasSeenOnboarding: true, screen: 'home' });
   },
+  skipOnboarding: () => set({ hasSeenOnboarding: true, screen: 'home' }),
   navigate: (s) => set({ screen: s }),
   setName: (n) => set({ name: n }),
   setPhone: (p) => set({ phone: p }),
   setGender: (g) => set({ gender: g }),
   setNeighborhood: (n) => set({ neighborhood: n }),
   setAvatarIndex: (i) => set({ avatarIndex: i }),
+  setAvatarTone: (t) => set({ avatarTone: t }),
   setOnboardingStep: (n) => set({ onboardingStep: n }),
   setActiveMission: (id) => set({ activeMission: id }),
   completeSplash: () => set({ hasSeenSplash: true, screen: 'onboarding-intro' }),
@@ -171,7 +201,7 @@ export const useApp = create<AppState>((set, get) => ({
     const s = get();
     const newPoints = s.points + (id === 'm1' ? 10 : id === 'm2' ? 15 : 20);
     const newHearts = s.hearts + 1;
-    const newStreak = Math.max(s.streak, 1);
+    const newStreak = s.streakFreeze ? s.streak : Math.max(s.streak, 1);
     const newMissions = s.missionsCompleted + 1;
     const newAnimals = s.animalsHelped + 1;
     const newStatus = { ...s.missionStatus, [id as keyof MissionStatus]: 'completed' as const };
@@ -181,13 +211,8 @@ export const useApp = create<AppState>((set, get) => ({
 
     let newBadges = [...s.earnedBadges];
     let newlyEarned: string | null = null;
-    if (id === 'm1' && !s.earnedBadges.includes('b1')) {
-      newBadges.push('b1');
-      newlyEarned = 'b1';
-    } else if (id === 'm2' && !s.earnedBadges.includes('b2')) {
-      newBadges.push('b2');
-      newlyEarned = 'b2';
-    }
+    if (id === 'm1' && !s.earnedBadges.includes('b1')) { newBadges.push('b1'); newlyEarned = 'b1'; }
+    else if (id === 'm2' && !s.earnedBadges.includes('b2')) { newBadges.push('b2'); newlyEarned = 'b2'; }
 
     const newAnimalsList = [...s.savedAnimalNames, id === 'm1' ? 'Friendly dog' : id === 'm2' ? 'Thirsty cat' : 'Street animal'];
 
@@ -198,21 +223,12 @@ export const useApp = create<AppState>((set, get) => ({
     if (id === 'm5') newStatus.m6 = 'available';
 
     set({
-      missionStatus: newStatus,
-      activeMission: null,
-      lastCompletedMission: id,
-      points: newPoints,
-      hearts: newHearts,
-      streak: newStreak,
-      missionsCompleted: newMissions,
-      animalsHelped: newAnimals,
-      missionHistory: newHistory,
-      impactEvents: newEvents,
-      proofs: newProofs,
-      earnedBadges: newBadges,
-      newlyEarnedBadge: newlyEarned,
-      savedAnimalNames: newAnimalsList,
-      screen: 'success',
+      missionStatus: newStatus, activeMission: null, lastCompletedMission: id,
+      points: newPoints, hearts: newHearts, streak: newStreak,
+      missionsCompleted: newMissions, animalsHelped: newAnimals,
+      missionHistory: newHistory, impactEvents: newEvents, proofs: newProofs,
+      earnedBadges: newBadges, newlyEarnedBadge: newlyEarned,
+      savedAnimalNames: newAnimalsList, screen: 'success',
     });
   },
   setLeaderboardOptedIn: (v) => set({ leaderboardOptedIn: v }),
@@ -221,20 +237,34 @@ export const useApp = create<AppState>((set, get) => ({
   setProofPhoto: (p) => set({ proofPhoto: p }),
   setNotification: (key, value) => set((s) => ({ notifications: { ...s.notifications, [key]: value } })),
   toggleDarkMode: () => set((s) => ({ darkMode: !s.darkMode })),
+  toggleLikeStory: (id) => set((s) => ({
+    likedStories: s.likedStories.includes(id) ? s.likedStories.filter((i) => i !== id) : [...s.likedStories, id],
+  })),
+  toggleBookmarkStory: (id) => set((s) => ({
+    bookmarkedStories: s.bookmarkedStories.includes(id) ? s.bookmarkedStories.filter((i) => i !== id) : [...s.bookmarkedStories, id],
+  })),
+  toggleStreakFreeze: () => set((s) => ({ streakFreeze: !s.streakFreeze })),
+  addLocationToHistory: (loc) => set((s) => ({
+    locationHistory: s.locationHistory.includes(loc) ? s.locationHistory : [...s.locationHistory, loc],
+  })),
+  togglePushNotifications: () => set((s) => ({ pushNotifications: !s.pushNotifications })),
+  toggleBuddyMode: () => set((s) => ({ buddyMode: !s.buddyMode })),
+  toggleHapticEnabled: () => set((s) => ({ hapticEnabled: !s.hapticEnabled })),
+  setSkeletonLoading: (v) => set({ skeletonLoading: v }),
   resetDemo: () => set({
     screen: 'splash', hasSeenSplash: false, hasSeenOnboarding: false, onboardingStep: 0,
-    name: '', phone: '', gender: '', neighborhood: '', avatarIndex: 0,
-    leaderboardOptedIn: false,
-    lbConsentChecked: false, lbDisplayName: '', points: 0, streak: 0, hearts: 0,
-    missionsCompleted: 0, animalsHelped: 0, activeMission: null,
-    lastCompletedMission: null,
+    name: '', phone: '', gender: '', neighborhood: '', avatarIndex: 0, avatarTone: 'jungle',
+    leaderboardOptedIn: false, lbConsentChecked: false, lbDisplayName: '',
+    points: 0, streak: 0, hearts: 0, missionsCompleted: 0, animalsHelped: 0,
+    activeMission: null, lastCompletedMission: null,
     missionStatus: { ...defaultMissionStatus }, proofPhoto: null, proofNote: '',
     checklistDone: false, checklistItems: {},
     earnedBadges: [], newlyEarnedBadge: null, missionHistory: [], impactEvents: [],
-    proofs: [], savedAnimalNames: [],
+    proofs: [], savedAnimalNames: [], likedStories: [], bookmarkedStories: [],
+    streakFreeze: false, locationHistory: [], pushNotifications: true,
+    buddyMode: false, hapticEnabled: true, skeletonLoading: false,
     notifications: { mission_reminders: true, urgent_alerts: true, badge_updates: true, leaderboard_updates: false },
-    darkMode: false,
-    onboardingPhase: 0,
+    darkMode: false, onboardingPhase: 0,
   }),
   logAnalytics: (event, data) => {
     if (process.env.NODE_ENV === 'development') {

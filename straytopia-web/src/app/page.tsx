@@ -15,11 +15,106 @@ import {
   Award, TrendingUp, TrendingDown, Minus, Target,
   FileText, Home, PawPrint, AlertCircle, Star,
   Moon, Siren, Clipboard, Users, CheckCircle, Lock,
+  Bookmark, Share2, Smartphone,
 } from 'lucide-react';
 import { MascotView, Saathi, getMascotState, MascotScene } from '@/mascot';
 
 // Dynamic theme - updated each render based on darkMode state
 let C: ThemeColors = COLOR;
+
+// Haptic feedback simulation
+function haptic() {
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    navigator.vibrate(10);
+  }
+}
+
+// Skeleton loader component
+function Skeleton({ width, height, borderRadius = 12 }: { width: string | number; height: string | number; borderRadius?: number }) {
+  return (
+    <div style={{ width, height, borderRadius, backgroundColor: C.paper2, position: 'relative', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(90deg, transparent 0%, ${C.paper3 || C.hairline} 50%, transparent 100%)`, animation: 'shimmer 1.5s infinite' }} />
+    </div>
+  );
+}
+
+// Progress ring component
+function ProgressRing({ progress, size = 48, strokeWidth = 4, color }: { progress: number; size?: number; strokeWidth?: number; color?: string }) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const offset = circumference - (progress / 100) * circumference;
+  return (
+    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+      <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={C.paper2} strokeWidth={strokeWidth} />
+      <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={color || C.jungle} strokeWidth={strokeWidth} strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" style={{ transition: 'stroke-dashoffset 0.5s ease' }} />
+    </svg>
+  );
+}
+
+// Empty state component
+function EmptyState({ icon: Icon, title, subtitle, actionLabel, onAction }: { icon: any; title: string; subtitle: string; actionLabel?: string; onAction?: () => void }) {
+  return (
+    <div style={{ textAlign: 'center', padding: '40px 24px' }}>
+      <div style={{ width: 80, height: 80, borderRadius: 24, backgroundColor: C.jungleSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+        <Icon size={36} color={C.jungle} />
+      </div>
+      <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 20, color: C.ink, marginBottom: 8 }}>{title}</div>
+      <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 15, color: C.ink2, maxWidth: 280, margin: '0 auto 20px', lineHeight: 1.6 }}>{subtitle}</div>
+      {actionLabel && onAction && <Btn variant="jungle" size="md" onClick={onAction} style={{ maxWidth: 240, margin: '0 auto' }}>{actionLabel}</Btn>}
+    </div>
+  );
+}
+
+// Tooltip component
+function Tooltip({ text, children }: { text: string; children: React.ReactNode }) {
+  const [show, setShow] = useState(false);
+  return (
+    <div style={{ position: 'relative', display: 'inline-flex' }} onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)} onFocus={() => setShow(true)} onBlur={() => setShow(false)}>
+      {children}
+      {show && (
+        <div style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 8, padding: '8px 12px', backgroundColor: C.ink, color: C.paper, borderRadius: 10, fontFamily: 'Nunito', fontWeight: 600, fontSize: 12, whiteSpace: 'nowrap', zIndex: 100, maxWidth: 200 }}>
+          {text}
+          <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', border: '6px solid transparent', borderTopColor: C.ink }} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Buddy avatar component
+function BuddyAvatar({ name, online, tone = 'sky' }: { name: string; online: boolean; tone?: string }) {
+  const colors: Record<string, { bg: string; fg: string }> = {
+    sky: { bg: C.sky, fg: '#fff' }, jungle: { bg: C.jungle, fg: '#fff' },
+    coral: { bg: C.coral, fg: '#fff' }, gold: { bg: C.gold, fg: C.goldInk },
+  };
+  const c = colors[tone] || colors.sky;
+  return (
+    <div style={{ position: 'relative', display: 'inline-flex' }}>
+      <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: c.bg, color: c.fg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Fredoka', fontWeight: 600, fontSize: 16, border: '2.5px solid #fff' }}>{name[0]}</div>
+      {online && <div style={{ position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: '50%', backgroundColor: C.jungle, border: '2px solid #fff' }} />}
+    </div>
+  );
+}
+
+// Setting toggle component
+function SettingToggle({ icon: Icon, label, description, checked, onChange }: { icon: any; label: string; description: string; checked: boolean; onChange: () => void }) {
+  return (
+    <motion.button whileTap={{ scale: 0.98 }} onClick={onChange} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '14px 16px', backgroundColor: C.surface, borderRadius: 16, border: 'none', cursor: 'pointer' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: C.paper2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Icon size={20} color={checked ? C.jungle : COLOR.muted} />
+        </div>
+        <div style={{ textAlign: 'left' }}>
+          <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 15, color: COLOR.ink }}>{label}</div>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: COLOR.ink2 }}>{description}</div>
+        </div>
+      </div>
+      <div style={{ width: 48, height: 28, borderRadius: 14, backgroundColor: checked ? C.jungle : COLOR.hairline2, position: 'relative', transition: 'background-color 0.2s' }}>
+        <div style={{ position: 'absolute', top: 2, left: checked ? 22 : 2, width: 24, height: 24, borderRadius: 12, backgroundColor: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', transition: 'left 0.2s' }} />
+      </div>
+    </motion.button>
+  );
+}
 
 function useReducedMotion() {
   const [reduced, setReduced] = useState(false);
@@ -252,7 +347,7 @@ function SplashScreen({ onComplete }: { onComplete: () => void }) {
 }
 
 function OnboardingIntroScreen() {
-  const { onboardingPhase, advanceOnboarding } = useApp();
+  const { onboardingPhase, advanceOnboarding, skipOnboarding } = useApp();
 
   const slides = [
     {
@@ -285,6 +380,9 @@ function OnboardingIntroScreen() {
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 10 }}>
+        <motion.button whileTap={{ scale: 0.95 }} onClick={skipOnboarding} style={{ padding: '8px 14px', borderRadius: 12, border: 'none', backgroundColor: C.paper2, fontFamily: 'Nunito', fontWeight: 700, fontSize: 13, color: C.ink2, cursor: 'pointer' }}>Skip</motion.button>
+      </div>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 24px 16px', textAlign: 'center', gap: 16, overflowY: 'auto' }}>
         <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.5, ease: 'easeOut' }}>
           <div style={{ width: 72, height: 72, borderRadius: 20, backgroundColor: C.jungleSoft, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -479,14 +577,38 @@ function HomeScreen({ setScreen, missions, missionStatus, points, streak, hearts
   points: number; streak: number; hearts: number; missionsCompleted: number; animalsHelped: number;
   earnedBadges: string[]; onSelectMission: (id: string) => void; onLockedMission: () => void;
 }) {
+  const { likedStories, bookmarkedStories, toggleLikeStory, toggleBookmarkStory, buddyMode } = useApp();
   const firstAvailable = missions.find((m) => missionStatus[m.id as keyof MissionStatus] === 'available');
   const mascotScene: MascotScene = missionsCompleted === 0 && !firstAvailable ? 'home_empty' : firstAvailable ? 'mission_available' : 'home_empty';
+  const completedCount = missions.filter((m) => missionStatus[m.id as keyof MissionStatus] === 'completed').length;
+  const progress = missions.length > 0 ? (completedCount / missions.length) * 100 : 0;
 
   return (
     <div style={{ padding: '0 16px 100px' }}>
       <StatStrip points={points} streak={streak} hearts={hearts} />
+      {missionsCompleted > 0 && (
+        <div style={{ marginBottom: 16, padding: '12px 16px', backgroundColor: C.surface, borderRadius: 16, border: `2px solid ${C.hairline}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <span style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 14, color: COLOR.ink }}>Mission Progress</span>
+            <span style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 13, color: COLOR.jungleDeep }}>{completedCount}/{missions.length}</span>
+          </div>
+          <div style={{ height: 8, borderRadius: 4, backgroundColor: COLOR.paper2, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${progress}%`, backgroundColor: COLOR.jungle, borderRadius: 4, transition: 'width 0.5s ease' }} />
+          </div>
+        </div>
+      )}
       <NeighborhoodEngagementStrip />
       <MascotView scene={mascotScene} compact={false} />
+      {buddyMode && (
+        <div style={{ marginBottom: 16, padding: '12px 16px', backgroundColor: C.surface, borderRadius: 16, border: `2px solid ${C.hairline}` }}>
+          <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 14, color: COLOR.ink, marginBottom: 8 }}>Nearby Helpers</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <BuddyAvatar name="Aisha" online tone="jungle" />
+            <BuddyAvatar name="Rohan" online tone="sky" />
+            <BuddyAvatar name="Meera" online={false} tone="coral" />
+          </div>
+        </div>
+      )}
       <Card tone="jungle" style={{ marginBottom: 20, padding: 18 }} onClick={() => {}}>
         <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 12, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 0.08, marginBottom: 4 }}>Indiranagar Care Zone</div>
         <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 16, color: '#fff' }}>
@@ -496,18 +618,19 @@ function HomeScreen({ setScreen, missions, missionStatus, points, streak, hearts
       <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: COLOR.ink, marginBottom: 16 }}>Today's Care Path</div>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '8px 0' }}>
         {missions.map((m, i) => (
-          <MissionPathNode
-            key={m.id}
-            mission={m}
-            status={missionStatus[m.id as keyof MissionStatus] || 'locked'}
-            index={i}
-            total={missions.length}
-            onPress={() => {
-              const st = missionStatus[m.id as keyof MissionStatus];
-              if (st === 'locked') onLockedMission();
-              else onSelectMission(m.id);
-            }}
-          />
+          <Tooltip key={m.id} text={m.title}>
+            <MissionPathNode
+              mission={m}
+              status={missionStatus[m.id as keyof MissionStatus] || 'locked'}
+              index={i}
+              total={missions.length}
+              onPress={() => {
+                const st = missionStatus[m.id as keyof MissionStatus];
+                if (st === 'locked') onLockedMission();
+                else onSelectMission(m.id);
+              }}
+            />
+          </Tooltip>
         ))}
       </div>
       <div style={{ marginTop: 24 }}>
@@ -530,18 +653,29 @@ function HomeScreen({ setScreen, missions, missionStatus, points, streak, hearts
           <span style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 13, color: COLOR.jungleDeep }}>{careStories.length} stories</span>
         </div>
         <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8, scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
-          {careStories.slice(0, 3).map((s) => (
-            <div key={s.id} style={{ minWidth: 260, scrollSnapAlign: 'start' }}>
-              <Card tone="surface" style={{ padding: 14 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                  <Pill tone={s.badgeTone} variant="soft">{s.badge}</Pill>
-                  {s.hearts > 0 && <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 'auto' }}><Heart size={14} color={COLOR.coral} fill={COLOR.coral} /><span style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 12, color: COLOR.coralDeep }}>{s.hearts}</span></div>}
-                </div>
-                <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 15, color: COLOR.ink, marginBottom: 6, lineHeight: 1.3 }}>{s.title}</div>
-                <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: COLOR.ink2, lineHeight: 1.5 }}>{s.body}</div>
-              </Card>
-            </div>
-          ))}
+          {careStories.slice(0, 3).map((s) => {
+            const isLiked = likedStories.includes(s.id);
+            const isBookmarked = bookmarkedStories.includes(s.id);
+            return (
+              <div key={s.id} style={{ minWidth: 260, scrollSnapAlign: 'start' }}>
+                <Card tone="surface" style={{ padding: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <Pill tone={s.badgeTone} variant="soft">{s.badge}</Pill>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
+                      <motion.button whileTap={{ scale: 0.8 }} onClick={() => toggleLikeStory(s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                        <Heart size={16} color={isLiked ? COLOR.coral : COLOR.muted} fill={isLiked ? COLOR.coral : 'none'} />
+                      </motion.button>
+                      <motion.button whileTap={{ scale: 0.8 }} onClick={() => toggleBookmarkStory(s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                        <Bookmark size={16} color={isBookmarked ? COLOR.gold : COLOR.muted} fill={isBookmarked ? COLOR.gold : 'none'} />
+                      </motion.button>
+                    </div>
+                  </div>
+                  <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 15, color: COLOR.ink, marginBottom: 6, lineHeight: 1.3 }}>{s.title}</div>
+                  <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: COLOR.ink2, lineHeight: 1.5 }}>{s.body}</div>
+                </Card>
+              </div>
+            );
+          })}
         </div>
       </div>
       <Card tone="paper" style={{ marginTop: 20, padding: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -886,11 +1020,14 @@ function SuccessScreen({ mission, onHome, onViewImpact, newlyEarnedBadge }: { mi
 }
 
 function ImpactScreen({ setScreen, impactEvents, profile }: { setScreen: (s: Screen) => void; impactEvents: string[]; profile: any }) {
+  const { likedStories, bookmarkedStories, toggleLikeStory, toggleBookmarkStory, skeletonLoading } = useApp();
   const [filter, setFilter] = useState<'zone' | 'city' | 'state'>('zone');
   const [selectedStory, setSelectedStory] = useState<typeof careStories[0] | null>(null);
   const data = communityImpact[filter === 'state' ? 'national' : filter];
 
   if (selectedStory) {
+    const isLiked = likedStories.includes(selectedStory.id);
+    const isBookmarked = bookmarkedStories.includes(selectedStory.id);
     return (
       <div style={{ padding: '0 16px 100px' }}>
         <ScreenHeader title="Story" onBack={() => setSelectedStory(null)} />
@@ -908,7 +1045,17 @@ function ImpactScreen({ setScreen, impactEvents, profile }: { setScreen: (s: Scr
         )}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
           <Pill tone={selectedStory.badgeTone} variant="soft">{selectedStory.badge}</Pill>
-          {selectedStory.hearts > 0 && <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Heart size={14} color={C.coral} fill={C.coral} /><span style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 12, color: C.coralDeep }}>{selectedStory.hearts}</span></div>}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
+            <motion.button whileTap={{ scale: 0.8 }} onClick={() => toggleLikeStory(selectedStory.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+              <Heart size={18} color={isLiked ? C.coral : C.muted} fill={isLiked ? C.coral : 'none'} />
+            </motion.button>
+            <motion.button whileTap={{ scale: 0.8 }} onClick={() => toggleBookmarkStory(selectedStory.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+              <Bookmark size={18} color={isBookmarked ? C.gold : C.muted} fill={isBookmarked ? C.gold : 'none'} />
+            </motion.button>
+            <motion.button whileTap={{ scale: 0.8 }} onClick={() => { if (navigator.share) navigator.share({ title: selectedStory.title, text: selectedStory.body, url: window.location.href }); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+              <Share2 size={18} color={C.muted} />
+            </motion.button>
+          </div>
         </div>
         <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 22, color: C.ink, marginBottom: 8, lineHeight: 1.3 }}>{selectedStory.title}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
@@ -934,6 +1081,15 @@ function ImpactScreen({ setScreen, impactEvents, profile }: { setScreen: (s: Scr
     );
   }
 
+  if (impactEvents.length === 0 && !skeletonLoading) {
+    return (
+      <div style={{ padding: '0 16px 100px' }}>
+        <ScreenHeader title="Impact" />
+        <EmptyState icon={Heart} title="No impact yet" subtitle="Complete your first mission to start making a difference in your community." actionLabel="Start Mission" onAction={() => setScreen('home')} />
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: '0 16px 100px' }}>
       <ScreenHeader title="Impact" />
@@ -945,39 +1101,60 @@ function ImpactScreen({ setScreen, impactEvents, profile }: { setScreen: (s: Scr
           ))}
         </div>
 
-        <Card tone="jungle" style={{ marginBottom: 20, padding: 18 }}>
-          <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 0.08, marginBottom: 12 }}>{data.name}</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-            <div style={{ textAlign: 'center' }}><div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 22, color: '#fff' }}>{typeof data.helpers === 'number' ? data.helpers.toLocaleString() : data.helpers}</div><div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>Helpers</div></div>
-            <div style={{ textAlign: 'center' }}><div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 22, color: '#fff' }}>{typeof data.animalsHelped === 'number' ? data.animalsHelped.toLocaleString() : data.animalsHelped}</div><div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>Animals</div></div>
-            <div style={{ textAlign: 'center' }}><div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 22, color: '#fff' }}>{typeof data.missionsCompleted === 'number' ? data.missionsCompleted.toLocaleString() : data.missionsCompleted}</div><div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>Missions</div></div>
+        {skeletonLoading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 20 }}>
+            <Skeleton width="100%" height={120} />
+            <Skeleton width="100%" height={180} />
+            <Skeleton width="100%" height={180} />
           </div>
-        </Card>
+        ) : (
+          <>
+            <Card tone="jungle" style={{ marginBottom: 20, padding: 18 }}>
+              <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 0.08, marginBottom: 12 }}>{data.name}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                <div style={{ textAlign: 'center' }}><div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 22, color: '#fff' }}>{typeof data.helpers === 'number' ? data.helpers.toLocaleString() : data.helpers}</div><div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>Helpers</div></div>
+                <div style={{ textAlign: 'center' }}><div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 22, color: '#fff' }}>{typeof data.animalsHelped === 'number' ? data.animalsHelped.toLocaleString() : data.animalsHelped}</div><div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>Animals</div></div>
+                <div style={{ textAlign: 'center' }}><div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 22, color: '#fff' }}>{typeof data.missionsCompleted === 'number' ? data.missionsCompleted.toLocaleString() : data.missionsCompleted}</div><div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>Missions</div></div>
+              </div>
+            </Card>
 
-        <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: C.ink, marginBottom: 12 }}>Care Feed</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
-          {careStories.map((s) => (
-            <motion.div key={s.id} whileTap={{ scale: 0.98 }} onClick={() => setSelectedStory(s)} style={{ cursor: 'pointer' }}>
-              <Card tone="surface" style={{ padding: 0, overflow: 'hidden' }}>
-                {s.imageUrl && <img src={s.imageUrl} alt={s.title} style={{ width: '100%', height: 160, objectFit: 'cover', display: 'block' }} />}
-                <div style={{ padding: 14 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                    <Pill tone={s.badgeTone} variant="soft">{s.badge}</Pill>
-                    {s.mediaType === 'video' && <Pill tone="sky" variant="soft">Video</Pill>}
-                    {s.hearts > 0 && <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 'auto' }}><Heart size={14} color={C.coral} fill={C.coral} /><span style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 12, color: C.coralDeep }}>{s.hearts}</span></div>}
-                  </div>
-                  <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 15, color: C.ink, marginBottom: 6, lineHeight: 1.3 }}>{s.title}</div>
-                  <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: C.ink2, lineHeight: 1.5 }}>{s.body}</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
-                    <span style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: C.muted }}>{s.date}</span>
-                    <span style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: C.muted }}>·</span>
-                    <span style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: C.muted }}>{s.location}</span>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
+            <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: C.ink, marginBottom: 12 }}>Care Feed</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
+              {careStories.map((s) => {
+                const isLiked = likedStories.includes(s.id);
+                const isBookmarked = bookmarkedStories.includes(s.id);
+                return (
+                  <motion.div key={s.id} whileTap={{ scale: 0.98 }} onClick={() => setSelectedStory(s)} style={{ cursor: 'pointer' }}>
+                    <Card tone="surface" style={{ padding: 0, overflow: 'hidden' }}>
+                      {s.imageUrl && <img src={s.imageUrl} alt={s.title} style={{ width: '100%', height: 160, objectFit: 'cover', display: 'block' }} />}
+                      <div style={{ padding: 14 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                          <Pill tone={s.badgeTone} variant="soft">{s.badge}</Pill>
+                          {s.mediaType === 'video' && <Pill tone="sky" variant="soft">Video</Pill>}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
+                            <motion.button whileTap={{ scale: 0.8 }} onClick={(e) => { e.stopPropagation(); toggleLikeStory(s.id); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                              <Heart size={14} color={isLiked ? C.coral : C.muted} fill={isLiked ? C.coral : 'none'} />
+                            </motion.button>
+                            <motion.button whileTap={{ scale: 0.8 }} onClick={(e) => { e.stopPropagation(); toggleBookmarkStory(s.id); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                              <Bookmark size={14} color={isBookmarked ? C.gold : C.muted} fill={isBookmarked ? C.gold : 'none'} />
+                            </motion.button>
+                          </div>
+                        </div>
+                        <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 15, color: C.ink, marginBottom: 6, lineHeight: 1.3 }}>{s.title}</div>
+                        <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: C.ink2, lineHeight: 1.5 }}>{s.body}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
+                          <span style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: C.muted }}>{s.date}</span>
+                          <span style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: C.muted }}>·</span>
+                          <span style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: C.muted }}>{s.location}</span>
+                        </div>
+                      </div>
+                    </Card>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </>
+        )}
 
         <Card tone="paper" style={{ marginTop: 8, padding: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
           <Heart size={18} color={C.coral} />
@@ -1196,6 +1373,7 @@ function LeaderboardScreen({ setScreen, users, profile, onJoin, onCancel, name, 
 }
 
 function ProfileScreen({ profile, badges, onReset }: { profile: any; badges: any[]; onReset: () => void }) {
+  const { darkMode, toggleDarkMode, hapticEnabled, toggleHapticEnabled, buddyMode, toggleBuddyMode, pushNotifications, togglePushNotifications, streakFreeze, toggleStreakFreeze, locationHistory } = useApp();
   const [showReset, setShowReset] = useState(false);
   return (
     <div style={{ padding: '0 16px 100px' }}>
@@ -1208,10 +1386,7 @@ function ProfileScreen({ profile, badges, onReset }: { profile: any; badges: any
       </div>
       <MascotView scene={profile.missionsCompleted === 0 ? 'profile_beginner' : 'profile_progress'} compact />
       {profile.missionsCompleted === 0 ? (
-        <div style={{ textAlign: 'center', marginTop: 12 }}>
-          <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: COLOR.ink, marginBottom: 8 }}>Your journey starts here</div>
-          <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 14, color: COLOR.ink2, maxWidth: 280, margin: '0 auto', lineHeight: 1.6 }}>Complete your first mission to see your progress, badges, and impact grow.</div>
-        </div>
+        <EmptyState icon={MapPin} title="Your journey starts here" subtitle="Complete your first mission to see your progress, badges, and impact grow." actionLabel="Start Mission" onAction={() => {}} />
       ) : (
         <>
           <Card tone="jungle" style={{ marginBottom: 20, marginTop: 12, padding: 20 }}>
@@ -1238,9 +1413,27 @@ function ProfileScreen({ profile, badges, onReset }: { profile: any; badges: any
           </div>
         </>
       )}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: COLOR.ink, marginBottom: 12 }}>Settings</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <SettingToggle icon={Moon} label="Dark Mode" description="Switch to dark theme" checked={darkMode} onChange={toggleDarkMode} />
+          <SettingToggle icon={Smartphone} label="Haptic Feedback" description="Vibrate on interactions" checked={hapticEnabled} onChange={toggleHapticEnabled} />
+          <SettingToggle icon={Bell} label="Push Notifications" description="Get mission reminders" checked={pushNotifications} onChange={togglePushNotifications} />
+          <SettingToggle icon={Users} label="Buddy Mode" description="Show nearby helpers" checked={buddyMode} onChange={toggleBuddyMode} />
+          <SettingToggle icon={Shield} label="Streak Protection" description="Freeze streak for a day" checked={streakFreeze} onChange={toggleStreakFreeze} />
+        </div>
+      </div>
+      {locationHistory.length > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: COLOR.ink, marginBottom: 12 }}>Location History</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {locationHistory.map((loc) => (
+              <Pill key={loc} tone="sky">{loc}</Pill>
+            ))}
+          </div>
+        </div>
+      )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <Btn variant="paper" size="md" leftIcon={<Settings size={18} />} onClick={() => {}}>Settings</Btn>
-        <Btn variant="paper" size="md" leftIcon={<Bell size={18} />} onClick={() => {}}>Notifications</Btn>
         <Btn variant="coral" size="md" leftIcon={<RotateCcw size={18} />} onClick={() => setShowReset(true)}>Reset Demo Journey</Btn>
       </div>
       <ConfirmationDialog open={showReset} title="Reset Demo Journey?" body="This will clear all progress, missions, and badges. You'll start fresh." confirmLabel="Reset" cancelLabel="Cancel" confirmVariant="coral" onConfirm={() => { onReset(); setShowReset(false); }} onCancel={() => setShowReset(false)} />
@@ -1805,7 +1998,7 @@ export default function App() {
     phone, setPhone, gender, setGender, neighborhood,
     impactEvents, startMission, completeMission, toggleChecklistItem, checklistItems,
     setLeaderboardOptedIn, leaderboardOptedIn, logAnalytics, setActiveMission, lastCompletedMission,
-    newlyEarnedBadge, onboardingPhase, darkMode,
+    newlyEarnedBadge, onboardingPhase, darkMode, skipOnboarding, setSkeletonLoading,
   } = useApp();
   C = getTheme(darkMode);
   const [showActionSheet, setShowActionSheet] = useState(false);
@@ -1813,6 +2006,23 @@ export default function App() {
   const [showLockedModal, setShowLockedModal] = useState(false);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const reducedMotion = useReducedMotion();
+
+  // Simulate skeleton loading on initial load
+  useEffect(() => {
+    setSkeletonLoading(true);
+    const timer = setTimeout(() => setSkeletonLoading(false), 800);
+    return () => clearTimeout(timer);
+  }, [setSkeletonLoading]);
+
+  // Simulate push notification after first mission
+  useEffect(() => {
+    if (missionsCompleted === 1) {
+      const timer = setTimeout(() => {
+        setToast({ message: 'Mission Complete!', sub: 'You earned your first badge. Keep going!' });
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [missionsCompleted]);
 
   const mascotScene = getMascotState({
     isNewUser: !hasSeenOnboarding || missionsCompleted === 0,
