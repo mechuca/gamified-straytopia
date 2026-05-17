@@ -285,35 +285,35 @@ function OnboardingIntroScreen() {
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 24px 24px', textAlign: 'center', gap: 20 }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 24px 16px', textAlign: 'center', gap: 16, overflowY: 'auto' }}>
         <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.5, ease: 'easeOut' }}>
-          <div style={{ width: 80, height: 80, borderRadius: 24, backgroundColor: C.jungleSoft, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Icon size={40} color={C.jungle} />
+          <div style={{ width: 72, height: 72, borderRadius: 20, backgroundColor: C.jungleSoft, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon size={36} color={C.jungle} />
           </div>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.2 }}>
-          <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 28, color: C.ink, lineHeight: 1.2 }}>{slide.title}</div>
-          <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 16, color: C.ink2, marginTop: 8 }}>{slide.subtitle}</div>
+          <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 26, color: C.ink, lineHeight: 1.2 }}>{slide.title}</div>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 15, color: C.ink2, marginTop: 6 }}>{slide.subtitle}</div>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.3 }} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.3 }} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
           {slide.features.map((f, i) => (
-            <motion.div key={f.label} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.4 + i * 0.1 }} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', backgroundColor: C.surface, borderRadius: 16, border: `2px solid ${C.hairline}` }}>
-              <div style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: C[f.color + 'Soft' as keyof typeof C] || C.jungleSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <f.icon size={22} color={C[f.color as keyof typeof C] || C.jungle} />
+            <motion.div key={f.label} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.4 + i * 0.1 }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', backgroundColor: C.surface, borderRadius: 14, border: `2px solid ${C.hairline}` }}>
+              <div style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: C[f.color + 'Soft' as keyof typeof C] || C.jungleSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <f.icon size={20} color={C[f.color as keyof typeof C] || C.jungle} />
               </div>
               <div style={{ textAlign: 'left' }}>
-                <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 15, color: C.ink }}>{f.label}</div>
-                <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: C.ink2 }}>{f.desc}</div>
+                <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 14, color: C.ink }}>{f.label}</div>
+                <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 12, color: C.ink2 }}>{f.desc}</div>
               </div>
             </motion.div>
           ))}
         </motion.div>
       </div>
 
-      <div style={{ padding: '0 24px 24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 20 }}>
+      <div style={{ padding: '16px 24px 28px', borderTop: `1px solid ${C.hairline}`, backgroundColor: C.paper }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 16 }}>
           {slides.map((_, i) => (
             <div key={i} style={{ width: i === onboardingPhase ? 24 : 8, height: 8, borderRadius: 4, backgroundColor: i === onboardingPhase ? C.jungle : C.paper2, transition: 'all 0.3s ease' }} />
           ))}
