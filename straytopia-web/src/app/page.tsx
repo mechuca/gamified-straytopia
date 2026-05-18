@@ -763,7 +763,7 @@ function NeighborhoodEngagementStrip() {
   const weekGrowth = 23;
 
   return (
-    <Card tone="paper" style={{ marginBottom: 16, padding: 14 }}>
+    <Card tone="paper" style={{ marginBottom: 16, padding: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
         <div style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: C.jungle }} />
         <span style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 14, color: C.ink }}>Active in Indiranagar</span>
@@ -889,7 +889,7 @@ function HomeScreen({ setScreen, missions, missionStatus, points, streak, hearts
         </Card>
       )}
       <MascotView scene={mascotScene} compact={false} />
-      <div style={{ marginBottom: 22, padding: '24px 20px', borderRadius: 30, background: `radial-gradient(circle at top right, ${withOpacity('#FFFFFF', 0.18)} 0%, transparent 28%), linear-gradient(135deg, ${C.jungle} 0%, ${C.jungleDeep} 100%)`, color: '#fff', boxShadow: `0 14px 24px ${withOpacity(C.jungle, 0.18)}` }}>
+      <div style={{ marginBottom: 24, padding: '24px 20px', borderRadius: 30, background: `radial-gradient(circle at top right, ${withOpacity('#FFFFFF', 0.18)} 0%, transparent 28%), linear-gradient(135deg, ${C.jungle} 0%, ${C.jungleDeep} 100%)`, color: '#fff', boxShadow: `0 14px 24px ${withOpacity(C.jungle, 0.18)}` }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 18 }}>
           <div>
             <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, color: withOpacity('#FFFFFF', 0.72), textTransform: 'uppercase', letterSpacing: 0.1, marginBottom: 8 }}>Indiranagar care zone</div>
@@ -1046,7 +1046,7 @@ function HomeScreen({ setScreen, missions, missionStatus, points, streak, hearts
                         </div>
                       </div>
 
-                      <div style={{ padding: 14, display: 'flex', flexDirection: 'column', flex: 1 }}>
+                      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
                             <motion.button
@@ -1229,7 +1229,7 @@ function MissionDetailScreen({ mission, onBack, onStart, status }: { mission: ty
       {mission.lat && mission.lng && (
         <MissionMap lat={mission.lat} lng={mission.lng} location={mission.location} distance={mission.distance} />
       )}
-      <Card tone="surface" style={{ marginBottom: 24, padding: 14 }}>
+      <Card tone="surface" style={{ marginBottom: 24, padding: 16 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {[
           { icon: MapPin, label: mission.location },
@@ -1250,7 +1250,7 @@ function MissionDetailScreen({ mission, onBack, onStart, status }: { mission: ty
       </div>
       <div style={{ marginBottom: 24 }}>
         <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: C.ink, marginBottom: 12 }}>Safety Tips</div>
-        <Card tone="paper" style={{ padding: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <Card tone="paper" style={{ padding: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
           <AlertCircle size={18} color={C.coral} />
           <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 14, color: C.ink2 }}>{mission.safety}</div>
         </Card>
@@ -1677,7 +1677,7 @@ function ImpactScreen({ setScreen, impactEvents, profile }: { setScreen: (s: Scr
                           <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(to top, ${withOpacity('#000000', 0.28)}, transparent 55%)` }} />
                         </div>
                       )}
-                      <div style={{ padding: 14 }}>
+                      <div style={{ padding: 16 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                           <Pill tone={s.badgeTone} variant="soft">{s.badge}</Pill>
                           {s.mediaType === 'video' && <Pill tone="sky" variant="soft">Video</Pill>}
@@ -1706,7 +1706,7 @@ function ImpactScreen({ setScreen, impactEvents, profile }: { setScreen: (s: Scr
           </>
         )}
 
-        <Card tone="paper" style={{ marginTop: 8, padding: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <Card tone="paper" style={{ marginTop: 8, padding: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
           <Heart size={18} color={C.coral} />
           <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 13, color: C.ink2 }}>Every mission you complete adds to your community's impact. Check your personal stats on the Ranks tab.</div>
         </Card>
@@ -1896,7 +1896,7 @@ function LeaderboardScreen({ setScreen, users, profile, onJoin, onCancel, name, 
   if (regStep === 'phone') {
     return renderRegistrationFrame(
       <>
-        <Card tone="paper" style={{ padding: 14, marginBottom: 16 }}>
+        <Card tone="paper" style={{ padding: 16, marginBottom: 16 }}>
           <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, color: C.skyDeep, textTransform: 'uppercase', letterSpacing: 0.08, marginBottom: 8 }}>Why we verify</div>
           <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 13, color: C.ink2, lineHeight: 1.6 }}>Verification helps keep the leaderboard credible and reduces spam or fake local accounts.</div>
         </Card>
@@ -1947,7 +1947,7 @@ function LeaderboardScreen({ setScreen, users, profile, onJoin, onCancel, name, 
         </div>
       </div>
 
-      <Card tone="paper" style={{ padding: 14, marginBottom: 16 }}>
+      <Card tone="paper" style={{ padding: 16, marginBottom: 16 }}>
         <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, color: C.jungleDeep, textTransform: 'uppercase', letterSpacing: 0.08, marginBottom: 8 }}>Care zones</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
           {locations.map((loc) => (
@@ -2177,7 +2177,7 @@ function InviteBuddyScreen({ onBack }: { onBack: () => void }) {
       <ScreenHeader title="Invite Care Buddy" onBack={onBack} />
       <MascotView scene="onboarding_welcome" compact={false} />
       <div style={{ textAlign: 'center', marginTop: 8 }}>
-        <Card tone="surface" style={{ padding: '22px 20px', marginBottom: 22 }}>
+        <Card tone="surface" style={{ padding: '24px 20px', marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 16 }}>
             <div style={{ width: 52, height: 52, borderRadius: 18, backgroundColor: C.plumSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Users size={24} color={C.plumDeep} />
@@ -2598,7 +2598,7 @@ function ReportSuccessScreen({ condition, urgency, photo, onBack, onSuccess }: {
           </div>
         </div>
 
-        <Card tone="jungle" style={{ width: '100%', maxWidth: 300, padding: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <Card tone="jungle" style={{ width: '100%', maxWidth: 300, padding: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
           <Shield size={18} color="#fff" />
           <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 13, color: withOpacity('#FFFFFF', 0.9) }}>You'll get updates as the case progresses. Stay safe and keep distance from the animal.</div>
         </Card>
@@ -2703,7 +2703,7 @@ function ReportAnimalScreen({ onBack, onSuccess }: { onBack: () => void; onSucce
             transition={{ duration: reducedMotion ? 0 : 0.28, ease: [0.22, 1, 0.36, 1] }}
           >
             {step === 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 22 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}>
                 {conditions.map((c) => (
                   <motion.button key={c} whileTap={{ scale: 0.96 }} onClick={() => setCondition(c)} style={{
                     padding: '12px 16px', borderRadius: 16, border: `1px solid ${condition === c ? C.coral : C.border}`,
@@ -2716,7 +2716,7 @@ function ReportAnimalScreen({ onBack, onSuccess }: { onBack: () => void; onSucce
             )}
 
             {step === 1 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 22 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
                 {urgencies.map((u) => (
                   <motion.div key={u.key} whileTap={{ scale: 0.98 }} onClick={() => setUrgency(u.key)} style={{
                     padding: '14px 16px', borderRadius: 18, border: `1px solid ${urgency === u.key ? u.color : C.border}`,
@@ -2738,7 +2738,7 @@ function ReportAnimalScreen({ onBack, onSuccess }: { onBack: () => void; onSucce
             )}
 
             {step === 2 && (
-              <div style={{ marginBottom: 22 }}>
+              <div style={{ marginBottom: 24 }}>
                 {photo ? (
                   <div style={{ marginBottom: 16 }}>
                     <div style={{ width: '100%', height: 220, borderRadius: 24, backgroundColor: C.paper2, overflow: 'hidden', position: 'relative', border: `1px solid ${C.border}`, boxShadow: `0 10px 18px ${withOpacity(C.shadow, 0.1)}` }}>
@@ -2784,7 +2784,7 @@ function ReportAnimalScreen({ onBack, onSuccess }: { onBack: () => void; onSucce
                   </motion.button>
                 )}
 
-                <Card tone="paper" style={{ padding: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Card tone="paper" style={{ padding: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
                   <Camera size={18} color={C.skyDeep} />
                   <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 13, color: C.ink2, lineHeight: 1.55 }}>No photo is still okay, but responders usually assess faster when they can see the animal clearly.</div>
                 </Card>
@@ -2792,7 +2792,7 @@ function ReportAnimalScreen({ onBack, onSuccess }: { onBack: () => void; onSucce
             )}
 
             {step === 3 && (
-              <div style={{ marginBottom: 22 }}>
+              <div style={{ marginBottom: 24 }}>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -2804,7 +2804,7 @@ function ReportAnimalScreen({ onBack, onSuccess }: { onBack: () => void; onSucce
                   }}
                 />
                 <div style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 12, color: C.muted, textAlign: 'right', marginBottom: 14 }}>{notes.trim().length} characters</div>
-                <Card tone="paper" style={{ marginBottom: 0, padding: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Card tone="paper" style={{ marginBottom: 0, padding: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
                   <AlertCircle size={18} color={C.coral} />
                   <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 13, color: C.ink2, lineHeight: 1.6 }}>Do not approach aggressive or injured animals. Report the case and let trained responders take over.</div>
                 </Card>
