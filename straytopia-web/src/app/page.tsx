@@ -415,7 +415,6 @@ function TabBar({ active, onChange }: { active: string; onChange: (t: string) =>
   const tabs = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'stories', label: 'Impact', icon: BookOpen },
-    { id: 'action', label: 'Help', icon: Plus },
     { id: 'league', label: 'Ranks', icon: Trophy },
     { id: 'profile', label: 'Profile', icon: User },
   ];
@@ -423,13 +422,13 @@ function TabBar({ active, onChange }: { active: string; onChange: (t: string) =>
   return (
     <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 50 }}>
       <div style={{ maxWidth: 500, margin: '0 auto', padding: `10px 12px calc(${safeBottom} + 10px)` }}>
-        <div style={{ height: 74, backgroundColor: withOpacity(C.navBackground, 0.92), backdropFilter: 'blur(18px)', borderRadius: 26, border: `1px solid ${withOpacity(C.border, 0.9)}`, display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', alignItems: 'center', padding: '8px 10px', boxShadow: `0 14px 34px ${withOpacity(C.shadow, 0.14)}` }}>
+        <div style={{ position: 'relative' }}>
+          <div style={{ height: 74, paddingRight: 72, backgroundColor: withOpacity(C.navBackground, 0.92), backdropFilter: 'blur(18px)', borderRadius: 26, border: `1px solid ${withOpacity(C.border, 0.9)}`, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', alignItems: 'center', padding: '8px 10px', boxShadow: `0 14px 34px ${withOpacity(C.shadow, 0.14)}` }}>
           {tabs.map((t) => {
             const isActive = active === t.id;
-            const isAction = t.id === 'action';
-            const pillBg = isActive ? (isAction ? withOpacity(C.danger, 0.18) : withOpacity(C.sky, 0.16)) : 'transparent';
-            const iconColor = isAction ? (isActive ? C.danger : withOpacity(C.navInactive, 0.96)) : (isActive ? C.navActive : withOpacity(C.navInactive, 0.96));
-            const labelColor = isAction ? (isActive ? C.danger : withOpacity(C.navInactive, 0.92)) : (isActive ? C.navActive : withOpacity(C.navInactive, 0.92));
+            const pillBg = isActive ? withOpacity(C.sky, 0.16) : 'transparent';
+            const iconColor = isActive ? C.navActive : withOpacity(C.navInactive, 0.96);
+            const labelColor = isActive ? C.navActive : withOpacity(C.navInactive, 0.92);
 
             return (
               <motion.button
@@ -451,7 +450,7 @@ function TabBar({ active, onChange }: { active: string; onChange: (t: string) =>
                   minHeight: 58,
                 }}
               >
-                <div style={{ width: 48, height: 36, borderRadius: 999, backgroundColor: pillBg, border: isActive ? `1px solid ${withOpacity(isAction ? C.danger : C.sky, 0.2)}` : '1px solid transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: 48, height: 36, borderRadius: 999, backgroundColor: pillBg, border: isActive ? `1px solid ${withOpacity(C.sky, 0.2)}` : '1px solid transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <t.icon size={22} color={iconColor} />
                 </div>
                 <div style={{ fontFamily: 'Nunito', fontWeight: isActive ? 800 : 700, fontSize: 12, color: labelColor, lineHeight: 1 }}>
@@ -460,6 +459,31 @@ function TabBar({ active, onChange }: { active: string; onChange: (t: string) =>
               </motion.button>
             );
           })}
+          </div>
+
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => { haptic('heavy'); onChange('action'); }}
+            aria-label="Quick actions"
+            style={{
+              position: 'absolute',
+              right: 10,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: 56,
+              height: 56,
+              borderRadius: 18,
+              background: `linear-gradient(180deg, ${C.danger} 0%, ${C.coralDeep} 100%)`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              border: `1px solid ${withOpacity('#FFFFFF', 0.18)}`,
+              boxShadow: `0 14px 30px ${withOpacity(C.danger, 0.22)}`,
+            }}
+          >
+            <Plus size={26} color="#fff" />
+          </motion.button>
         </div>
       </div>
     </div>
