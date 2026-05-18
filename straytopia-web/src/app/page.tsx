@@ -415,43 +415,52 @@ function TabBar({ active, onChange }: { active: string; onChange: (t: string) =>
   const tabs = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'stories', label: 'Impact', icon: BookOpen },
+    { id: 'action', label: 'Help', icon: Plus },
     { id: 'league', label: 'Ranks', icon: Trophy },
-    { id: 'profile', label: 'You', icon: User },
+    { id: 'profile', label: 'Profile', icon: User },
   ];
   const safeBottom = 'env(safe-area-inset-bottom, 0px)';
   return (
-    <div style={{ position: 'fixed', left: 12, right: 12, bottom: `calc(${safeBottom} + 10px)`, height: 70, backgroundColor: withOpacity(C.navBackground, 0.96), backdropFilter: 'blur(18px)', borderRadius: 26, border: `1px solid ${withOpacity(C.border, 0.92)}`, display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', alignItems: 'center', padding: '0 10px', zIndex: 50, maxWidth: 500, margin: '0 auto', boxShadow: `0 12px 28px ${withOpacity(C.shadow, 0.14)}` }}>
-      {tabs.map((t) => (
-        <motion.button
-          key={t.id}
-          whileTap={{ scale: 0.94 }}
-          onClick={() => { haptic('select'); onChange(t.id); }}
-          aria-label={t.label}
-          aria-current={active === t.id ? 'page' : undefined}
-          style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5,
-            backgroundColor: active === t.id ? withOpacity(C.surfaceElevated, 0.92) : 'transparent',
-            border: active === t.id ? `1px solid ${withOpacity(C.borderStrong, 0.95)}` : '1px solid transparent',
-            cursor: 'pointer',
-            minHeight: 54,
-            borderRadius: 18,
-            margin: '0 2px',
-            outline: 'none',
-          }}
-        >
-          <div style={{ width: 38, height: 30, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <t.icon size={22} color={active === t.id ? C.navActive : withOpacity(C.navInactive, 0.96)} />
-          </div>
-          <span style={{ fontSize: 12, fontWeight: active === t.id ? 800 : 700, fontFamily: 'Nunito', color: active === t.id ? C.navActive : withOpacity(C.navInactive, 0.92), letterSpacing: 0.01 }}>
-            {t.label}
-          </span>
-        </motion.button>
-      ))}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <motion.button whileTap={{ scale: 0.95 }} onClick={() => { haptic('heavy'); onChange('action'); }} aria-label="Quick actions" style={{ width: 62, height: 62, borderRadius: 24, background: `linear-gradient(180deg, ${C.danger} 0%, ${C.coralDeep} 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: -28, boxShadow: `0 16px 34px ${withOpacity(C.danger, 0.24)}`, cursor: 'pointer', border: `3px solid ${C.background}`, position: 'relative' }}>
-          <div style={{ position: 'absolute', inset: 9, borderRadius: 14, border: `1px solid ${withOpacity('#FFFFFF', 0.16)}` }} />
-          <Plus size={30} color="#fff" />
-        </motion.button>
+    <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 50 }}>
+      <div style={{ maxWidth: 500, margin: '0 auto', padding: `10px 12px calc(${safeBottom} + 10px)` }}>
+        <div style={{ height: 74, backgroundColor: withOpacity(C.navBackground, 0.92), backdropFilter: 'blur(18px)', borderRadius: 26, border: `1px solid ${withOpacity(C.border, 0.9)}`, display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', alignItems: 'center', padding: '8px 10px', boxShadow: `0 14px 34px ${withOpacity(C.shadow, 0.14)}` }}>
+          {tabs.map((t) => {
+            const isActive = active === t.id;
+            const isAction = t.id === 'action';
+            const pillBg = isActive ? (isAction ? withOpacity(C.danger, 0.18) : withOpacity(C.sky, 0.16)) : 'transparent';
+            const iconColor = isAction ? (isActive ? C.danger : withOpacity(C.navInactive, 0.96)) : (isActive ? C.navActive : withOpacity(C.navInactive, 0.96));
+            const labelColor = isAction ? (isActive ? C.danger : withOpacity(C.navInactive, 0.92)) : (isActive ? C.navActive : withOpacity(C.navInactive, 0.92));
+
+            return (
+              <motion.button
+                key={t.id}
+                whileTap={{ scale: 0.94 }}
+                onClick={() => { haptic('select'); onChange(t.id); }}
+                aria-label={t.label}
+                aria-current={isActive ? 'page' : undefined}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  minHeight: 58,
+                }}
+              >
+                <div style={{ width: 48, height: 36, borderRadius: 999, backgroundColor: pillBg, border: isActive ? `1px solid ${withOpacity(isAction ? C.danger : C.sky, 0.2)}` : '1px solid transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <t.icon size={22} color={iconColor} />
+                </div>
+                <div style={{ fontFamily: 'Nunito', fontWeight: isActive ? 800 : 700, fontSize: 12, color: labelColor, lineHeight: 1 }}>
+                  {t.label}
+                </div>
+              </motion.button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
