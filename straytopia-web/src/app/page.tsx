@@ -933,6 +933,17 @@ function HomeScreen({ setScreen, missions, missionStatus, points, streak, hearts
         </div>
       ) : (
         <div ref={pathTourRef} style={{ position: 'relative', zIndex: tourStep === 1 ? 120 : 'auto', marginBottom: tourStep === 1 ? 110 : 0 }}>
+          {tourStep === 1 && (
+            <div style={{ marginBottom: 12 }}>
+              <TourBubble
+                stepLabel="Step 2 of 4"
+                title="Your tasks reset every day"
+                body="Follow this path to complete today's missions. Finish them all, then come back tomorrow for a fresh set."
+                onNext={nextTourStep}
+                onSkip={closeTour}
+              />
+            </div>
+          )}
           <Card tone="surface" style={{ padding: 18 }}>
             <div>
               <div style={{ marginBottom: 16 }}>
@@ -958,17 +969,6 @@ function HomeScreen({ setScreen, missions, missionStatus, points, streak, hearts
               </div>
             </div>
           </Card>
-          {tourStep === 1 && (
-            <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20 }}>
-              <TourBubble
-                stepLabel="Step 2 of 4"
-                title="Your tasks reset every day"
-                body="Follow this path to complete today's missions. Finish them all, then come back tomorrow for a fresh set."
-                onNext={nextTourStep}
-                onSkip={closeTour}
-              />
-            </div>
-          )}
         </div>
       )}
       <div style={{ marginTop: 28 }}>
