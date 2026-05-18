@@ -418,18 +418,19 @@ function TabBar({ active, onChange }: { active: string; onChange: (t: string) =>
     { id: 'league', label: 'Ranks', icon: Trophy },
     { id: 'profile', label: 'You', icon: User },
   ];
+  const safePad = 'calc(env(safe-area-inset-bottom, 0px) + 12px)';
   return (
-    <div style={{ position: 'fixed', left: 14, right: 14, bottom: 16, height: 78, background: withOpacity(C.navBackground, 0.98), backdropFilter: 'blur(20px)', borderRadius: 30, border: `1px solid ${C.border}`, display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', alignItems: 'center', padding: '0 8px', zIndex: 50, maxWidth: 500, margin: '0 auto', boxShadow: `0 10px 18px ${withOpacity(C.shadow, 0.18)}` }}>
+    <div style={{ position: 'fixed', left: 12, right: 12, bottom: 12, height: 72, background: withOpacity(C.navBackground, 0.96), backdropFilter: 'blur(22px)', borderRadius: 28, border: `1px solid ${withOpacity(C.border, 0.9)}`, display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', alignItems: 'center', padding: `0 10px ${safePad}`, zIndex: 50, maxWidth: 500, margin: '0 auto', boxShadow: 'none' }}>
       {tabs.map((t) => (
-        <motion.button key={t.id} whileTap={{ scale: 0.94 }} onClick={() => { haptic('select'); onChange(t.id); }} aria-label={t.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, background: 'transparent', border: 'none', cursor: 'pointer', color: active === t.id ? C.navActive : C.navInactive, minHeight: 54, borderRadius: 18, margin: '0 2px' }}>
-          <div style={{ width: 34, height: 34, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: active === t.id ? withOpacity(C.primary, 0.1) : 'transparent' }}>
-            <t.icon size={21} color={active === t.id ? C.navActive : C.navInactive} />
+        <motion.button key={t.id} whileTap={{ scale: 0.94 }} onClick={() => { haptic('select'); onChange(t.id); }} aria-label={t.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, background: 'transparent', border: 'none', cursor: 'pointer', color: active === t.id ? C.navActive : C.navInactive, minHeight: 52, borderRadius: 18, margin: '0 2px' }}>
+          <div style={{ padding: '8px 12px', borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: active === t.id ? withOpacity(C.primary, 0.12) : 'transparent', border: active === t.id ? `1px solid ${withOpacity(C.primary, 0.18)}` : '1px solid transparent' }}>
+            <t.icon size={20} color={active === t.id ? C.navActive : C.navInactive} />
           </div>
-          <span style={{ fontSize: 10, fontWeight: active === t.id ? 800 : 700, fontFamily: 'Nunito', textTransform: 'uppercase', letterSpacing: 0.06, opacity: active === t.id ? 1 : 0.88 }}>{t.label}</span>
+          <span style={{ fontSize: 10, fontWeight: active === t.id ? 800 : 700, fontFamily: 'Nunito', textTransform: 'uppercase', letterSpacing: 0.08, opacity: active === t.id ? 1 : 0.84 }}>{t.label}</span>
         </motion.button>
       ))}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <motion.button whileTap={{ scale: 0.95 }} onClick={() => { haptic('heavy'); onChange('action'); }} aria-label="Quick actions" style={{ width: 62, height: 62, borderRadius: 22, backgroundColor: C.danger, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: -28, boxShadow: `0 8px 16px ${withOpacity(C.danger, 0.16)}`, cursor: 'pointer', border: `3px solid ${C.background}`, position: 'relative' }}>
+        <motion.button whileTap={{ scale: 0.95 }} onClick={() => { haptic('heavy'); onChange('action'); }} aria-label="Quick actions" style={{ width: 60, height: 60, borderRadius: 22, background: `linear-gradient(180deg, ${C.danger} 0%, ${C.coralDeep} 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: -28, boxShadow: `0 10px 22px ${withOpacity(C.danger, 0.18)}`, cursor: 'pointer', border: `3px solid ${C.background}`, position: 'relative' }}>
           <div style={{ position: 'absolute', inset: 9, borderRadius: 14, border: `1px solid ${withOpacity('#FFFFFF', 0.16)}` }} />
           <Plus size={30} color="#fff" />
         </motion.button>
@@ -572,9 +573,6 @@ function OnboardingIntroScreen() {
             </motion.div>
 
             <motion.div initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reducedMotion ? 0 : 0.34, delay: reducedMotion ? 0 : 0.08 }}>
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
-                <Pill tone="sky">Step {onboardingPhase + 1} of {totalSteps}</Pill>
-              </div>
               <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 32, color: C.ink, lineHeight: 1.08, maxWidth: 320 }}>{slide.title}</div>
               <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 15, color: C.ink2, marginTop: 10, maxWidth: 300, lineHeight: 1.65 }}>{slide.subtitle}</div>
             </motion.div>
@@ -639,17 +637,14 @@ function SimpleOnboardingScreen({ onComplete }: { onComplete: () => void }) {
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '28px 24px 24px', textAlign: 'center', gap: 18 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px 24px 12px', textAlign: 'center', gap: 14 }}>
         <motion.div initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reducedMotion ? 0 : 0.35 }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
           <motion.div initial={reducedMotion ? { opacity: 1 } : { scale: 0.84, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: reducedMotion ? 0 : 0.45, ease: 'easeOut' }}>
-            <div style={{ width: 92, height: 92, borderRadius: 30, background: `linear-gradient(180deg, ${C.surfaceElevated} 0%, ${C.surface} 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 8px 14px ${withOpacity(C.shadow, 0.08)}`, border: `1px solid ${C.border}` }}>
-              <MapPin size={38} color={C.jungle} />
+            <div style={{ width: 72, height: 72, borderRadius: 24, background: `linear-gradient(180deg, ${C.surfaceElevated} 0%, ${C.surface} 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 8px 14px ${withOpacity(C.shadow, 0.08)}`, border: `1px solid ${C.border}` }}>
+              <MapPin size={30} color={C.jungle} />
             </div>
           </motion.div>
 
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <Pill tone="sky">Step 3 of {totalSteps}</Pill>
-          </div>
           <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 32, color: C.ink, lineHeight: 1.08, maxWidth: 320 }}>Where do you care?</div>
           <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 15, color: C.ink2, maxWidth: 300, lineHeight: 1.65 }}>Pick your area so we can show nearby animals, missions, and local impact near you.</div>
 
@@ -661,9 +656,9 @@ function SimpleOnboardingScreen({ onComplete }: { onComplete: () => void }) {
         </motion.div>
       </div>
 
-      <Card tone="surface" style={{ margin: '0 24px 24px', padding: 16 }}>
+      <Card tone="surface" style={{ margin: '0 24px 24px', padding: 16, flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, paddingBottom: 110 }}>
         <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.08, marginBottom: 10 }}>Choose your care zone</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, flex: 1, minHeight: 0 }}>
           <motion.button
             whileTap={{ scale: 0.98 }}
             onClick={handleDetectLocation}
@@ -690,7 +685,7 @@ function SimpleOnboardingScreen({ onComplete }: { onComplete: () => void }) {
             <MapPin size={20} color={C.muted} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
           </div>
 
-          <div style={{ maxHeight: 180, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6, paddingRight: 2 }}>
             {filtered.map((n) => (
               <motion.button key={n} whileTap={{ scale: 0.98 }} onClick={() => setSelected(n)} style={{
                 padding: '12px 16px', borderRadius: 16, textAlign: 'left',
@@ -1027,8 +1022,8 @@ function HomeScreen({ setScreen, missions, missionStatus, points, streak, hearts
                     style={{
                       borderRadius: 24,
                       background: `linear-gradient(180deg, ${C.surfaceElevated} 0%, ${C.cardMuted} 100%)`,
-                      border: `1px solid ${withOpacity(C.borderStrong, 0.9)}`,
-                      boxShadow: `0 18px 44px ${withOpacity(C.shadow, 0.14)}, 0 2px 6px ${withOpacity(C.shadow, 0.06)}`,
+                      border: `1px solid ${C.border}`,
+                      boxShadow: 'none',
                       cursor: 'pointer',
                       overflow: 'visible',
                       height: 332,
@@ -1038,7 +1033,15 @@ function HomeScreen({ setScreen, missions, missionStatus, points, streak, hearts
                   >
                     <div style={{ borderRadius: 24, overflow: 'hidden', display: 'flex', flexDirection: 'column', flex: 1 }}>
                       <div style={{ position: 'relative', height: 140, flexShrink: 0, backgroundColor: C.paper2 }}>
-                        <img src={imageSrc} alt={s.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                        <img
+                          src={imageSrc}
+                          alt={s.title}
+                          onError={(e) => {
+                            const img = e.currentTarget;
+                            if (img.src !== fallbackImage) img.src = fallbackImage;
+                          }}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                        />
                         <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(to top, ${withOpacity('#000000', 0.24)}, transparent 55%)` }} />
                         <div style={{ position: 'absolute', top: 10, left: 10, display: 'flex', gap: 8 }}>
                           <Pill tone={s.badgeTone} variant="soft">{s.badge}</Pill>
@@ -1106,11 +1109,23 @@ function HomeScreen({ setScreen, missions, missionStatus, points, streak, hearts
           <Modal open={!!selectedStory} onClose={() => setSelectedStory(null)}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 20, color: C.ink }}>{selectedStory.title}</div>
-              {selectedStory.imageUrl && (
-                <div style={{ borderRadius: 18, overflow: 'hidden', border: `1px solid ${C.border}` }}>
-                  <img src={selectedStory.imageUrl} alt={selectedStory.title} style={{ width: '100%', height: 180, objectFit: 'cover', display: 'block' }} />
-                </div>
-              )}
+              <div style={{ borderRadius: 18, overflow: 'hidden', border: `1px solid ${C.border}` }}>
+                {(() => {
+                  const fallbackImage = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=600&h=400&fit=crop';
+                  const imageSrc = selectedStory.imageUrl || fallbackImage;
+                  return (
+                    <img
+                      src={imageSrc}
+                      alt={selectedStory.title}
+                      onError={(e) => {
+                        const img = e.currentTarget;
+                        if (img.src !== fallbackImage) img.src = fallbackImage;
+                      }}
+                      style={{ width: '100%', height: 180, objectFit: 'cover', display: 'block' }}
+                    />
+                  );
+                })()}
+              </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Pill tone={selectedStory.badgeTone} variant="soft">{selectedStory.badge}</Pill>
                 {selectedStory.mediaType === 'video' && <Pill tone="sky" variant="soft">Video</Pill>}
@@ -1194,6 +1209,7 @@ function MissionDetailScreen({ mission, onBack, onStart, status }: { mission: ty
     : status === 'locked'
     ? { label: 'Locked', tone: 'coral' as const }
     : { label: 'Ready Now', tone: 'sky' as const };
+  const showStatusPill = statusConfig.label !== 'Ready Now';
 
   return (
     <div style={{ padding: '0 16px 100px' }}>
@@ -1211,7 +1227,7 @@ function MissionDetailScreen({ mission, onBack, onStart, status }: { mission: ty
               <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 13, color: withOpacity('#FFFFFF', 0.8) }}>{mission.location}</div>
             </div>
           </div>
-          <Pill tone={statusConfig.tone} variant="soft">{statusConfig.label}</Pill>
+          {showStatusPill && <Pill tone={statusConfig.tone} variant="soft">{statusConfig.label}</Pill>}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
           {[
@@ -1521,7 +1537,14 @@ function SuccessScreen({ mission, onHome, onViewImpact, newlyEarnedBadge }: { mi
         </Card>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
           <Btn variant="jungle" size="lg" onClick={onHome}>Continue to Home</Btn>
-          <Btn variant="ghost" size="md" onClick={onViewImpact}>View Impact</Btn>
+          <Btn
+            variant="ghost"
+            size="md"
+            onClick={onViewImpact}
+            style={{ background: C.surface, backdropFilter: 'none' }}
+          >
+            View Impact
+          </Btn>
         </div>
       </div>
       <AnimatePresence>
@@ -1541,6 +1564,7 @@ function ImpactScreen({ setScreen, impactEvents, profile }: { setScreen: (s: Scr
   const [filter, setFilter] = useState<'zone' | 'city' | 'state'>('zone');
   const [selectedStory, setSelectedStory] = useState<typeof careStories[0] | null>(null);
   const data = communityImpact[filter === 'state' ? 'national' : filter];
+  const fallbackImage = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=600&h=400&fit=crop';
 
   if (selectedStory) {
     const isLiked = likedStories.includes(selectedStory.id);
@@ -1553,9 +1577,16 @@ function ImpactScreen({ setScreen, impactEvents, profile }: { setScreen: (s: Scr
     return (
       <div style={{ padding: '0 16px 100px' }}>
         <ScreenHeader title="Story" onBack={() => setSelectedStory(null)} />
-        {selectedStory.imageUrl && (
-          <div style={{ borderRadius: 20, overflow: 'hidden', marginBottom: 16, position: 'relative' }}>
-            <img src={selectedStory.imageUrl} alt={selectedStory.title} style={{ width: '100%', height: 220, objectFit: 'cover', display: 'block' }} />
+        <div style={{ borderRadius: 20, overflow: 'hidden', marginBottom: 16, position: 'relative' }}>
+          <img
+            src={selectedStory.imageUrl || fallbackImage}
+            alt={selectedStory.title}
+            onError={(e) => {
+              const img = e.currentTarget;
+              if (img.src !== fallbackImage) img.src = fallbackImage;
+            }}
+            style={{ width: '100%', height: 220, objectFit: 'cover', display: 'block' }}
+          />
             {selectedStory.mediaType === 'video' && (
               <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: withOpacity('#000000', 0.3) }}>
                 <div style={{ width: 64, height: 64, borderRadius: '50%', backgroundColor: withOpacity('#FFFFFF', 0.9), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1563,8 +1594,7 @@ function ImpactScreen({ setScreen, impactEvents, profile }: { setScreen: (s: Scr
                 </div>
               </div>
             )}
-          </div>
-        )}
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
           <Pill tone={selectedStory.badgeTone} variant="soft">{selectedStory.badge}</Pill>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
@@ -1668,15 +1698,22 @@ function ImpactScreen({ setScreen, impactEvents, profile }: { setScreen: (s: Scr
               {careStories.map((s) => {
                 const isLiked = likedStories.includes(s.id);
                 const isBookmarked = bookmarkedStories.includes(s.id);
+                const imageSrc = s.imageUrl || fallbackImage;
                 return (
                   <motion.div key={s.id} whileTap={{ scale: 0.98 }} onClick={() => setSelectedStory(s)} style={{ cursor: 'pointer' }}>
                     <Card tone="surface" style={{ padding: 0, overflow: 'hidden' }}>
-                      {s.imageUrl && (
-                        <div style={{ position: 'relative' }}>
-                          <img src={s.imageUrl} alt={s.title} style={{ width: '100%', height: 184, objectFit: 'cover', display: 'block' }} />
-                          <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(to top, ${withOpacity('#000000', 0.28)}, transparent 55%)` }} />
-                        </div>
-                      )}
+                      <div style={{ position: 'relative' }}>
+                        <img
+                          src={imageSrc}
+                          alt={s.title}
+                          onError={(e) => {
+                            const img = e.currentTarget;
+                            if (img.src !== fallbackImage) img.src = fallbackImage;
+                          }}
+                          style={{ width: '100%', height: 184, objectFit: 'cover', display: 'block' }}
+                        />
+                        <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(to top, ${withOpacity('#000000', 0.28)}, transparent 55%)` }} />
+                      </div>
                       <div style={{ padding: 16 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                           <Pill tone={s.badgeTone} variant="soft">{s.badge}</Pill>
@@ -1723,97 +1760,23 @@ function LeaderboardScreen({ setScreen, users, profile, onJoin, onCancel, name, 
   gender: string; setGender: (g: string) => void;
   neighborhood: string;
 }) {
-  const reducedMotion = useReducedMotion();
   const [showRegister, setShowRegister] = useState(!profile.leaderboardOptIn);
-  const [regStep, setRegStep] = useState<'phone' | 'otp' | 'details'>('phone');
-  const [consents, setConsents] = useState({ c1: false, c2: false, c3: false });
   const [localName, setLocalName] = useState(name);
   const [localPhone, setLocalPhone] = useState(phone);
-  const [localGender, setLocalGender] = useState(gender);
-  const [otp, setOtp] = useState('');
-  const [otpVerified, setOtpVerified] = useState(false);
-  const [locations, setLocations] = useState<string[]>(neighborhood ? [neighborhood] : []);
-  const [locationSearch, setLocationSearch] = useState('');
-  const allConsented = consents.c1 && consents.c2 && consents.c3;
-  const canRegister = allConsented && localName.trim().length > 0 && otpVerified;
   const phoneValid = /^(\+91[\s]?)?[6-9]\d{9}$/.test(localPhone.replace(/\s/g, ''));
-
-  const handleSendOtp = () => {
-    if (!phoneValid) return;
-    setOtp('');
-    setRegStep('otp');
-  };
-  const handleVerifyOtp = () => { if (otp.length === 4) { setOtpVerified(true); setRegStep('details'); } };
-  const handleAddLocation = (loc: string) => { if (loc && !locations.includes(loc)) setLocations([...locations, loc]); setLocationSearch(''); };
-  const handleRemoveLocation = (loc: string) => setLocations(locations.filter((l) => l !== loc));
+  const canJoin = localName.trim().length > 0 && phoneValid;
 
   const handleJoin = () => {
+    if (!canJoin) return;
     setName(localName);
     setPhone(localPhone);
-    setGender(localGender);
     onJoin();
     setShowRegister(false);
   };
-
-  const neighborhoods = ['Indiranagar', 'Koramangala', 'HSR Layout', 'Whitefield', 'Electronic City', 'Jayanagar', 'BTM Layout', 'Marathahalli', 'MG Road', 'Jubilee Hills', 'Banjara Hills', 'Gachibowli', 'Madhapur'];
-  const filteredLocations = locationSearch ? neighborhoods.filter((n) => n.toLowerCase().includes(locationSearch.toLowerCase()) && !locations.includes(n)) : [];
-  const registrationIndex = regStep === 'phone' ? 0 : regStep === 'otp' ? 1 : 2;
-  const registrationBack = regStep === 'details' ? () => setRegStep('otp') : regStep === 'otp' ? () => setRegStep('phone') : undefined;
-  const registrationSteps = [
-    {
-      eyebrow: 'Step 1 of 3',
-      title: 'Verify your phone',
-      body: 'We only use this to confirm you are a real local helper before adding you to community ranks.',
-    },
-    {
-      eyebrow: 'Step 2 of 3',
-      title: 'Enter OTP',
-      body: `We sent a 4-digit code to ${localPhone || 'your number'}.`,
-    },
-    {
-      eyebrow: 'Step 3 of 3',
-      title: 'Complete your public profile',
-      body: 'Choose how you appear on the leaderboard and which care zones you want to represent.',
-    },
-  ];
-  const currentRegistrationStep = registrationSteps[registrationIndex];
-
-  const renderRegistrationFrame = (content: React.ReactNode, actions: React.ReactNode) => (
-    <div style={{ padding: '0 16px 100px' }}>
-      <ScreenHeader title="Join Ranks" onBack={registrationBack} />
-      <MascotView scene="leaderboard_registration" compact />
-      <Card tone="surface" style={{ marginTop: 16, padding: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
-          <Pill tone="sky">Join local ranks</Pill>
-          <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, color: C.skyDeep, textTransform: 'uppercase', letterSpacing: 0.08 }}>{currentRegistrationStep.eyebrow}</div>
-        </div>
-        <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 22, color: C.ink, marginBottom: 8 }}>{currentRegistrationStep.title}</div>
-        <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 14, color: C.ink2, lineHeight: 1.65, marginBottom: 14 }}>{currentRegistrationStep.body}</div>
-        <div style={{ height: 8, borderRadius: 9999, backgroundColor: C.cardMuted, overflow: 'hidden', marginBottom: 16 }}>
-          <motion.div animate={{ width: `${((registrationIndex + 1) / registrationSteps.length) * 100}%` }} transition={{ duration: reducedMotion ? 0 : 0.28, ease: [0.22, 1, 0.36, 1] }} style={{ height: '100%', borderRadius: 9999, background: `linear-gradient(90deg, ${C.sky} 0%, ${C.plum} 100%)` }} />
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
-          {neighborhood && <Pill tone="sky">{neighborhood}</Pill>}
-          {otpVerified && <Pill tone="jungle">Phone verified</Pill>}
-          {locations.length > 0 && <Pill tone="jungle">{locations.length} care zone{locations.length > 1 ? 's' : ''}</Pill>}
-        </div>
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={regStep}
-            initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -10 }}
-            transition={{ duration: reducedMotion ? 0 : 0.26, ease: [0.22, 1, 0.36, 1] }}
-          >
-            {content}
-          </motion.div>
-        </AnimatePresence>
-        <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {actions}
-        </div>
-      </Card>
-    </div>
-  );
+  const handleCancel = () => {
+    onCancel();
+    setShowRegister(false);
+  };
 
   if (!showRegister && profile.leaderboardOptIn) {
     return (
@@ -1893,102 +1856,36 @@ function LeaderboardScreen({ setScreen, users, profile, onJoin, onCancel, name, 
     );
   }
 
-  if (regStep === 'phone') {
-    return renderRegistrationFrame(
-      <>
-        <Card tone="paper" style={{ padding: 16, marginBottom: 16 }}>
-          <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, color: C.skyDeep, textTransform: 'uppercase', letterSpacing: 0.08, marginBottom: 8 }}>Why we verify</div>
-          <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 13, color: C.ink2, lineHeight: 1.6 }}>Verification helps keep the leaderboard credible and reduces spam or fake local accounts.</div>
-        </Card>
-        <div>
-          <label style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 12, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.06, marginBottom: 6, display: 'block' }}>Phone number *</label>
-          <input value={localPhone} onChange={(e) => setLocalPhone(e.target.value)} placeholder="+91 XXXXX XXXXX" type="tel" style={{ width: '100%', padding: '14px 16px', borderRadius: 16, border: `2px solid ${phoneValid || !localPhone ? C.hairline : C.coral}`, fontFamily: 'Fredoka', fontSize: 18, color: C.ink, backgroundColor: C.surface, outline: 'none' }} />
-          {localPhone && !phoneValid && <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 12, color: C.coral, marginTop: 6 }}>Enter a valid 10-digit Indian number</div>}
+  return (
+    <div style={{ padding: '0 16px 100px' }}>
+      <ScreenHeader title="Join Ranks" onBack={handleCancel} />
+      <MascotView scene="leaderboard_registration" compact />
+      <Card tone="surface" style={{ marginTop: 16, padding: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
+          <Pill tone="sky">Join local ranks</Pill>
+          {neighborhood && <Pill tone="sky" variant="soft">{neighborhood}</Pill>}
         </div>
-      </>,
-      <>
-        <Btn variant="sky" size="lg" onClick={handleSendOtp} disabled={!phoneValid}>Send OTP</Btn>
-        <Btn variant="ghost" size="md" onClick={() => setShowRegister(false)}>Not Now</Btn>
-      </>
-    );
-  }
+        <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 22, color: C.ink, marginBottom: 8 }}>Add your name to the leaderboard</div>
+        <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 14, color: C.ink2, lineHeight: 1.65, marginBottom: 18 }}>This is just to keep community ranks credible. No OTP, no long setup.</div>
 
-  if (regStep === 'otp') {
-    return renderRegistrationFrame(
-      <>
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 10 }}>
-          {[0, 1, 2, 3].map((i) => (
-            <input key={i} value={otp[i] || ''} onChange={(e) => { const val = e.target.value.replace(/\D/g, ''); if (val) { const newOtp = otp.split(''); newOtp[i] = val; setOtp(newOtp.join('')); if (i < 3) { const next = (e.target as HTMLElement).nextElementSibling as HTMLInputElement; if (next) next.focus(); } } }} onKeyDown={(e) => { if (e.key === 'Backspace' && !otp[i] && i > 0) { const prev = (e.target as HTMLElement).previousElementSibling as HTMLInputElement; if (prev) prev.focus(); } }} maxLength={1} inputMode="numeric" pattern="[0-9]*" type="tel" autoComplete={i === 0 ? 'one-time-code' : 'off'} style={{ width: 56, height: 64, textAlign: 'center', borderRadius: 16, border: `2px solid ${C.hairline}`, fontFamily: 'Fredoka', fontSize: 28, color: C.ink, backgroundColor: C.surface, outline: 'none' }} />
-          ))}
-        </div>
-        <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 13, color: C.ink2, textAlign: 'center', marginBottom: 4 }}>Use the 4-digit code we sent to {localPhone}.</div>
-      </>,
-      <>
-        <Btn variant="sky" size="lg" onClick={handleVerifyOtp} disabled={otp.length !== 4}>Verify OTP</Btn>
-        <Btn variant="ghost" size="md" onClick={() => { setOtp(''); setRegStep('phone'); }}>Change Number</Btn>
-      </>
-    );
-  }
-
-  return renderRegistrationFrame(
-    <>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
-        <div>
-          <label style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 12, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.06, marginBottom: 6, display: 'block' }}>Display name *</label>
-          <input value={localName} onChange={(e) => setLocalName(e.target.value)} placeholder="Your name" style={{ width: '100%', padding: '14px 16px', borderRadius: 16, border: `2px solid ${C.hairline}`, fontFamily: 'Fredoka', fontSize: 18, color: C.ink, backgroundColor: C.surface, outline: 'none' }} />
-        </div>
-        <div>
-          <label style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 12, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.06, marginBottom: 6, display: 'block' }}>Gender</label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {['Male', 'Female', 'Non-binary', 'Prefer not to say'].map((g) => (
-              <motion.button key={g} whileTap={{ scale: 0.95 }} onClick={() => setLocalGender(g)} style={{ padding: '8px 14px', borderRadius: 12, border: `2px solid ${localGender === g ? C.sky : C.hairline}`, backgroundColor: localGender === g ? C.skySoft : C.surface, fontFamily: 'Nunito', fontWeight: 700, fontSize: 13, color: localGender === g ? C.skyDeep : C.ink, cursor: 'pointer' }}>{g}</motion.button>
-            ))}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 18 }}>
+          <div>
+            <label style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 12, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.06, marginBottom: 6, display: 'block' }}>Display name *</label>
+            <input value={localName} onChange={(e) => setLocalName(e.target.value)} placeholder="Your name" style={{ width: '100%', padding: '14px 16px', borderRadius: 16, border: `2px solid ${C.hairline}`, fontFamily: 'Fredoka', fontSize: 18, color: C.ink, backgroundColor: C.surface, outline: 'none' }} />
+          </div>
+          <div>
+            <label style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 12, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.06, marginBottom: 6, display: 'block' }}>Phone number *</label>
+            <input value={localPhone} onChange={(e) => setLocalPhone(e.target.value)} placeholder="+91 XXXXX XXXXX" type="tel" style={{ width: '100%', padding: '14px 16px', borderRadius: 16, border: `2px solid ${phoneValid || !localPhone ? C.hairline : C.coral}`, fontFamily: 'Fredoka', fontSize: 18, color: C.ink, backgroundColor: C.surface, outline: 'none' }} />
+            {localPhone && !phoneValid && <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 12, color: C.coral, marginTop: 6 }}>Enter a valid 10-digit Indian number</div>}
           </div>
         </div>
-      </div>
 
-      <Card tone="paper" style={{ padding: 16, marginBottom: 16 }}>
-        <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, color: C.jungleDeep, textTransform: 'uppercase', letterSpacing: 0.08, marginBottom: 8 }}>Care zones</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
-          {locations.map((loc) => (
-            <div key={loc} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 9999, backgroundColor: C.jungleSoft, border: `1.5px solid ${C.jungle}` }}>
-              <MapPin size={14} color={C.jungle} />
-              <span style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 13, color: C.jungleDeep }}>{loc}</span>
-              <button onClick={() => handleRemoveLocation(loc)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}><X size={14} color={C.jungleDeep} /></button>
-            </div>
-          ))}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <Btn variant="sky" size="lg" onClick={handleJoin} disabled={!canJoin}>Join Ranks</Btn>
+          <Btn variant="ghost" size="md" onClick={handleCancel}>Not Now</Btn>
         </div>
-        <div style={{ position: 'relative' }}>
-          <input value={locationSearch} onChange={(e) => setLocationSearch(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && locationSearch.trim()) handleAddLocation(locationSearch.trim()); }} placeholder="Add another area..." style={{ width: '100%', padding: '12px 16px 12px 40px', borderRadius: 14, border: `2px solid ${C.hairline}`, fontFamily: 'Nunito', fontSize: 15, color: C.ink, backgroundColor: C.surface, outline: 'none' }} />
-          <MapPin size={18} color={C.muted} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
-        </div>
-        {filteredLocations.length > 0 && (
-          <div style={{ maxHeight: 120, overflowY: 'auto', marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {filteredLocations.map((n) => (
-              <motion.button key={n} whileTap={{ scale: 0.98 }} onClick={() => handleAddLocation(n)} style={{ padding: '10px 14px', borderRadius: 12, textAlign: 'left', backgroundColor: C.surface, border: `1px solid ${C.border}`, fontFamily: 'Nunito', fontWeight: 700, fontSize: 14, color: C.ink, cursor: 'pointer' }}>{n}</motion.button>
-            ))}
-          </div>
-        )}
       </Card>
-
-      <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 16, color: C.ink, marginBottom: 12 }}>Consent</div>
-      {[
-        { key: 'c1', label: 'I agree to show my first name, care zone, points, rank, and badges.' },
-        { key: 'c2', label: 'I understand exact proof locations and private reports are not public.' },
-        { key: 'c3', label: 'I can turn this off later from Profile.' },
-      ].map((c) => (
-        <motion.div key={c.key} whileTap={{ scale: 0.98 }} onClick={() => setConsents((prev) => ({ ...prev, [c.key]: !prev[c.key as keyof typeof prev] }))} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '12px 0', cursor: 'pointer', borderBottom: `1px solid ${C.hairline}` }}>
-          <div style={{ width: 24, height: 24, borderRadius: 6, flexShrink: 0, marginTop: 2, backgroundColor: consents[c.key as keyof typeof consents] ? C.jungle : C.paper2, display: 'flex', alignItems: 'center', justifyContent: 'center', border: consents[c.key as keyof typeof consents] ? 'none' : `2px solid ${C.hairline2}` }}>
-            {consents[c.key as keyof typeof consents] && <Check size={16} color="#fff" />}
-          </div>
-          <span style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 14, color: C.ink, lineHeight: 1.5 }}>{c.label}</span>
-        </motion.div>
-      ))}
-    </>,
-    <>
-      <Btn variant="sky" size="lg" onClick={handleJoin} disabled={!canRegister}>Join Ranks</Btn>
-      <Btn variant="ghost" size="md" onClick={() => setShowRegister(false)}>Cancel</Btn>
-    </>
+    </div>
   );
 }
 
