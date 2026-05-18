@@ -90,8 +90,8 @@ export function SettingToggle({ icon: Icon, label, description, checked, onChang
             width: 24,
             height: 24,
             borderRadius: 12,
-            backgroundColor: '#fff',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            backgroundColor: C.surfaceElevated,
+            boxShadow: `0 4px 10px ${C.shadow}`,
             transition: 'left 0.2s',
           }}
         />

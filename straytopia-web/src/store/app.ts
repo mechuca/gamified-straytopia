@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { missionChecklists } from '@/lib/mock';
-import { resolveSystemTheme, type ThemeMode } from '@/lib/theme';
+import { THEME_STORAGE_KEY, resolveSystemTheme, type ThemeMode } from '@/lib/theme';
 
 export type Screen =
   | 'splash'
@@ -267,12 +267,12 @@ export const useApp = create<AppState>((set, get) => ({
   setThemeMode: (mode) => {
     const resolved = mode === 'system' ? resolveSystemTheme() : mode === 'dark';
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem('straytopia-theme-mode', mode);
+      window.localStorage.setItem(THEME_STORAGE_KEY, mode);
     }
     set({ themeMode: mode, darkMode: resolved });
   },
   initializeTheme: () => {
-    const stored = typeof window !== 'undefined' ? window.localStorage.getItem('straytopia-theme-mode') : null;
+    const stored = typeof window !== 'undefined' ? window.localStorage.getItem(THEME_STORAGE_KEY) : null;
     const themeMode = stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
     const darkMode = themeMode === 'system' ? resolveSystemTheme() : themeMode === 'dark';
     set({ themeMode, darkMode });
@@ -284,7 +284,7 @@ export const useApp = create<AppState>((set, get) => ({
   toggleDarkMode: () => {
     const nextMode = get().darkMode ? 'light' : 'dark';
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem('straytopia-theme-mode', nextMode);
+      window.localStorage.setItem(THEME_STORAGE_KEY, nextMode);
     }
     set({ themeMode: nextMode, darkMode: nextMode === 'dark' });
   },
@@ -303,21 +303,25 @@ export const useApp = create<AppState>((set, get) => ({
   toggleHapticEnabled: () => set((s) => ({ hapticEnabled: !s.hapticEnabled })),
   setSkeletonLoading: (v) => set({ skeletonLoading: v }),
   completeHomeTour: () => set({ hasSeenHomeTour: true }),
-  resetDemo: () => set({
-    screen: 'splash', hasSeenSplash: false, hasSeenOnboarding: false, onboardingStep: 0,
-    name: '', phone: '', gender: '', neighborhood: '', avatarIndex: 0, avatarTone: 'jungle',
-    leaderboardOptedIn: false, lbConsentChecked: false, lbDisplayName: '',
-    points: 0, streak: 0, hearts: 0, missionsCompleted: 0, animalsHelped: 0,
-    activeMission: null, lastCompletedMission: null,
-    missionStatus: { ...defaultMissionStatus }, proofPhoto: null, proofNote: '',
-    checklistDone: false, checklistItems: {},
-    earnedBadges: [], newlyEarnedBadge: null, missionHistory: [], impactEvents: [],
-    proofs: [], savedAnimalNames: [], likedStories: [], bookmarkedStories: [],
-    streakFreeze: false, locationHistory: [], pushNotifications: true,
-    buddyMode: false, hapticEnabled: true, skeletonLoading: false,
-    notifications: { mission_reminders: true, urgent_alerts: true, badge_updates: true, leaderboard_updates: false },
-    darkMode: false, themeMode: 'system', onboardingPhase: 0, lastResetDate: new Date().toDateString(), allTasksDoneToday: false, hasSeenHomeTour: false,
-  }),
+  resetDemo: () => {
+    const { darkMode, themeMode, pushNotifications, buddyMode, hapticEnabled, notifications, streakFreeze } = get();
+
+    set({
+      screen: 'splash', hasSeenSplash: false, hasSeenOnboarding: false, onboardingStep: 0,
+      name: '', phone: '', gender: '', neighborhood: '', avatarIndex: 0, avatarTone: 'jungle',
+      leaderboardOptedIn: false, lbConsentChecked: false, lbDisplayName: '',
+      points: 0, streak: 0, hearts: 0, missionsCompleted: 0, animalsHelped: 0,
+      activeMission: null, lastCompletedMission: null,
+      missionStatus: { ...defaultMissionStatus }, proofPhoto: null, proofNote: '',
+      checklistDone: false, checklistItems: {},
+      earnedBadges: [], newlyEarnedBadge: null, missionHistory: [], impactEvents: [],
+      proofs: [], savedAnimalNames: [], likedStories: [], bookmarkedStories: [],
+      streakFreeze, locationHistory: [], pushNotifications,
+      buddyMode, hapticEnabled, skeletonLoading: false,
+      notifications: { ...notifications },
+      darkMode, themeMode, onboardingPhase: 0, lastResetDate: new Date().toDateString(), allTasksDoneToday: false, hasSeenHomeTour: false,
+    });
+  },
   logAnalytics: (event, data) => {
     if (process.env.NODE_ENV === 'development') {
       console.log(`[Analytics] ${event}`, data || '');

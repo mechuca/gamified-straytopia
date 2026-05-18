@@ -37,7 +37,7 @@ export function ConfirmationDialog({
   return (
     <div
       className="fixed inset-0 z-[300] flex items-center justify-center"
-      style={{ backgroundColor: 'rgba(0,0,0,0.55)' }}
+      style={{ backgroundColor: C.overlay }}
       onClick={onCancel}
     >
       <motion.div
@@ -45,7 +45,7 @@ export function ConfirmationDialog({
         animate={{ opacity: 1, scale: 1 }}
         onClick={(e) => e.stopPropagation()}
         className={`w-[85%] max-w-[380px] rounded-3xl p-6 ${className}`}
-        style={{ backgroundColor: C.paper }}
+        style={{ backgroundColor: C.surfaceElevated, border: `1px solid ${C.borderStrong}`, boxShadow: `0 20px 36px ${C.shadow}` }}
       >
         <div
           className="mb-3 text-center"
@@ -53,7 +53,7 @@ export function ConfirmationDialog({
             fontFamily: 'Fredoka',
             fontWeight: 600,
             fontSize: 22,
-            color: C.ink,
+            color: C.textPrimary,
           }}
         >
           {title}
@@ -64,7 +64,7 @@ export function ConfirmationDialog({
             fontFamily: 'Nunito',
             fontWeight: 500,
             fontSize: 15,
-            color: C.ink2,
+            color: C.textSecondary,
           }}
         >
           {body}

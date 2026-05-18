@@ -51,9 +51,12 @@ export function ProfileScreen({ profile, badges, onReset }: ProfileScreenProps) 
             <div className="grid grid-cols-3 gap-2.5">
               {badges.map((b) => {
                 const earned = profile.earnedBadgeIds?.includes(b.id);
+                const toneColor = (C as any)[b.tone] as string;
                 return (
-                  <div key={b.id} className="flex flex-col items-center gap-1.5 p-3 rounded-2xl" style={{ backgroundColor: earned ? `${(C as any)[b.tone]}22` : C.paper2, opacity: earned ? 1 : 0.4 }}>
-                    <b.icon size={22} color={earned ? (C as any)[b.tone] : C.muted} />
+                  <div key={b.id} className="flex flex-col items-center gap-1.5 p-3 rounded-2xl" style={{ backgroundColor: earned ? `${toneColor}22` : C.paper2, opacity: earned ? 1 : 0.55, border: `1px solid ${earned ? `${toneColor}33` : C.hairline}` }}>
+                    <div className="flex items-center justify-center" style={{ width: 40, height: 40, borderRadius: 14, background: `radial-gradient(circle at 30% 25%, rgba(255,255,255,${earned ? 0.22 : 0.12}) 0%, transparent 55%), ${earned ? `${toneColor}22` : C.paper3}`, border: `1px solid ${earned ? `${toneColor}33` : C.hairline}` }}>
+                      <b.icon size={20} color={earned ? toneColor : C.muted} />
+                    </div>
                     <div className="font-['Nunito'] font-bold text-[11px] text-center" style={{ color: C.ink }}>{b.title}</div>
                   </div>
                 );

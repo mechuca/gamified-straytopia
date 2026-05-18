@@ -56,6 +56,27 @@ The dark theme is calm, premium, and readable.
 - `mascotBubble`: mascot speech bubble surface
 - `mascotBubbleText`: mascot bubble text color
 
+## Runtime Implementation
+
+- Theme tokens live in `src/lib/theme.ts`
+- Theme preference state lives in `src/store/app.ts`
+- The profile selector UI lives in `src/components/ui/ThemeModeSelector.tsx`
+- Early theme bootstrapping happens in `src/app/layout.tsx`
+- The active demo runtime currently renders from `src/app/page.tsx`
+
+## Persistence
+
+- Theme mode is persisted in `localStorage` under `straytopia-theme-mode`
+- Supported values are `light`, `dark`, and `system`
+- `system` follows `prefers-color-scheme`
+- Resetting demo progress must not wipe the current theme preference
+
+## Opacity And Tints
+
+- Use `withOpacity()` from `src/lib/theme.ts` for translucent chips, overlays, and state fills
+- Do not append alpha values to hex strings inside components
+- Do not hardcode `rgba(...)` values for theme-driven surfaces when a semantic token already exists
+
 ## Legacy Compatibility Tokens
 
 The app still exposes these aliases for backward compatibility while screens are progressively migrated:
@@ -124,8 +145,9 @@ The mission connector line must remain visible in both themes and should never d
 
 1. Add a semantic token first.
 2. Map that token in both light and dark themes.
-3. Avoid direct hex values inside screen components.
-4. Test the color on:
+3. Use `withOpacity()` for toned surfaces instead of raw `rgba(...)` strings.
+4. Avoid direct hex values inside screen components unless the color is part of fixed brand art.
+5. Test the color on:
    - page background
    - card surface
    - elevated surface

@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getTheme } from '@/lib/theme';
+import { getTheme, withOpacity } from '@/lib/theme';
 import { useApp } from '@/store/app';
 import { CheckCircle } from 'lucide-react';
 
@@ -43,9 +43,9 @@ export function SuccessToast({ message, sub, onClose, className = '' }: SuccessT
       <div
         className="rounded-2xl overflow-hidden relative"
         style={{
-          backgroundColor: C.jungle,
+          backgroundColor: C.success,
           padding: '14px 20px',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+          boxShadow: `0 14px 28px ${C.shadow}`,
         }}
       >
         <div className="flex items-center gap-2.5">
@@ -67,7 +67,7 @@ export function SuccessToast({ message, sub, onClose, className = '' }: SuccessT
                   fontFamily: 'Nunito',
                   fontWeight: 500,
                   fontSize: 13,
-                  color: 'rgba(255,255,255,0.85)',
+                  color: withOpacity('#FFFFFF', 0.85),
                 }}
               >
                 {sub}
@@ -75,13 +75,13 @@ export function SuccessToast({ message, sub, onClose, className = '' }: SuccessT
             )}
           </div>
         </div>
-        <div className="absolute bottom-0 left-0 right-0 h-[3px]" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}>
+        <div className="absolute bottom-0 left-0 right-0 h-[3px]" style={{ backgroundColor: withOpacity('#FFFFFF', 0.2) }}>
           <div
             className="rounded-b-2xl"
             style={{
               height: '100%',
               width: `${progress}%`,
-              backgroundColor: 'rgba(255,255,255,0.8)',
+              backgroundColor: withOpacity('#FFFFFF', 0.8),
               transition: 'width 0.016s linear',
             }}
           />

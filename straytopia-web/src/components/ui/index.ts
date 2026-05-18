@@ -15,3 +15,4 @@ export { SuccessToast } from './SuccessToast';
 export { ScreenHeader } from './ScreenHeader';
 export { BackBtn } from './BackBtn';
 export { Confetti } from './Confetti';
+export { ThemeModeSelector } from './ThemeModeSelector';

@@ -1,5 +1,7 @@
 export type ThemeMode = 'light' | 'dark' | 'system';
 
+export const THEME_STORAGE_KEY = 'straytopia-theme-mode';
+
 export interface ThemeColors {
   background: string;
   surface: string;
@@ -127,7 +129,7 @@ export const LIGHT = createTheme({
   navBackground: 'rgba(255,253,248,0.92)',
   navActive: '#22994A',
   navInactive: '#7A808C',
-  shadow: 'rgba(18, 24, 35, 0.10)',
+  shadow: 'rgba(18, 24, 35, 0.08)',
   overlay: 'rgba(17, 22, 32, 0.42)',
   mascotBubble: '#FFFDF8',
   mascotBubbleText: '#17181C',
@@ -191,7 +193,7 @@ export const DARK = createTheme({
   navBackground: 'rgba(21,27,28,0.92)',
   navActive: '#59DA83',
   navInactive: '#8B949D',
-  shadow: 'rgba(0, 0, 0, 0.38)',
+  shadow: 'rgba(0, 0, 0, 0.28)',
   overlay: 'rgba(3, 7, 10, 0.62)',
   mascotBubble: '#1C2426',
   mascotBubbleText: '#F4F5F6',
@@ -226,6 +228,36 @@ export const DARK = createTheme({
 export const COLOR = LIGHT;
 
 export const getTheme = (dark: boolean): ThemeColors => (dark ? DARK : LIGHT);
+
+export function withOpacity(color: string, opacity: number): string {
+  const alpha = Math.max(0, Math.min(1, opacity));
+  const normalized = color.trim();
+
+  if (normalized.startsWith('rgba(')) {
+    const values = normalized.slice(5, -1).split(',').slice(0, 3).map((value) => value.trim());
+    return `rgba(${values.join(', ')}, ${alpha})`;
+  }
+
+  if (normalized.startsWith('rgb(')) {
+    return `rgba(${normalized.slice(4, -1)}, ${alpha})`;
+  }
+
+  if (normalized.startsWith('#')) {
+    let hex = normalized.slice(1);
+    if (hex.length === 3) {
+      hex = hex.split('').map((char) => char + char).join('');
+    }
+
+    if (hex.length === 6) {
+      const red = Number.parseInt(hex.slice(0, 2), 16);
+      const green = Number.parseInt(hex.slice(2, 4), 16);
+      const blue = Number.parseInt(hex.slice(4, 6), 16);
+      return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+    }
+  }
+
+  return normalized;
+}
 
 export function resolveSystemTheme(): boolean {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
