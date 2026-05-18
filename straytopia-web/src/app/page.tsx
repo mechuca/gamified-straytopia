@@ -418,19 +418,37 @@ function TabBar({ active, onChange }: { active: string; onChange: (t: string) =>
     { id: 'league', label: 'Ranks', icon: Trophy },
     { id: 'profile', label: 'You', icon: User },
   ];
-  const safePad = 'calc(env(safe-area-inset-bottom, 0px) + 12px)';
+  const safeBottom = 'env(safe-area-inset-bottom, 0px)';
   return (
-    <div style={{ position: 'fixed', left: 12, right: 12, bottom: 12, height: 72, background: withOpacity(C.navBackground, 0.96), backdropFilter: 'blur(22px)', borderRadius: 28, border: `1px solid ${withOpacity(C.border, 0.9)}`, display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', alignItems: 'center', padding: `0 10px ${safePad}`, zIndex: 50, maxWidth: 500, margin: '0 auto', boxShadow: 'none' }}>
+    <div style={{ position: 'fixed', left: 12, right: 12, bottom: `calc(${safeBottom} + 10px)`, height: 70, backgroundColor: withOpacity(C.navBackground, 0.96), backdropFilter: 'blur(18px)', borderRadius: 26, border: `1px solid ${withOpacity(C.border, 0.92)}`, display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', alignItems: 'center', padding: '0 10px', zIndex: 50, maxWidth: 500, margin: '0 auto', boxShadow: `0 12px 28px ${withOpacity(C.shadow, 0.14)}` }}>
       {tabs.map((t) => (
-        <motion.button key={t.id} whileTap={{ scale: 0.94 }} onClick={() => { haptic('select'); onChange(t.id); }} aria-label={t.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, background: 'transparent', border: 'none', cursor: 'pointer', color: active === t.id ? C.navActive : C.navInactive, minHeight: 52, borderRadius: 18, margin: '0 2px' }}>
-          <div style={{ padding: '8px 12px', borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: active === t.id ? withOpacity(C.primary, 0.12) : 'transparent', border: active === t.id ? `1px solid ${withOpacity(C.primary, 0.18)}` : '1px solid transparent' }}>
-            <t.icon size={20} color={active === t.id ? C.navActive : C.navInactive} />
+        <motion.button
+          key={t.id}
+          whileTap={{ scale: 0.94 }}
+          onClick={() => { haptic('select'); onChange(t.id); }}
+          aria-label={t.label}
+          aria-current={active === t.id ? 'page' : undefined}
+          style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5,
+            backgroundColor: active === t.id ? withOpacity(C.surfaceElevated, 0.92) : 'transparent',
+            border: active === t.id ? `1px solid ${withOpacity(C.borderStrong, 0.95)}` : '1px solid transparent',
+            cursor: 'pointer',
+            minHeight: 54,
+            borderRadius: 18,
+            margin: '0 2px',
+            outline: 'none',
+          }}
+        >
+          <div style={{ width: 38, height: 30, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <t.icon size={22} color={active === t.id ? C.navActive : withOpacity(C.navInactive, 0.96)} />
           </div>
-          <span style={{ fontSize: 10, fontWeight: active === t.id ? 800 : 700, fontFamily: 'Nunito', textTransform: 'uppercase', letterSpacing: 0.08, opacity: active === t.id ? 1 : 0.84 }}>{t.label}</span>
+          <span style={{ fontSize: 12, fontWeight: active === t.id ? 800 : 700, fontFamily: 'Nunito', color: active === t.id ? C.navActive : withOpacity(C.navInactive, 0.92), letterSpacing: 0.01 }}>
+            {t.label}
+          </span>
         </motion.button>
       ))}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <motion.button whileTap={{ scale: 0.95 }} onClick={() => { haptic('heavy'); onChange('action'); }} aria-label="Quick actions" style={{ width: 60, height: 60, borderRadius: 22, background: `linear-gradient(180deg, ${C.danger} 0%, ${C.coralDeep} 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: -28, boxShadow: `0 10px 22px ${withOpacity(C.danger, 0.18)}`, cursor: 'pointer', border: `3px solid ${C.background}`, position: 'relative' }}>
+        <motion.button whileTap={{ scale: 0.95 }} onClick={() => { haptic('heavy'); onChange('action'); }} aria-label="Quick actions" style={{ width: 62, height: 62, borderRadius: 24, background: `linear-gradient(180deg, ${C.danger} 0%, ${C.coralDeep} 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: -28, boxShadow: `0 16px 34px ${withOpacity(C.danger, 0.24)}`, cursor: 'pointer', border: `3px solid ${C.background}`, position: 'relative' }}>
           <div style={{ position: 'absolute', inset: 9, borderRadius: 14, border: `1px solid ${withOpacity('#FFFFFF', 0.16)}` }} />
           <Plus size={30} color="#fff" />
         </motion.button>
@@ -523,12 +541,13 @@ function OnboardingIntroScreen() {
   const { onboardingPhase, advanceOnboarding, skipOnboarding } = useApp();
   const reducedMotion = useReducedMotion();
   const totalSteps = 3;
+  const heroIconSize = 32;
 
   const slides = [
     {
       icon: PawPrint,
       title: 'Your neighborhood needs you',
-      subtitle: 'Every day, stray animals need food, water, and care. You can help in just 2 minutes.',
+      subtitle: 'Food, water, and small acts of care, right where you live.',
       features: [
         { icon: PawPrint, label: 'Feed a stray', desc: 'Leave safe food where animals gather', color: 'jungle' as const },
         { icon: Droplets, label: 'Leave water', desc: 'A small bowl saves lives in summer heat', color: 'sky' as const },
@@ -538,7 +557,7 @@ function OnboardingIntroScreen() {
     {
       icon: Users,
       title: 'You are not alone',
-      subtitle: 'Thousands of everyday heroes across India are already making a difference together.',
+      subtitle: 'Join a community that shows up, every day.',
       features: [
         { icon: Heart, label: '12,400+ animals saved', desc: 'By regular people like you', color: 'coral' as const },
         { icon: MapPin, label: '340+ neighborhoods', desc: 'Active care zones across India', color: 'sky' as const },
@@ -556,7 +575,7 @@ function OnboardingIntroScreen() {
       <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 10 }}>
         <motion.button whileTap={{ scale: 0.95 }} onClick={skipOnboarding} style={{ padding: '8px 14px', borderRadius: 12, border: `1px solid ${C.border}`, backgroundColor: withOpacity(C.surfaceElevated, 0.84), backdropFilter: 'blur(10px)', fontFamily: 'Nunito', fontWeight: 700, fontSize: 13, color: C.ink2, cursor: 'pointer', boxShadow: `0 6px 12px ${withOpacity(C.shadow, 0.1)}` }}>Skip</motion.button>
       </div>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '28px 24px 16px', textAlign: 'center', gap: 18, overflowY: 'auto' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 24px 16px', textAlign: 'center', gap: 16, overflowY: 'auto' }}>
         <AnimatePresence mode="wait">
           <motion.div
             key={onboardingPhase}
@@ -567,8 +586,8 @@ function OnboardingIntroScreen() {
             style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}
           >
             <motion.div initial={reducedMotion ? { opacity: 1 } : { scale: 0.84, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: reducedMotion ? 0 : 0.45, ease: 'easeOut' }}>
-              <div style={{ width: 92, height: 92, borderRadius: 30, background: `linear-gradient(180deg, ${C.surfaceElevated} 0%, ${C.surface} 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 8px 14px ${withOpacity(C.shadow, 0.08)}`, border: `1px solid ${C.border}` }}>
-                <Icon size={38} color={C.jungle} />
+              <div style={{ width: 72, height: 72, borderRadius: 24, background: `linear-gradient(180deg, ${C.surfaceElevated} 0%, ${C.surface} 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 8px 14px ${withOpacity(C.shadow, 0.08)}`, border: `1px solid ${C.border}` }}>
+                <Icon size={heroIconSize} color={C.jungle} />
               </div>
             </motion.div>
 
@@ -641,7 +660,7 @@ function SimpleOnboardingScreen({ onComplete }: { onComplete: () => void }) {
         <motion.div initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reducedMotion ? 0 : 0.35 }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
           <motion.div initial={reducedMotion ? { opacity: 1 } : { scale: 0.84, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: reducedMotion ? 0 : 0.45, ease: 'easeOut' }}>
             <div style={{ width: 72, height: 72, borderRadius: 24, background: `linear-gradient(180deg, ${C.surfaceElevated} 0%, ${C.surface} 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 8px 14px ${withOpacity(C.shadow, 0.08)}`, border: `1px solid ${C.border}` }}>
-              <MapPin size={30} color={C.jungle} />
+              <MapPin size={32} color={C.jungle} />
             </div>
           </motion.div>
 
@@ -1775,7 +1794,7 @@ function LeaderboardScreen({ setScreen, users, profile, onJoin, onCancel, name, 
   };
   const handleCancel = () => {
     onCancel();
-    setShowRegister(false);
+    setScreen('home');
   };
 
   if (!showRegister && profile.leaderboardOptIn) {
@@ -1858,15 +1877,31 @@ function LeaderboardScreen({ setScreen, users, profile, onJoin, onCancel, name, 
 
   return (
     <div style={{ padding: '0 16px 100px' }}>
-      <ScreenHeader title="Join Ranks" onBack={handleCancel} />
+      <ScreenHeader title="Ranks" onBack={handleCancel} />
       <MascotView scene="leaderboard_registration" compact />
       <Card tone="surface" style={{ marginTop: 16, padding: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
-          <Pill tone="sky">Join local ranks</Pill>
-          {neighborhood && <Pill tone="sky" variant="soft">{neighborhood}</Pill>}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 14 }}>
+          <div style={{ width: 52, height: 52, borderRadius: 18, backgroundColor: C.skySoft, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1px solid ${withOpacity(C.sky, 0.18)}` }}>
+            <Trophy size={24} color={C.skyDeep} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 22, color: C.ink, marginBottom: 6 }}>Join the community leaderboard</div>
+            <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 14, color: C.ink2, lineHeight: 1.65 }}>See your rank, track your progress, and get recognized for consistent care.</div>
+          </div>
         </div>
-        <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 22, color: C.ink, marginBottom: 8 }}>Add your name to the leaderboard</div>
-        <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 14, color: C.ink2, lineHeight: 1.65, marginBottom: 18 }}>This is just to keep community ranks credible. No OTP, no long setup.</div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 18 }}>
+          {[
+            { label: 'Your rank', value: 'Live' },
+            { label: 'Points', value: 'Counted' },
+            { label: 'Badges', value: 'Visible' },
+          ].map((i) => (
+            <div key={i.label} style={{ padding: '12px 10px', borderRadius: 18, backgroundColor: C.cardMuted, border: `1px solid ${C.border}`, textAlign: 'center' }}>
+              <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 16, color: C.ink }}>{i.value}</div>
+              <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.08, marginTop: 4 }}>{i.label}</div>
+            </div>
+          ))}
+        </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 18 }}>
           <div>

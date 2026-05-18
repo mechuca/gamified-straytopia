@@ -23,26 +23,25 @@ interface Slide {
 
 export function OnboardingIntroScreen() {
   const { onboardingPhase, advanceOnboarding, skipOnboarding } = useApp();
+  const heroIconSize = 32;
 
   const slides: Slide[] = [
     {
       icon: PawPrint,
       title: 'Your neighborhood needs you',
-      subtitle: 'Every day, stray animals need food, water, and care. You can help — in just 2 minutes.',
+      subtitle: 'Food, water, and small acts of care, right where you live.',
       features: [
-        { icon: PawPrint, label: 'Feed a stray', desc: 'Leave safe food where animals gather', color: 'jungle' },
-        { icon: Droplets, label: 'Leave water', desc: 'A small bowl saves lives in summer heat', color: 'sky' },
-        { icon: AlertTriangle, label: 'Report danger', desc: 'Alert rescuers about injured animals', color: 'coral' },
+        { icon: PawPrint, label: 'Feed or refill water', desc: 'Two minute help near you', color: 'jungle' },
+        { icon: AlertTriangle, label: 'Report when needed', desc: 'Get rescue help faster', color: 'coral' },
       ],
     },
     {
       icon: Users,
       title: 'You are not alone',
-      subtitle: 'Thousands of everyday heroes across India are already making a difference.',
+      subtitle: 'Join a community that shows up, every day.',
       features: [
-        { icon: Heart, label: '12,400+ animals saved', desc: 'By regular people like you', color: 'coral' },
-        { icon: MapPin, label: '340+ neighborhoods', desc: 'Active care zones across India', color: 'sky' },
-        { icon: Users, label: '8,200+ helpers', desc: 'Feeding, watering, and reporting daily', color: 'jungle' },
+        { icon: Heart, label: 'Verified impact', desc: 'Stories and follow ups', color: 'coral' },
+        { icon: Trophy, label: 'Ranks and badges', desc: 'Progress you can see', color: 'sky' },
       ],
     },
   ];
@@ -61,7 +60,7 @@ export function OnboardingIntroScreen() {
       <div className="flex flex-1 flex-col items-center justify-center px-6 pt-6 pb-4 text-center gap-4 overflow-y-auto">
         <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.5, ease: 'easeOut' }}>
           <div className="w-[72px] h-[72px] rounded-[20px] flex items-center justify-center" style={{ backgroundColor: C.jungleSoft }}>
-            <Icon size={36} color={C.jungle} />
+            <Icon size={heroIconSize} color={C.jungle} />
           </div>
         </motion.div>
 

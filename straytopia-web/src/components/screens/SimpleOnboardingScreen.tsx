@@ -43,6 +43,9 @@ export function SimpleOnboardingScreen({ onComplete }: SimpleOnboardingScreenPro
   return (
     <div className="flex flex-1 flex-col h-full">
       <div className="flex flex-1 flex-col items-center justify-center px-6 text-center gap-4">
+        <div className="w-[72px] h-[72px] rounded-[20px] flex items-center justify-center" style={{ backgroundColor: C.jungleSoft, border: `1px solid ${C.hairline}` }}>
+          <MapPin size={32} color={C.jungle} />
+        </div>
         <div className="font-['Fredoka'] font-semibold text-[26px] text-[var(--ink)] leading-tight" style={{ color: C.ink }}>Where do you care?</div>
         <div className="font-['Nunito'] font-medium text-[15px] text-[var(--ink2)] max-w-[280px] leading-relaxed" style={{ color: C.ink2 }}>Pick your area so we can show nearby animals and missions.</div>
       </div>
