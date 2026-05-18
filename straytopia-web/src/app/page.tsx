@@ -797,6 +797,7 @@ function HomeScreen({ setScreen, missions, missionStatus, points, streak, hearts
   const statsTourRef = useRef<HTMLDivElement | null>(null);
   const pathTourRef = useRef<HTMLDivElement | null>(null);
   const storiesTourRef = useRef<HTMLDivElement | null>(null);
+  const pathTourBubbleRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     checkAndResetDaily();
@@ -811,10 +812,18 @@ function HomeScreen({ setScreen, missions, missionStatus, points, streak, hearts
 
   useEffect(() => {
     if (tourStep === null) return;
-    const ref = tourStep === 0 ? statsTourRef : tourStep === 1 ? pathTourRef : tourStep === 2 ? storiesTourRef : null;
-    if (!ref?.current) return;
+    const node = tourStep === 0
+      ? statsTourRef.current
+      : tourStep === 1
+      ? (pathTourBubbleRef.current || pathTourRef.current)
+      : tourStep === 2
+      ? storiesTourRef.current
+      : null;
+
+    if (!node) return;
     const timer = setTimeout(() => {
-      ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Step 2 tooltip is rendered above the section, so align it to the top.
+      node.scrollIntoView({ behavior: 'smooth', block: tourStep === 1 ? 'start' : 'center' });
     }, 120);
     return () => clearTimeout(timer);
   }, [tourStep]);
@@ -934,7 +943,7 @@ function HomeScreen({ setScreen, missions, missionStatus, points, streak, hearts
       ) : (
         <div ref={pathTourRef} style={{ position: 'relative', zIndex: tourStep === 1 ? 120 : 'auto', marginBottom: tourStep === 1 ? 110 : 0 }}>
           {tourStep === 1 && (
-            <div style={{ marginBottom: 12 }}>
+            <div ref={pathTourBubbleRef} style={{ marginBottom: 12 }}>
               <TourBubble
                 stepLabel="Step 2 of 4"
                 title="Your tasks reset every day"
@@ -1004,6 +1013,9 @@ function HomeScreen({ setScreen, missions, missionStatus, points, streak, hearts
           {careStories.slice(0, 8).map((s) => {
             const isLiked = likedStories.includes(s.id);
             const isBookmarked = bookmarkedStories.includes(s.id);
+            const shouldShowReadMore = (s.body?.length || 0) > 110;
+            const fallbackImage = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=600&h=400&fit=crop';
+            const imageSrc = s.imageUrl || fallbackImage;
             return (
               <div key={s.id} style={{ minWidth: 260, scrollSnapAlign: 'start' }}>
                 <motion.div whileTap={{ scale: 0.99 }}>
@@ -1019,22 +1031,23 @@ function HomeScreen({ setScreen, missions, missionStatus, points, streak, hearts
                       boxShadow: `0 18px 44px ${withOpacity(C.shadow, 0.14)}, 0 2px 6px ${withOpacity(C.shadow, 0.06)}`,
                       cursor: 'pointer',
                       overflow: 'visible',
+                      height: 332,
+                      display: 'flex',
+                      flexDirection: 'column',
                     }}
                   >
-                    <div style={{ borderRadius: 24, overflow: 'hidden' }}>
-                      {s.imageUrl && (
-                        <div style={{ position: 'relative' }}>
-                          <img src={s.imageUrl} alt={s.title} style={{ width: '100%', height: 132, objectFit: 'cover', display: 'block' }} />
-                          <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(to top, ${withOpacity('#000000', 0.24)}, transparent 55%)` }} />
-                          <div style={{ position: 'absolute', top: 10, left: 10, display: 'flex', gap: 8 }}>
-                            <Pill tone={s.badgeTone} variant="soft">{s.badge}</Pill>
-                            {s.mediaType === 'video' && <Pill tone="sky" variant="soft">Video</Pill>}
-                          </div>
+                    <div style={{ borderRadius: 24, overflow: 'hidden', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                      <div style={{ position: 'relative', height: 140, flexShrink: 0, backgroundColor: C.paper2 }}>
+                        <img src={imageSrc} alt={s.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                        <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(to top, ${withOpacity('#000000', 0.24)}, transparent 55%)` }} />
+                        <div style={{ position: 'absolute', top: 10, left: 10, display: 'flex', gap: 8 }}>
+                          <Pill tone={s.badgeTone} variant="soft">{s.badge}</Pill>
+                          {s.mediaType === 'video' && <Pill tone="sky" variant="soft">Video</Pill>}
                         </div>
-                      )}
-                      <div style={{ padding: 14 }}>
+                      </div>
+
+                      <div style={{ padding: 14, display: 'flex', flexDirection: 'column', flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                          {!s.imageUrl && <Pill tone={s.badgeTone} variant="soft">{s.badge}</Pill>}
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
                             <motion.button
                               whileTap={{ scale: 0.8 }}
@@ -1056,11 +1069,17 @@ function HomeScreen({ setScreen, missions, missionStatus, points, streak, hearts
                         </div>
                         <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 15, color: C.ink, marginBottom: 6, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{s.title}</div>
                         <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: C.ink2, lineHeight: 1.55, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: 60 }}>{s.body}</div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12 }}>
+                        <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
                           <span style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 11, color: C.muted }}>{s.location}</span>
                           <span style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 11, color: C.muted }}>•</span>
                           <span style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 11, color: C.muted }}>{s.date}</span>
                         </div>
+
+                        {shouldShowReadMore && (
+                          <div style={{ marginTop: 'auto', paddingTop: 10, fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, color: C.jungleDeep, textTransform: 'uppercase', letterSpacing: 0.08 }}>
+                            Read more
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
