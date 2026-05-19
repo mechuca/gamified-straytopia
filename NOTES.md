@@ -7,6 +7,7 @@
 
 ## LLM Handoff
 - See `LLM_CONTEXT.md` for a copy-paste prompt template and the exact files to edit.
+- Screenshots live in `docs/screenshots/`.
 
 ## Repo Layout
 - Main repo: `/Users/home/Desktop/Straytopia`

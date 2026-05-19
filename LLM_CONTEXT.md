@@ -14,6 +14,12 @@ The only reliable way for an LLM to reproduce the UI 1:1 is to use:
 ## Running Reference
 - Production: https://straytopia-prototype.vercel.app
 
+## Screenshots (Checked Into Repo)
+- `docs/screenshots/2026-05-16-care-missions-bottom-nav-overlap.png`
+- `docs/screenshots/2026-05-18-mission-card-ready-now.png`
+
+If the UI changes, add a new screenshot and link it here so an LLM can match the latest visual state without needing external attachments.
+
 ## Key Files (Most UI Lives Here)
 - Bottom nav + floating quick action: `straytopia-web/src/app/page.tsx` (`TabBar`)
 - Onboarding location selection: `straytopia-web/src/app/page.tsx` (`SimpleOnboardingScreen`)
