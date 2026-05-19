@@ -319,6 +319,7 @@ function Btn({ children, variant = 'jungle', size = 'md', disabled = false, onCl
       marginBottom: isGhost ? 0 : 4,
       backdropFilter: isGhost ? 'blur(12px)' : undefined,
       boxShadow: isGhost ? `0 8px 16px ${withOpacity(C.shadow, 0.12)}` : `0 8px 16px ${withOpacity(c.bg, 0.14)}, 0 4px 0 0 ${c.shadow}`,
+      overflow: 'hidden',
       width: '100%', ...style,
     }}>{leftIcon}{children}{rightIcon}</motion.button>
   );
@@ -1301,10 +1302,8 @@ function MissionDetailScreen({ mission, onBack, onStart, status }: { mission: ty
       <Card tone="surface" style={{ marginBottom: 24, padding: 16 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {[
-          { icon: MapPin, label: mission.location },
-          { icon: Clock, label: `${mission.time} min` },
-          { icon: Zap, label: `+${mission.rewardPoints} pts` },
           { icon: Shield, label: 'Verified by AI' },
+          { icon: Camera, label: 'Upload a photo to claim rewards' },
         ].map((item, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', backgroundColor: C.cardMuted, borderRadius: 16, border: `1px solid ${C.border}` }}>
             <item.icon size={20} color={C.ink2} />
@@ -1534,7 +1533,7 @@ function BadgeUnlockAnimation({ badgeId, onComplete }: { badgeId: string; onComp
 
 function SuccessScreen({ mission, onHome, onViewImpact, newlyEarnedBadge }: { mission: typeof mockMissions[0]; onHome: () => void; onViewImpact: () => void; newlyEarnedBadge: string | null }) {
   const [showBadgeAnimation, setShowBadgeAnimation] = useState(!!newlyEarnedBadge);
-  const [badgeDismissed, setBadgeDismissed] = useState(false);
+  const [badgeSeen, setBadgeSeen] = useState(false);
   const nextMissionLabel = mission.id === 'm1' ? 'Refill Water' : mission.id === 'm2' ? 'Report Animal' : 'Next Mission';
 
   return (
@@ -1562,7 +1561,7 @@ function SuccessScreen({ mission, onHome, onViewImpact, newlyEarnedBadge }: { mi
             ))}
           </div>
         </div>
-        {!badgeDismissed && newlyEarnedBadge && (
+        {newlyEarnedBadge && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1577,7 +1576,7 @@ function SuccessScreen({ mission, onHome, onViewImpact, newlyEarnedBadge }: { mi
                 </div>
                 <div>
                   <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 19, color: newlyEarnedBadge === 'b1' ? C.goldInk : '#fff', marginBottom: 4 }}>{newlyEarnedBadge === 'b1' ? 'First Feeder' : 'Water Bearer'}</div>
-                  <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 13, color: newlyEarnedBadge === 'b1' ? C.goldDeep : withOpacity('#FFFFFF', 0.82) }}>Tap to open your badge celebration</div>
+                  <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 13, color: newlyEarnedBadge === 'b1' ? C.goldDeep : withOpacity('#FFFFFF', 0.82) }}>{badgeSeen ? 'Tap to view again' : 'Tap to open your badge celebration'}</div>
                 </div>
               </div>
             </Card>
@@ -1604,7 +1603,7 @@ function SuccessScreen({ mission, onHome, onViewImpact, newlyEarnedBadge }: { mi
         {showBadgeAnimation && newlyEarnedBadge && (
           <BadgeUnlockAnimation
             badgeId={newlyEarnedBadge}
-            onComplete={() => { setShowBadgeAnimation(false); setBadgeDismissed(true); }}
+            onComplete={() => { setShowBadgeAnimation(false); setBadgeSeen(true); }}
           />
         )}
       </AnimatePresence>
