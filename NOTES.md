@@ -5,6 +5,9 @@
 - Vercel (prod): https://straytopia-prototype.vercel.app
 - Vercel (latest preview): https://straytopia-prototype-eah55jd9h-mailsarathsasi-5052s-projects.vercel.app
 
+## LLM Handoff
+- See `LLM_CONTEXT.md` for a copy-paste prompt template and the exact files to edit.
+
 ## Repo Layout
 - Main repo: `/Users/home/Desktop/Straytopia`
 - Web app: `/Users/home/Desktop/Straytopia/straytopia-web`
@@ -21,6 +24,12 @@ npm run dev
 ```
 
 ## Deploy
+- Preferred: use scripts so deploy == commit
+```bash
+./scripts/deploy-preview.sh
+./scripts/deploy-prod.sh
+```
+
 - Preview:
 ```bash
 cd "/Users/home/Desktop/Straytopia/straytopia-web"
