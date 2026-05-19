@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useApp, Screen, MissionStatus } from '@/store/app';
+import { useApp, Screen, MissionStatus, type RescueCase, type RescueUrgency } from '@/store/app';
 import { COLOR, getTheme, ThemeColors, withOpacity } from '@/lib/theme';
 import {
   missions as mockMissions, badges as mockBadges,
@@ -1819,9 +1819,13 @@ function LeaderboardScreen({ setScreen, users, profile, onJoin, onCancel, name, 
   gender: string; setGender: (g: string) => void;
   neighborhood: string;
 }) {
+  const { leaderboardPhoneVerified, setLeaderboardPhoneVerified } = useApp();
   const [showRegister, setShowRegister] = useState(!profile.leaderboardOptIn);
+  const [step, setStep] = useState<'form' | 'otp'>('form');
   const [localName, setLocalName] = useState(name);
   const [localPhone, setLocalPhone] = useState(phone);
+  const [otp, setOtp] = useState('');
+  const [otpError, setOtpError] = useState<string | null>(null);
   const phoneValid = /^(\+91[\s]?)?[6-9]\d{9}$/.test(localPhone.replace(/\s/g, ''));
   const canJoin = localName.trim().length > 0 && phoneValid;
 
@@ -1829,6 +1833,29 @@ function LeaderboardScreen({ setScreen, users, profile, onJoin, onCancel, name, 
     if (!canJoin) return;
     setName(localName);
     setPhone(localPhone);
+
+    // First time: verify phone via OTP before joining.
+    if (!leaderboardPhoneVerified) {
+      setOtp('');
+      setOtpError(null);
+      setStep('otp');
+      return;
+    }
+
+    onJoin();
+    setShowRegister(false);
+  };
+
+  const handleVerifyOtp = () => {
+    const cleaned = otp.replace(/\s/g, '');
+    if (!/^\d{6}$/.test(cleaned)) {
+      setOtpError('Enter the 6-digit OTP');
+      return;
+    }
+
+    // Demo-only: accept any 6 digits.
+    setOtpError(null);
+    setLeaderboardPhoneVerified(true);
     onJoin();
     setShowRegister(false);
   };
@@ -1915,6 +1942,56 @@ function LeaderboardScreen({ setScreen, users, profile, onJoin, onCancel, name, 
     );
   }
 
+  if (step === 'otp') {
+    const masked = (() => {
+      const digits = localPhone.replace(/\D/g, '');
+      const last4 = digits.slice(-4);
+      return last4 ? `•••• ••${last4}` : 'your number';
+    })();
+    const otpValid = /^\d{6}$/.test(otp.replace(/\s/g, ''));
+    return (
+      <div style={{ padding: '0 16px 100px' }}>
+        <ScreenHeader title="Ranks" onBack={() => { setStep('form'); setOtpError(null); }} />
+        <MascotView scene="leaderboard_registration" compact />
+
+        <Card tone="surface" style={{ marginTop: 16, padding: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 14 }}>
+            <div style={{ width: 52, height: 52, borderRadius: 18, backgroundColor: C.skySoft, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1px solid ${withOpacity(C.sky, 0.18)}` }}>
+              <Shield size={24} color={C.skyDeep} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 22, color: C.ink, marginBottom: 6 }}>Verify your phone</div>
+              <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 14, color: C.ink2, lineHeight: 1.65 }}>Enter the 6-digit OTP sent to {masked}. This is only required once.</div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
+            <div>
+              <label style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 12, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.06, marginBottom: 6, display: 'block' }}>OTP *</label>
+              <input
+                value={otp}
+                onChange={(e) => { setOtp(e.target.value); if (otpError) setOtpError(null); }}
+                inputMode="numeric"
+                placeholder="6-digit OTP"
+                style={{ width: '100%', padding: '14px 16px', borderRadius: 16, border: `2px solid ${otpError ? C.coral : C.hairline}`, fontFamily: 'Fredoka', fontSize: 18, letterSpacing: 4, color: C.ink, backgroundColor: C.surface, outline: 'none' }}
+              />
+              {otpError && <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 12, color: C.coral, marginTop: 6 }}>{otpError}</div>}
+            </div>
+            <Card tone="paper" style={{ padding: 14, display: 'flex', alignItems: 'center', gap: 10, marginBottom: 0 }}>
+              <AlertCircle size={18} color={C.skyDeep} />
+              <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 13, color: C.ink2, lineHeight: 1.55 }}>Demo mode: any 6 digits will verify.</div>
+            </Card>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <Btn variant="sky" size="lg" onClick={handleVerifyOtp} disabled={!otpValid}>Verify & Join</Btn>
+            <Btn variant="ghost" size="md" onClick={() => { setStep('form'); setOtpError(null); }}>Back</Btn>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: '0 16px 100px' }}>
       <ScreenHeader title="Ranks" onBack={handleCancel} />
@@ -1930,18 +2007,10 @@ function LeaderboardScreen({ setScreen, users, profile, onJoin, onCancel, name, 
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 18 }}>
-          {[
-            { label: 'Your rank', value: 'Live' },
-            { label: 'Points', value: 'Counted' },
-            { label: 'Badges', value: 'Visible' },
-          ].map((i) => (
-            <div key={i.label} style={{ padding: '12px 10px', borderRadius: 18, backgroundColor: C.cardMuted, border: `1px solid ${C.border}`, textAlign: 'center' }}>
-              <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 16, color: C.ink }}>{i.value}</div>
-              <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.08, marginTop: 4 }}>{i.label}</div>
-            </div>
-          ))}
-        </div>
+        <Card tone="paper" style={{ marginBottom: 16, padding: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Shield size={18} color={C.skyDeep} />
+          <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 13, color: C.ink2, lineHeight: 1.55 }}>We show your display name, care zone, and points. You can change your name later.</div>
+        </Card>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 18 }}>
           <div>
@@ -1965,8 +2034,10 @@ function LeaderboardScreen({ setScreen, users, profile, onJoin, onCancel, name, 
 }
 
 function ProfileScreen({ profile, badges, onReset, onStartMission }: { profile: any; badges: any[]; onReset: () => void; onStartMission: () => void }) {
-  const { themeMode, setThemeMode, hapticEnabled, toggleHapticEnabled, buddyMode, toggleBuddyMode, pushNotifications, togglePushNotifications, streakFreeze, toggleStreakFreeze, locationHistory } = useApp();
+  const { themeMode, setThemeMode, hapticEnabled, toggleHapticEnabled, buddyMode, toggleBuddyMode, pushNotifications, togglePushNotifications, streakFreeze, toggleStreakFreeze, locationHistory, rescueCases } = useApp();
   const [showReset, setShowReset] = useState(false);
+  const [openCaseId, setOpenCaseId] = useState<string | null>(null);
+  const openCase = openCaseId ? rescueCases.find((c) => c.id === openCaseId) || null : null;
   return (
     <div style={{ padding: '0 16px 100px' }}>
       <ScreenHeader title="Profile" />
@@ -2014,6 +2085,50 @@ function ProfileScreen({ profile, badges, onReset, onStartMission }: { profile: 
           </div>
         </>
       )}
+
+      {rescueCases.length > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: C.ink, marginBottom: 6 }}>My Cases</div>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: C.ink2, marginBottom: 12 }}>Track your rescue reports and revisit case history anytime.</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {rescueCases.map((rc) => (
+              <motion.button
+                key={rc.id}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setOpenCaseId(rc.id)}
+                style={{
+                  width: '100%',
+                  background: 'transparent',
+                  border: 'none',
+                  padding: 0,
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                }}
+              >
+                <Card tone="surface" style={{ padding: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 16, backgroundColor: C.coralSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${withOpacity(C.coral, 0.18)}` }}>
+                      <AlertTriangle size={20} color={C.coralDeep} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                        <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 16, color: C.ink }}>Case #{rc.id}</div>
+                        <Pill tone={rc.urgency === 'low' ? 'jungle' : rc.urgency === 'medium' ? 'gold' : 'coral'}>{rc.urgency}</Pill>
+                      </div>
+                      <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 13, color: C.ink2, marginTop: 4, lineHeight: 1.45, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rc.condition}{rc.photoAttached ? ' · photo attached' : ''}</div>
+                      {rc.notes.trim() && (
+                        <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 12, color: C.muted, marginTop: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rc.notes.trim()}</div>
+                      )}
+                    </div>
+                    <ChevronRight size={20} color={C.muted} />
+                  </div>
+                </Card>
+              </motion.button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div style={{ marginBottom: 20 }}>
         <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: C.ink, marginBottom: 6 }}>Preferences</div>
         <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: C.ink2, marginBottom: 12 }}>Control how Straytopia feels and reminds you.</div>
@@ -2045,6 +2160,69 @@ function ProfileScreen({ profile, badges, onReset, onStartMission }: { profile: 
         <Btn variant="coral" size="md" leftIcon={<RotateCcw size={18} />} onClick={() => setShowReset(true)}>Reset Demo Journey</Btn>
       </div>
       <ConfirmationDialog open={showReset} title="Reset Demo Journey?" body="This will clear all progress, missions, and badges. You'll start fresh." confirmLabel="Reset" cancelLabel="Cancel" confirmVariant="coral" onConfirm={() => { onReset(); setShowReset(false); }} onCancel={() => setShowReset(false)} />
+
+      <Modal open={!!openCase} onClose={() => setOpenCaseId(null)}>
+        {openCase && (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 14 }}>
+              <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: C.ink }}>Case #{openCase.id}</div>
+              <Btn variant="ghost" size="sm" onClick={() => setOpenCaseId(null)} style={{ width: 'auto', marginBottom: 0 }}>Close</Btn>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+              <div style={{ padding: 12, borderRadius: 18, backgroundColor: C.cardMuted, border: `1px solid ${C.border}` }}>
+                <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.08, marginBottom: 4 }}>Condition</div>
+                <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 14, color: C.ink }}>{openCase.condition}</div>
+              </div>
+              <div style={{ padding: 12, borderRadius: 18, backgroundColor: C.cardMuted, border: `1px solid ${C.border}` }}>
+                <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.08, marginBottom: 4 }}>Urgency</div>
+                <Pill tone={openCase.urgency === 'low' ? 'jungle' : openCase.urgency === 'medium' ? 'gold' : 'coral'}>{openCase.urgency}</Pill>
+              </div>
+            </div>
+
+            <div style={{ padding: 12, borderRadius: 18, backgroundColor: C.cardMuted, border: `1px solid ${C.border}`, marginBottom: 14 }}>
+              <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.08, marginBottom: 4 }}>Notes</div>
+              <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 13, color: openCase.notes.trim() ? C.ink : C.muted, lineHeight: 1.55 }}>{openCase.notes.trim() || '—'}</div>
+            </div>
+
+            <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 16, color: C.ink, marginBottom: 10 }}>Case Journey</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              {(() => {
+                const order = ['reported', 'dispatched', 'rescued', 'treated', 'healed', 'rehabilitated'] as const;
+                const idx = Math.max(0, order.indexOf(openCase.stage));
+                const steps = [
+                  { status: 'reported', label: 'Reported', icon: AlertTriangle },
+                  { status: 'dispatched', label: 'Alert Sent', icon: Siren },
+                  { status: 'rescued', label: 'Rescued', icon: Heart },
+                  { status: 'treated', label: 'Medical Care', icon: Droplets },
+                  { status: 'healed', label: 'Healed', icon: Star },
+                  { status: 'rehabilitated', label: 'Rehabilitated', icon: CheckCircle2 },
+                ] as const;
+                return steps.map((s, i) => {
+                  const done = i <= idx;
+                  const isLast = i === steps.length - 1;
+                  return (
+                    <div key={s.status} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <div style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: done ? C.jungle : C.paper2, display: 'flex', alignItems: 'center', justifyContent: 'center', border: done ? 'none' : `2px solid ${C.hairline}` }}>
+                          <s.icon size={16} color={done ? '#fff' : C.muted} />
+                        </div>
+                        {!isLast && (
+                          <div style={{ width: 2, height: 26, backgroundColor: done ? C.jungle : C.hairline, borderRadius: 1 }} />
+                        )}
+                      </div>
+                      <div style={{ paddingTop: 4, paddingBottom: isLast ? 0 : 8 }}>
+                        <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 14, color: done ? C.ink : C.muted }}>{s.label}</div>
+                        <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 12, color: done ? C.jungleDeep : C.muted }}>{done ? (i === 0 ? 'Submitted' : i === 1 ? 'Shared' : 'Done') : 'Pending'}</div>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
@@ -2399,7 +2577,8 @@ function SOSScreen({ onBack }: { onBack: () => void }) {
   );
 }
 
-function ReportSuccessScreen({ condition, urgency, photo, onBack, onSuccess }: {
+function ReportSuccessScreen({ reportId, condition, urgency, photo, onBack, onSuccess }: {
+  reportId: string;
   condition: string;
   urgency: string;
   photo: string | null;
@@ -2408,7 +2587,6 @@ function ReportSuccessScreen({ condition, urgency, photo, onBack, onSuccess }: {
 }) {
   const [phase, setPhase] = useState<'dispatching' | 'tracking'>('dispatching');
   const [dispatchStep, setDispatchStep] = useState(0);
-  const reportId = Math.floor(Math.random() * 90000 + 10000);
 
   const dispatchSteps = [
     { icon: MapPin, label: 'Locating nearby shelters...', color: C.sky },
@@ -2498,10 +2676,10 @@ function ReportSuccessScreen({ condition, urgency, photo, onBack, onSuccess }: {
         >
           <CheckCircle2 size={40} color={C.coralDeep} />
         </motion.div>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 24, color: C.ink, marginBottom: 4 }}>Rescue report verified and shared</div>
-          <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 14, color: C.muted }}>Case #{reportId} is now active in the local care network</div>
-        </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 24, color: C.ink, marginBottom: 4 }}>Rescue report verified and shared</div>
+            <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 14, color: C.muted }}>Case #{reportId} is now active in the local care network</div>
+          </div>
 
         <Card tone="paper" style={{ width: '100%', maxWidth: 300, padding: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -2585,6 +2763,7 @@ function ReportSuccessScreen({ condition, urgency, photo, onBack, onSuccess }: {
 }
 
 function ReportAnimalScreen({ onBack, onSuccess }: { onBack: () => void; onSuccess: () => void }) {
+  const { addRescueCase } = useApp();
   const [step, setStep] = useState(0);
   const [condition, setCondition] = useState('');
   const [urgency, setUrgency] = useState<'low' | 'medium' | 'high' | 'critical'>('medium');
@@ -2592,6 +2771,7 @@ function ReportAnimalScreen({ onBack, onSuccess }: { onBack: () => void; onSucce
   const [photo, setPhoto] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const reducedMotion = useReducedMotion();
+  const reportIdRef = useRef<string>(`${Math.floor(Math.random() * 90000 + 10000)}`);
 
   const conditions = ['Injured', 'Sick', 'Trapped', 'Aggressive', 'Pregnant', 'Abandoned', 'In Danger'];
   const urgencies = [
@@ -2619,6 +2799,19 @@ function ReportAnimalScreen({ onBack, onSuccess }: { onBack: () => void; onSucce
     }
 
     setSubmitting(true);
+
+    // Persist the case so it appears in Profile > My Cases.
+    const newCase: RescueCase = {
+      id: reportIdRef.current,
+      createdAt: Date.now(),
+      condition,
+      urgency: urgency as RescueUrgency,
+      notes,
+      photoAttached: Boolean(photo),
+      stage: 'dispatched',
+    };
+    addRescueCase(newCase);
+
     setTimeout(() => {
       setSubmitting(false);
       setStep(4);
@@ -2628,6 +2821,7 @@ function ReportAnimalScreen({ onBack, onSuccess }: { onBack: () => void; onSucce
   if (step === 4) {
     return (
       <ReportSuccessScreen
+        reportId={reportIdRef.current}
         condition={condition}
         urgency={urgency}
         photo={photo}

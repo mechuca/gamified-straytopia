@@ -24,6 +24,19 @@ export interface MissionStatus {
   m6: 'locked' | 'available' | 'in_progress' | 'proof_required' | 'completed';
 }
 
+export type RescueUrgency = 'low' | 'medium' | 'high' | 'critical';
+
+export interface RescueCase {
+  id: string;
+  createdAt: number;
+  condition: string;
+  urgency: RescueUrgency;
+  notes: string;
+  photoAttached: boolean;
+  // Demo-only: we don't have a backend, so keep a simple stage.
+  stage: 'reported' | 'dispatched' | 'rescued' | 'treated' | 'healed' | 'rehabilitated';
+}
+
 interface AppState {
   screen: Screen;
   hasSeenSplash: boolean;
@@ -36,6 +49,7 @@ interface AppState {
   avatarIndex: number;
   avatarTone: string;
   leaderboardOptedIn: boolean;
+  leaderboardPhoneVerified: boolean;
   lbConsentChecked: boolean;
   lbDisplayName: string;
   points: number;
@@ -68,6 +82,7 @@ interface AppState {
   lastResetDate: string;
   allTasksDoneToday: boolean;
   hasSeenHomeTour: boolean;
+  rescueCases: RescueCase[];
   navigate: (s: Screen) => void;
   setName: (n: string) => void;
   setPhone: (p: string) => void;
@@ -86,6 +101,7 @@ interface AppState {
   submitProof: (note: string) => void;
   completeMission: (id: string) => void;
   setLeaderboardOptedIn: (v: boolean) => void;
+  setLeaderboardPhoneVerified: (v: boolean) => void;
   setLbConsentChecked: (v: boolean) => void;
   setLbDisplayName: (n: string) => void;
   setProofPhoto: (p: string | null) => void;
@@ -105,6 +121,8 @@ interface AppState {
   toggleHapticEnabled: () => void;
   setSkeletonLoading: (v: boolean) => void;
   completeHomeTour: () => void;
+  addRescueCase: (c: RescueCase) => void;
+  updateRescueCase: (id: string, patch: Partial<RescueCase>) => void;
   resetDemo: () => void;
   checkAndResetDaily: () => void;
   logAnalytics: (event: string, data?: Record<string, unknown>) => void;
@@ -135,6 +153,7 @@ export const useApp = create<AppState>((set, get) => ({
   avatarIndex: 0,
   avatarTone: 'jungle',
   leaderboardOptedIn: false,
+  leaderboardPhoneVerified: false,
   lbConsentChecked: false,
   lbDisplayName: '',
   points: 0,
@@ -169,6 +188,7 @@ export const useApp = create<AppState>((set, get) => ({
   lastResetDate: new Date().toDateString(),
   allTasksDoneToday: false,
   hasSeenHomeTour: false,
+  rescueCases: [],
   onboardingPhase: 0,
   advanceOnboarding: () => {
     const current = get().onboardingPhase;
@@ -260,6 +280,7 @@ export const useApp = create<AppState>((set, get) => ({
     });
   },
   setLeaderboardOptedIn: (v) => set({ leaderboardOptedIn: v }),
+  setLeaderboardPhoneVerified: (v) => set({ leaderboardPhoneVerified: v }),
   setLbConsentChecked: (v) => set({ lbConsentChecked: v }),
   setLbDisplayName: (n) => set({ lbDisplayName: n }),
   setProofPhoto: (p) => set({ proofPhoto: p }),
@@ -303,6 +324,13 @@ export const useApp = create<AppState>((set, get) => ({
   toggleHapticEnabled: () => set((s) => ({ hapticEnabled: !s.hapticEnabled })),
   setSkeletonLoading: (v) => set({ skeletonLoading: v }),
   completeHomeTour: () => set({ hasSeenHomeTour: true }),
+  addRescueCase: (c) => set((s) => {
+    if (s.rescueCases.some((r) => r.id === c.id)) return s;
+    return { rescueCases: [c, ...s.rescueCases] };
+  }),
+  updateRescueCase: (id, patch) => set((s) => ({
+    rescueCases: s.rescueCases.map((r) => (r.id === id ? { ...r, ...patch } : r)),
+  })),
   resetDemo: () => {
     const { darkMode, themeMode, pushNotifications, buddyMode, hapticEnabled, notifications, streakFreeze } = get();
 
@@ -310,6 +338,7 @@ export const useApp = create<AppState>((set, get) => ({
       screen: 'splash', hasSeenSplash: false, hasSeenOnboarding: false, onboardingStep: 0,
       name: '', phone: '', gender: '', neighborhood: '', avatarIndex: 0, avatarTone: 'jungle',
       leaderboardOptedIn: false, lbConsentChecked: false, lbDisplayName: '',
+      leaderboardPhoneVerified: false,
       points: 0, streak: 0, hearts: 0, missionsCompleted: 0, animalsHelped: 0,
       activeMission: null, lastCompletedMission: null,
       missionStatus: { ...defaultMissionStatus }, proofPhoto: null, proofNote: '',
@@ -319,6 +348,7 @@ export const useApp = create<AppState>((set, get) => ({
       streakFreeze, locationHistory: [], pushNotifications,
       buddyMode, hapticEnabled, skeletonLoading: false,
       notifications: { ...notifications },
+      rescueCases: [],
       darkMode, themeMode, onboardingPhase: 0, lastResetDate: new Date().toDateString(), allTasksDoneToday: false, hasSeenHomeTour: false,
     });
   },
