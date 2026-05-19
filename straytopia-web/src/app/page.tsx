@@ -668,6 +668,7 @@ function SimpleOnboardingScreen({ onComplete }: { onComplete: () => void }) {
 
   const neighborhoods = ['Indiranagar', 'Koramangala', 'HSR Layout', 'Whitefield', 'Electronic City', 'Jayanagar', 'BTM Layout', 'Marathahalli', 'MG Road', 'Jubilee Hills', 'Banjara Hills', 'Gachibowli', 'Madhapur', 'Other'];
   const filtered = search ? neighborhoods.filter((n) => n.toLowerCase().includes(search.toLowerCase())) : neighborhoods;
+  const canContinue = selected.trim().length > 0;
 
   const handleDetectLocation = () => {
     setDetecting(true);
@@ -683,7 +684,8 @@ function SimpleOnboardingScreen({ onComplete }: { onComplete: () => void }) {
   };
 
   const handleContinue = () => {
-    setNeighborhood(selected || 'Indiranagar');
+    if (!canContinue) return;
+    setNeighborhood(selected);
     onComplete();
   };
 
@@ -751,14 +753,14 @@ function SimpleOnboardingScreen({ onComplete }: { onComplete: () => void }) {
 
           <div style={{ padding: '12px 14px', borderRadius: 16, backgroundColor: selected ? C.primarySoft : C.cardMuted, border: `1px solid ${selected ? withOpacity(C.primary, 0.18) : C.border}` }}>
             <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, color: selected ? C.jungleDeep : C.muted, textTransform: 'uppercase', letterSpacing: 0.08, marginBottom: 4 }}>Selected zone</div>
-            <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 16, color: selected ? C.jungleDeep : C.ink }}>{selected || 'Indiranagar will be used by default'}</div>
-            <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: selected ? C.jungleDeep : C.ink2, marginTop: 4 }}>You can change this later from your profile.</div>
+            <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 16, color: selected ? C.jungleDeep : C.ink }}>{selected || 'Select your area'}</div>
+            <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: selected ? C.jungleDeep : C.ink2, marginTop: 4 }}>{selected ? 'You can change this later from your profile.' : 'Choose an area to continue.'}</div>
           </div>
         </div>
       </Card>
 
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '16px 24px 28px', backgroundColor: withOpacity(C.paper, 0.94), borderTop: `1px solid ${C.hairline}`, maxWidth: 480, margin: '0 auto', backdropFilter: 'blur(14px)' }}>
-        <Btn variant="jungle" size="lg" onClick={handleContinue} rightIcon={<ChevronRight size={18} />}>Start My Care Journey</Btn>
+        <Btn variant="jungle" size="lg" onClick={handleContinue} disabled={!canContinue} rightIcon={<ChevronRight size={18} />}>Start My Care Journey</Btn>
       </div>
     </div>
   );
