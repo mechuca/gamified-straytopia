@@ -468,8 +468,7 @@ function TabBar({ active, onChange }: { active: string; onChange: (t: string) =>
             style={{
               position: 'absolute',
               right: 12,
-              top: '50%',
-              transform: 'translateY(-50%)',
+              top: 9,
               width: 56,
               height: 56,
               borderRadius: 18,
