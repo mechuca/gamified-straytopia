@@ -423,7 +423,7 @@ function TabBar({ active, onChange }: { active: string; onChange: (t: string) =>
     <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 50 }}>
       <div style={{ maxWidth: 500, margin: '0 auto', padding: `10px 12px calc(${safeBottom} + 10px)` }}>
         <div style={{ position: 'relative' }}>
-          <div style={{ height: 74, paddingRight: 96, backgroundColor: withOpacity(C.navBackground, 0.92), backdropFilter: 'blur(18px)', borderRadius: 26, border: `1px solid ${withOpacity(C.border, 0.9)}`, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', alignItems: 'center', padding: '8px 10px', boxShadow: `0 14px 34px ${withOpacity(C.shadow, 0.14)}` }}>
+          <div style={{ height: 74, backgroundColor: withOpacity(C.navBackground, 0.92), backdropFilter: 'blur(18px)', borderRadius: 26, border: `1px solid ${withOpacity(C.border, 0.9)}`, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', alignItems: 'center', padding: '8px 96px 8px 10px', boxShadow: `0 14px 34px ${withOpacity(C.shadow, 0.14)}` }}>
           {tabs.map((t) => {
             const isActive = active === t.id;
             const pillBg = isActive ? withOpacity(C.sky, 0.16) : 'transparent';
