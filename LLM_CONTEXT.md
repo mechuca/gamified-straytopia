@@ -17,6 +17,7 @@ The only reliable way for an LLM to reproduce the UI 1:1 is to use:
 ## Screenshots (Checked Into Repo)
 - `docs/screenshots/2026-05-16-care-missions-bottom-nav-overlap.png`
 - `docs/screenshots/2026-05-18-mission-card-ready-now.png`
+- `docs/screenshots/2026-05-13-bottom-nav-reference-overlap.png`
 
 If the UI changes, add a new screenshot and link it here so an LLM can match the latest visual state without needing external attachments.
 

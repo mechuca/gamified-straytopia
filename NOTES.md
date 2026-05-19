@@ -53,4 +53,4 @@ npx vercel deploy --prod --yes
 
 ## Last Known Good
 - Branch: `main`
-- Recent commit: `424375b` (ignore `.DS_Store`)
+- Recent commit: `ca03c08` (case history + ranks OTP)
