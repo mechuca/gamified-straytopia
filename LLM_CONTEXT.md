@@ -46,6 +46,10 @@ The operations hub lives in `straytopia-hub/` and is intended to be the shared c
 - Preview: `scripts/deploy-hub-preview.sh`
 - Production: `scripts/deploy-hub-prod.sh`
 
+### Ops Hub Running Reference
+
+- Production: https://straytopia-hub.vercel.app
+
 ## Screenshots (Checked Into Repo)
 - `docs/screenshots/2026-05-16-care-missions-bottom-nav-overlap.png`
 - `docs/screenshots/2026-05-18-mission-card-ready-now.png`
