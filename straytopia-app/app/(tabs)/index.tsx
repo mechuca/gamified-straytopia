@@ -13,6 +13,7 @@ import { RiseIn } from '@/app/components/motion/RiseIn';
 import { useMissions } from '@/app/store/missions';
 import { usePoints } from '@/app/store/points';
 import { useUser } from '@/app/store/user';
+import { useOpsTasks } from '@/app/lib/useOpsTasks';
 import { COLOR } from '@/app/lib/theme';
 import { Flame, Zap, Heart, BookOpen, MapPin, ChevronRight, AlertTriangle } from 'lucide-react-native';
 
@@ -21,6 +22,7 @@ export default function HomeScreen() {
   const missions = useMissions((s) => s.missions);
   const totalPoints = usePoints((s) => s.total);
   const neighborhood = useUser((s) => s.neighborhood);
+  const opsTasks = useOpsTasks();
   const [refreshing, setRefreshing] = useState(false);
 
   const availableMissions = missions.filter((m) => m.status === 'available');
@@ -104,6 +106,30 @@ export default function HomeScreen() {
                 />
               </RiseIn>
             ))}
+          </View>
+        )}
+
+        {/* Ops Tasks (from hub) */}
+        {opsTasks.length > 0 && (
+          <View style={{ marginTop: 6, marginBottom: 12 }}>
+            <Text variant="eyebrow" style={{ marginBottom: 8, color: COLOR.ink2 }}>FROM SHELTER OPS</Text>
+            <Card tone="paper-2" style={{ padding: 16, marginBottom: 10 }}>
+              <Text variant="h">{opsTasks.length} task{opsTasks.length === 1 ? '' : 's'} in your area</Text>
+              <Text variant="meta" style={{ marginTop: 4 }}>These update live when shelters assign work.</Text>
+              <View style={{ marginTop: 12, gap: 8 }}>
+                {opsTasks.slice(0, 2).map((t) => (
+                  <View key={t.id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8, borderTopWidth: 1, borderTopColor: COLOR.hairline, borderStyle: 'dashed' }}>
+                    <View style={{ flex: 1, paddingRight: 12 }}>
+                      <Text variant="body" style={{ fontWeight: '800' }}>{t.template_title || 'Task'}</Text>
+                      <Text variant="meta">{t.status.replace('_', ' ')}</Text>
+                    </View>
+                    <Pill tone={t.priority === 'critical' ? 'coral' : t.priority === 'high' ? 'gold' : t.priority === 'medium' ? 'sky' : 'paper'} variant="soft">
+                      {t.priority}
+                    </Pill>
+                  </View>
+                ))}
+              </View>
+            </Card>
           </View>
         )}
 

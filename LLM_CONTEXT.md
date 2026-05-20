@@ -14,10 +14,44 @@ The only reliable way for an LLM to reproduce the UI 1:1 is to use:
 ## Running Reference
 - Production: https://straytopia-prototype.vercel.app
 
+## Ops Hub (New App)
+
+The operations hub lives in `straytopia-hub/` and is intended to be the shared control plane for:
+- Case review (accept/reject)
+- Auto task creation on accept
+- Manual assignment
+- Block-level analytics
+- MEL / funding KPIs
+
+### Ops Hub Environment Variables
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+### Supabase Schema
+
+- `supabase/migrations/001_init.sql`
+
+### Ops Hub Key Files
+
+- Shell + nav: `straytopia-hub/src/components/AppShell.tsx`
+- Auth guard: `straytopia-hub/src/components/AuthGate.tsx`
+- Supabase client: `straytopia-hub/src/lib/supabase/client.ts`
+- Cases queue: `straytopia-hub/src/app/(app)/cases/page.tsx`
+- Tasks backlog: `straytopia-hub/src/app/(app)/tasks/page.tsx`
+- MEL KPIs: `straytopia-hub/src/app/(app)/mel/page.tsx`
+
+### Ops Hub Deployment Scripts
+
+- Preview: `scripts/deploy-hub-preview.sh`
+- Production: `scripts/deploy-hub-prod.sh`
+
 ## Screenshots (Checked Into Repo)
 - `docs/screenshots/2026-05-16-care-missions-bottom-nav-overlap.png`
 - `docs/screenshots/2026-05-18-mission-card-ready-now.png`
 - `docs/screenshots/2026-05-13-bottom-nav-reference-overlap.png`
+
+Add ops hub screenshots here too once captured, for 1:1 UI matching.
 
 If the UI changes, add a new screenshot and link it here so an LLM can match the latest visual state without needing external attachments.
 

@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+:root {
+  /* Mobile-aligned palette */
+  --paper: #FFFCEF;
+  --paper2: #F7F0DA;
+  --paper3: #ECE2C5;
+  --surface: #FFFFFF;
+  --hairline: #E8E1CD;
+  --hairline2: #D8CFB4;
+
+  --ink: #1A1B1F;
+  --ink2: #424551;
+  --muted: #7C7E8A;
+
+  --jungle: #2DC653;
+  --jungle-deep: #1B8A36;
+  --jungle-soft: #DFF6E3;
+  --coral: #FF5A4A;
+  --coral-deep: #C92F22;
+  --coral-soft: #FFE2DC;
+  --gold: #FFC83D;
+  --gold-deep: #C98E00;
+  --gold-soft: #FFF1C8;
+  --sky: #1CB0F6;
+  --sky-soft: #D6F2FF;
+  --plum: #A560E8;
+  --plum-soft: #F0E0FF;
+
+  --radius-sm: 12px;
+  --radius-md: 18px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+}
+
+@theme inline {
+  --font-sans: var(--font-nunito);
+  --font-mono: var(--font-jetbrains);
+}
+
+html, body {
+  height: 100%;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.fredoka {
+  font-family: var(--font-fredoka);
+}
+
+.mono {
+  font-family: var(--font-jetbrains);
+}

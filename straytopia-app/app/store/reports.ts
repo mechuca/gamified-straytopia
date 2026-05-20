@@ -26,6 +26,7 @@ export interface ReportState {
   startDraft: () => void;
   patchDraft: (patch: Partial<Report>) => void;
   submitReport: () => Report;
+  updateReport: (id: string, patch: Partial<Report>) => void;
   reset: () => void;
 }
 
@@ -58,6 +59,9 @@ export const useReports = create<ReportState>()(
         }));
         return report;
       },
+      updateReport: (id, patch) => set((state) => ({
+        reports: state.reports.map((r) => (r.id === id ? { ...r, ...patch } : r)),
+      })),
       reset: () => set({ reports: [], draft: null }),
     }),
     { name: 'straytopia-reports', storage }

@@ -12,8 +12,8 @@ if [[ -n "$(git -C "$ROOT_DIR" status --porcelain)" ]]; then
 fi
 
 SHA="$(git -C "$ROOT_DIR" rev-parse --short HEAD)"
-echo "Deploying preview from commit $SHA"
+echo "Deploying hub preview from commit $SHA"
 
-cd "$ROOT_DIR/straytopia-web"
+cd "$ROOT_DIR/straytopia-hub"
 npm run build
 npx vercel deploy --yes

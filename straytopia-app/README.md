@@ -182,6 +182,22 @@ npm start
 # Press i for iOS simulator, a for Android, w for web
 ```
 
+## Ops Hub Spine (Supabase)
+
+This prototype can optionally sync reports and assigned tasks via Supabase.
+
+Synced flows when configured:
+- Report submission syncs to `cases`
+- Ops accept/reject updates the report timeline
+- Missions write progress into `tasks` (assigned -> in progress -> proof pending -> completed)
+- Proof submission writes into `proofs`
+
+Environment variables:
+- `EXPO_PUBLIC_SUPABASE_URL`
+- `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+
+If these are not set, the app continues to run purely on local state.
+
 ## How to test each flow
 
 | Flow | Steps |

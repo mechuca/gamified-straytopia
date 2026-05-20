@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, ScrollView, TextInput } from 'react-native';
+import { View, ScrollView, TextInput, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/app/components/primitives/ScreenContainer';
 import { Text } from '@/app/components/primitives/Text';
@@ -71,36 +71,38 @@ export default function ReportNewScreen() {
         <Text variant="h" style={{ marginBottom: 10 }}>What's wrong?</Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 }}>
           {categories.map((cat) => (
-            <Card
-              key={cat.key}
-              tone={category === cat.key ? (cat.tone as any) : 'paper-2'}
-              style={{
-                width: '47%', padding: 14,
-                borderColor: category === cat.key ? COLOR[cat.tone as keyof typeof COLOR] : COLOR.hairline,
-                borderWidth: category === cat.key ? 2 : 1,
-              }}
-            >
-              <Text style={{ fontSize: 28, marginBottom: 6 }}>{cat.emoji}</Text>
-              <Text variant="h">{cat.title}</Text>
-              <Text variant="meta">{cat.sub}</Text>
-            </Card>
+            <Pressable key={cat.key} onPress={() => setCategory(cat.key)} style={{ width: '47%' }}>
+              <Card
+                tone={category === cat.key ? (cat.tone as any) : 'paper-2'}
+                style={{
+                  width: '100%', padding: 14,
+                  borderColor: category === cat.key ? COLOR[cat.tone as keyof typeof COLOR] : COLOR.hairline,
+                  borderWidth: category === cat.key ? 2 : 1,
+                }}
+              >
+                <Text style={{ fontSize: 28, marginBottom: 6 }}>{cat.emoji}</Text>
+                <Text variant="h">{cat.title}</Text>
+                <Text variant="meta">{cat.sub}</Text>
+              </Card>
+            </Pressable>
           ))}
         </View>
 
         <Text variant="h" style={{ marginBottom: 10 }}>How soon?</Text>
         <View style={{ flexDirection: 'row', gap: 10, marginBottom: 20 }}>
           {severities.map((sev) => (
-            <Card
-              key={sev.key}
-              tone={severity === sev.key ? (sev.color as any) : 'paper-2'}
-              style={{ flex: 1, padding: 14, alignItems: 'center' }}
-            >
-              <Text style={{ fontSize: 20, marginBottom: 4 }}>
-                {sev.key === 'urgent' ? '🔴' : sev.key === 'today' ? '🟡' : '🟢'}
-              </Text>
-              <Text variant="h">{sev.label}</Text>
-              <Text variant="meta">{sev.sub}</Text>
-            </Card>
+            <Pressable key={sev.key} onPress={() => setSeverity(sev.key)} style={{ flex: 1 }}>
+              <Card
+                tone={severity === sev.key ? (sev.color as any) : 'paper-2'}
+                style={{ flex: 1, padding: 14, alignItems: 'center' }}
+              >
+                <Text style={{ fontSize: 20, marginBottom: 4 }}>
+                  {sev.key === 'urgent' ? '🔴' : sev.key === 'today' ? '🟡' : '🟢'}
+                </Text>
+                <Text variant="h">{sev.label}</Text>
+                <Text variant="meta">{sev.sub}</Text>
+              </Card>
+            </Pressable>
           ))}
         </View>
 

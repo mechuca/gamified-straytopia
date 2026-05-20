@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useUser } from '@/app/store/user';
+import { insertMissionProof, updateMissionProofStatus, upsertMissionTask } from '@/app/lib/spineSync';
 
 const storage = createJSONStorage(() => AsyncStorage);
 
@@ -97,28 +99,98 @@ export const useMissions = create<MissionState>()(
       missions: seedMissions,
       activeMissionId: null,
       completedCount: 0,
-      acceptMission: (id) => set((state) => ({
-        missions: state.missions.map((m) =>
-          m.id === id ? { ...m, status: 'accepted' as const, acceptedAt: Date.now() } : m
-        ),
-        activeMissionId: id,
-      })),
-      startProof: (id) => set((state) => ({
-        missions: state.missions.map((m) =>
-          m.id === id ? { ...m, status: 'in-progress' as const } : m
-        ),
-      })),
-      submitProof: (id) => set((state) => ({
-        missions: state.missions.map((m) =>
-          m.id === id ? { ...m, status: 'verifying' as const } : m
-        ),
-      })),
-      verifyMission: (id, result) => set((state) => ({
-        missions: state.missions.map((m) =>
-          m.id === id ? { ...m, status: result === 'verified' ? 'completed' as const : result === 'review' ? 'review' as const : 'rejected' as const, verificationResult: result, completedAt: result === 'verified' ? Date.now() : null } : m
-        ),
-        completedCount: result === 'verified' ? get().completedCount + 1 : get().completedCount,
-      })),
+      acceptMission: (id) => {
+        const mission = get().missions.find((m) => m.id === id);
+        set((state) => ({
+          missions: state.missions.map((m) =>
+            m.id === id ? { ...m, status: 'accepted' as const, acceptedAt: Date.now() } : m
+          ),
+          activeMissionId: id,
+        }));
+
+        if (mission) {
+          void upsertMissionTask({
+            missionId: mission.id,
+            missionType: mission.type,
+            missionTitle: mission.title,
+            severity: mission.urgency,
+            status: 'assigned',
+            blockName: useUser.getState().neighborhood?.name ?? null,
+          });
+        }
+      },
+      startProof: (id) => {
+        const mission = get().missions.find((m) => m.id === id);
+        set((state) => ({
+          missions: state.missions.map((m) =>
+            m.id === id ? { ...m, status: 'in-progress' as const } : m
+          ),
+        }));
+        if (mission) {
+          void upsertMissionTask({
+            missionId: mission.id,
+            missionType: mission.type,
+            missionTitle: mission.title,
+            severity: mission.urgency,
+            status: 'in_progress',
+            blockName: useUser.getState().neighborhood?.name ?? null,
+          });
+        }
+      },
+      submitProof: (id) => {
+        const mission = get().missions.find((m) => m.id === id);
+        set((state) => ({
+          missions: state.missions.map((m) =>
+            m.id === id ? { ...m, status: 'verifying' as const } : m
+          ),
+        }));
+        if (mission) {
+          void upsertMissionTask({
+            missionId: mission.id,
+            missionType: mission.type,
+            missionTitle: mission.title,
+            severity: mission.urgency,
+            status: 'proof_pending',
+            blockName: useUser.getState().neighborhood?.name ?? null,
+          });
+        }
+      },
+      verifyMission: (id, result) => {
+        const mission = get().missions.find((m) => m.id === id);
+        set((state) => ({
+          missions: state.missions.map((m) =>
+            m.id === id
+              ? {
+                  ...m,
+                  status:
+                    result === 'verified'
+                      ? ('completed' as const)
+                      : result === 'review'
+                        ? ('review' as const)
+                        : ('rejected' as const),
+                  verificationResult: result,
+                  completedAt: result === 'verified' ? Date.now() : null,
+                }
+              : m
+          ),
+          completedCount: result === 'verified' ? get().completedCount + 1 : get().completedCount,
+        }));
+
+        if (mission) {
+          void upsertMissionTask({
+            missionId: mission.id,
+            missionType: mission.type,
+            missionTitle: mission.title,
+            severity: mission.urgency,
+            status: result === 'verified' ? 'completed' : 'blocked',
+            blockName: useUser.getState().neighborhood?.name ?? null,
+          });
+          void updateMissionProofStatus({
+            missionId: mission.id,
+            verificationStatus: result === 'verified' ? 'verified' : result === 'review' ? 'needs_review' : 'rejected',
+          });
+        }
+      },
       completeMission: (id) => set((state) => ({
         missions: state.missions.map((m) =>
           m.id === id ? { ...m, status: 'completed' as const, completedAt: Date.now(), verificationResult: 'verified' } : m

@@ -11,6 +11,7 @@ import { useMissions } from '@/app/store/missions';
 import { usePoints } from '@/app/store/points';
 import { useBadges } from '@/app/store/badges';
 import { COLOR } from '@/app/lib/theme';
+import { insertMissionProof } from '@/app/lib/spineSync';
 import { Camera, Image, MapPin, Clock, ArrowLeft, Loader2 } from 'lucide-react-native';
 
 export default function ProofSubmissionScreen() {
@@ -44,6 +45,7 @@ export default function ProofSubmissionScreen() {
       return;
     }
     setSubmitting(true);
+    void insertMissionProof({ missionId: mission.id, photoUri, note });
     submitProof(mission.id);
     setTimeout(() => {
       router.push('/mission/verify');
