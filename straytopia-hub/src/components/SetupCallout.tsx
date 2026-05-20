@@ -4,7 +4,7 @@ import { Pill } from '@/components/ui/Pill';
 
 export function SetupCallout({ title = 'Supabase Not Configured' }: { title?: string }) {
   return (
-    <Card className="p-5">
+    <Card className="p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="fredoka text-[18px] font-semibold">{title}</div>
@@ -15,7 +15,7 @@ export function SetupCallout({ title = 'Supabase Not Configured' }: { title?: st
         <Pill tone="gold" variant="soft">demo mode</Pill>
       </div>
 
-      <div className="mt-4 rounded-[18px] border border-[var(--hairline)] bg-[var(--paper)] p-4 text-sm font-semibold text-[var(--ink2)]">
+      <div className="mt-4 rounded-[18px] border border-[var(--border)] bg-white/70 p-4 text-sm font-semibold text-[var(--ink2)]">
         Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in Vercel and locally.
         Then run the migrations in `supabase/migrations/`.
       </div>

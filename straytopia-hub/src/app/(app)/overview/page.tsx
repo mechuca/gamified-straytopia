@@ -62,24 +62,66 @@ export default function OverviewPage() {
   return (
     <div className="grid gap-6">
       {!supabase && <SetupCallout />}
-      <div className="grid gap-4 md:grid-cols-3">
-        {kpis.map((k) => (
-          <Card key={k.label} className="p-5">
-            <div className="text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">{k.label}</div>
-            <div className="mt-2 flex items-end justify-between">
-              <div className="mono text-[30px] font-bold text-[var(--ink)]">{k.value}</div>
-              <Pill tone={k.tone as any} variant="soft">live</Pill>
-            </div>
-          </Card>
-        ))}
-      </div>
 
-      <Card className="p-5">
-        <div className="fredoka text-[18px] font-semibold">How to test realtime</div>
-        <div className="mt-2 text-sm font-semibold text-[var(--ink2)]">
-          Submit a report in the mobile app. It should appear instantly in Cases. Accept it, and a task will be auto-created.
+      <Card className="p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="text-[11px] font-extrabold tracking-[0.22em] uppercase text-[var(--muted)]">Core Funnel</div>
+            <div className="fredoka mt-2 text-[22px] font-semibold">Cases</div>
+          </div>
+          <Pill tone="paper" variant="soft">Realtime</Pill>
+        </div>
+
+        <div className="mt-5 grid grid-cols-2 gap-4 md:grid-cols-5">
+          {kpis.map((k) => (
+            <div key={k.label} className="rounded-[20px] border border-[var(--border)] bg-white/60 px-4 py-4 shadow-[var(--shadow-sm)]">
+              <div className="text-[11px] font-extrabold tracking-[0.22em] uppercase text-[var(--muted)]">{k.label}</div>
+              <div className="mono mt-3 text-[26px] font-bold text-[var(--ink)]">{k.value}</div>
+              <div className="mt-3"><Pill tone={k.tone as any} variant="soft">live</Pill></div>
+            </div>
+          ))}
         </div>
       </Card>
+
+      <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+        <Card className="p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="text-[11px] font-extrabold tracking-[0.22em] uppercase text-[var(--muted)]">Operations</div>
+              <div className="fredoka mt-2 text-[22px] font-semibold">What changed</div>
+              <div className="mt-1 text-sm font-semibold text-[var(--muted)]">A clean audit trail for every case and task decision.</div>
+            </div>
+          </div>
+          <div className="mt-5 grid gap-3">
+            {[
+              { label: 'Time to first response', value: '27 min', tone: 'gold' },
+              { label: 'Resolution rate', value: '—', tone: 'jungle' },
+              { label: 'Backlog age (P95)', value: '—', tone: 'coral' },
+            ].map((row) => (
+              <div key={row.label} className="flex items-center justify-between rounded-[18px] border border-[var(--border)] bg-white/60 px-4 py-3">
+                <div className="text-sm font-semibold text-[var(--ink2)]">{row.label}</div>
+                <div className="flex items-center gap-3">
+                  <div className="mono text-sm font-bold">{row.value}</div>
+                  <Pill tone={row.tone as any} variant="soft">kpi</Pill>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card className="p-6">
+          <div className="text-[11px] font-extrabold tracking-[0.22em] uppercase text-[var(--muted)]">Guided</div>
+          <div className="fredoka mt-2 text-[22px] font-semibold">Ask the hub</div>
+          <div className="mt-1 text-sm font-semibold text-[var(--muted)]">Draft prompts that translate ops data into funding narratives.</div>
+
+          <div className="mt-5 rounded-[22px] border border-[var(--border)] bg-white/70 p-4 shadow-[var(--shadow-sm)]">
+            <div className="text-sm font-semibold text-[var(--ink2)]">What would you like to explore next?</div>
+            <div className="mt-3 rounded-[18px] border border-[var(--border)] bg-white px-4 py-3 text-sm font-semibold text-[var(--muted)]">
+              I want to understand why urgent cases in Indiranagar are taking longer than today cases.
+            </div>
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }
