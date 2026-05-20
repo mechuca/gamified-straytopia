@@ -2,27 +2,17 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 let client: SupabaseClient | null = null;
 
-export function getSupabase() {
+export function isSupabaseConfigured() {
+  return !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+}
+
+export function getSupabase(): SupabaseClient | null {
   if (client) return client;
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!supabaseUrl || !supabaseAnonKey) {
-    // Allow Next build/prerender to complete without env vars.
-    // Runtime usage will fail fast with a readable error.
-    const stub = new Proxy(
-      {},
-      {
-        get() {
-          throw new Error(
-            'Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.'
-          );
-        },
-      }
-    );
-    return stub as unknown as SupabaseClient;
-  }
+  if (!supabaseUrl || !supabaseAnonKey) return null;
 
   client = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {

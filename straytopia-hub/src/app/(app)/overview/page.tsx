@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { getSupabase } from '@/lib/supabase/client';
 import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
+import { SetupCallout } from '@/components/SetupCallout';
 
 export default function OverviewPage() {
   const supabase = getSupabase();
@@ -18,6 +19,7 @@ export default function OverviewPage() {
   });
 
   async function load() {
+    if (!supabase) return;
     const [cases, tasks] = await Promise.all([
       supabase.from('cases').select('status', { count: 'exact', head: false }),
       supabase.from('tasks').select('id', { count: 'exact', head: true }),
@@ -38,6 +40,7 @@ export default function OverviewPage() {
 
   useEffect(() => {
     load();
+    if (!supabase) return;
     const channel = supabase
       .channel('hub_overview')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'cases' }, () => load())
@@ -58,6 +61,7 @@ export default function OverviewPage() {
 
   return (
     <div className="grid gap-6">
+      {!supabase && <SetupCallout />}
       <div className="grid gap-4 md:grid-cols-3">
         {kpis.map((k) => (
           <Card key={k.label} className="p-5">

@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { clsx } from 'clsx';
 import { useEffect, useMemo, useState } from 'react';
 import { BarChart3, ClipboardList, Hospital, Layers3, LogOut, Map, ShieldAlert, Users } from 'lucide-react';
-import { getSupabase } from '@/lib/supabase/client';
+import { getSupabase, isSupabaseConfigured } from '@/lib/supabase/client';
 
 const nav = [
   { href: '/overview', label: 'Overview', icon: BarChart3 },
@@ -24,6 +24,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [email, setEmail] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!isSupabaseConfigured() || !supabase) {
+      setEmail('demo@local');
+      return;
+    }
     let mounted = true;
     supabase.auth.getUser().then(({ data }) => {
       if (!mounted) return;
@@ -36,7 +40,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       mounted = false;
       sub.subscription.unsubscribe();
     };
-  }, []);
+  }, [supabase]);
 
   const active = useMemo(() => nav.find((n) => pathname?.startsWith(n.href))?.label ?? 'Ops Hub', [pathname]);
 
@@ -83,6 +87,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="mt-1 truncate text-sm font-bold text-[var(--ink2)]">{email ?? 'Unknown'}</div>
             <button
               onClick={async () => {
+                if (!supabase) return;
                 await supabase.auth.signOut();
                 router.push('/login');
               }}
@@ -90,7 +95,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               type="button"
             >
               <LogOut size={14} />
-              Sign out
+              {isSupabaseConfigured() ? 'Sign out' : 'Demo mode'}
             </button>
           </div>
         </aside>

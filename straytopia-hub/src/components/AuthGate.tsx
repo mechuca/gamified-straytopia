@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { getSupabase } from '@/lib/supabase/client';
+import { getSupabase, isSupabaseConfigured } from '@/lib/supabase/client';
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const supabase = getSupabase();
@@ -12,6 +12,13 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const [authed, setAuthed] = useState(false);
 
   useEffect(() => {
+    if (!isSupabaseConfigured() || !supabase) {
+      // UI-only preview mode.
+      setAuthed(true);
+      setReady(true);
+      return;
+    }
+
     let mounted = true;
 
     supabase.auth.getSession().then(({ data }) => {
@@ -33,7 +40,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       mounted = false;
       sub.subscription.unsubscribe();
     };
-  }, [pathname, router]);
+  }, [pathname, router, supabase]);
 
   if (!ready) {
     return (

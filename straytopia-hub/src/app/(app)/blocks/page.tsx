@@ -7,6 +7,7 @@ import { getSupabase } from '@/lib/supabase/client';
 import type { Block, CaseRow } from '@/lib/types';
 import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
+import { SetupCallout } from '@/components/SetupCallout';
 
 export default function BlocksPage() {
   const supabase = getSupabase();
@@ -14,6 +15,7 @@ export default function BlocksPage() {
   const [cases, setCases] = useState<CaseRow[]>([]);
 
   async function load() {
+    if (!supabase) return;
     const [b, c] = await Promise.all([
       supabase.from('blocks').select('id,name,code').order('name', { ascending: true }),
       supabase.from('cases').select('id,block_id,status').order('created_at', { ascending: false }).limit(400),
@@ -24,6 +26,7 @@ export default function BlocksPage() {
 
   useEffect(() => {
     load();
+    if (!supabase) return;
     const channel = supabase
       .channel('hub_blocks')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'blocks' }, () => load())
@@ -49,6 +52,7 @@ export default function BlocksPage() {
 
   return (
     <Card className="p-4 md:p-5">
+      {!supabase && <SetupCallout />}
       <div className="overflow-hidden rounded-[20px] border border-[var(--hairline)]">
         <div className="grid grid-cols-[1fr_120px_120px_120px] gap-3 bg-[var(--paper2)] px-4 py-3 text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">
           <div>Block</div>

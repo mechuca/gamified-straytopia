@@ -8,7 +8,25 @@ import type { Block, CaseRow, Shelter, TaskRow, TaskTemplateRow } from '@/lib/ty
 import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
 import { Button } from '@/components/ui/Button';
+import { SetupCallout } from '@/components/SetupCallout';
 import { CheckCircle2, ClipboardList, Plus } from 'lucide-react';
+
+const demoTasks: TaskRow[] = [
+  {
+    id: 't-demo-1',
+    case_id: null,
+    template_id: null,
+    block_id: null,
+    shelter_id: null,
+    status: 'queued',
+    priority: 'high',
+    assigned_to_type: null,
+    assigned_to_id: null,
+    due_at: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+];
 
 function toneForPriority(p: TaskRow['priority']) {
   if (p === 'critical') return 'coral' as const;
@@ -44,6 +62,10 @@ export default function TasksPage() {
   const shelterById = useMemo(() => new Map(shelters.map((s) => [s.id, s])), [shelters]);
 
   async function load() {
+    if (!supabase) {
+      setTasks(demoTasks);
+      return;
+    }
     const [t, tt, c, b, s] = await Promise.all([
       supabase.from('tasks').select('*').order('created_at', { ascending: false }).limit(200),
       supabase.from('task_templates').select('*').order('type', { ascending: true }),
@@ -60,6 +82,7 @@ export default function TasksPage() {
 
   useEffect(() => {
     load();
+    if (!supabase) return;
     const channel = supabase
       .channel('hub_tasks')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => load())
@@ -74,6 +97,7 @@ export default function TasksPage() {
 
   return (
     <Card className="p-4 md:p-5">
+      {!supabase && <SetupCallout />}
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <ClipboardList size={18} className="text-[var(--muted)]" />
@@ -90,6 +114,7 @@ export default function TasksPage() {
             setCreatePriority('medium');
             setCreateOpen(true);
           }}
+          disabled={!supabase}
           type="button"
         >
           <Plus size={14} />
@@ -135,6 +160,7 @@ export default function TasksPage() {
                     size="sm"
                     disabled={!defaultShelterId || busyId === t.id || t.status === 'completed'}
                     onClick={async () => {
+                      if (!supabase) return;
                       if (!defaultShelterId) return;
                       setBusyId(t.id);
                       await supabase.from('tasks').update({
@@ -214,6 +240,7 @@ export default function TasksPage() {
               <Button variant="ghost" onClick={() => setCreateOpen(false)} type="button">Cancel</Button>
               <Button
                 onClick={async () => {
+                  if (!supabase) return;
                   if (!createTemplateId || !createBlockId) return;
                   setBusyId('create');
                   await supabase.from('tasks').insert({

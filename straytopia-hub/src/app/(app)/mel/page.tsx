@@ -7,6 +7,7 @@ import { getSupabase } from '@/lib/supabase/client';
 import type { CaseRow, TaskRow } from '@/lib/types';
 import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
+import { SetupCallout } from '@/components/SetupCallout';
 
 export default function MelPage() {
   const supabase = getSupabase();
@@ -14,6 +15,7 @@ export default function MelPage() {
   const [tasks, setTasks] = useState<TaskRow[]>([]);
 
   async function load() {
+    if (!supabase) return;
     const [c, t] = await Promise.all([
       supabase.from('cases').select('*').order('created_at', { ascending: false }).limit(500),
       supabase.from('tasks').select('*').order('created_at', { ascending: false }).limit(500),
@@ -24,6 +26,7 @@ export default function MelPage() {
 
   useEffect(() => {
     load();
+    if (!supabase) return;
     const channel = supabase
       .channel('hub_mel')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'cases' }, () => load())
@@ -61,6 +64,7 @@ export default function MelPage() {
 
   return (
     <div className="grid gap-6">
+      {!supabase && <SetupCallout />}
       <div className="grid gap-4 md:grid-cols-4">
         {kpis.map((k) => (
           <Card key={k.label} className="p-5">

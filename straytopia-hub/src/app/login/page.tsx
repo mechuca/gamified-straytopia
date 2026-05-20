@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getSupabase } from '@/lib/supabase/client';
+import { getSupabase, isSupabaseConfigured } from '@/lib/supabase/client';
+import { SetupCallout } from '@/components/SetupCallout';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 
@@ -15,10 +16,21 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!isSupabaseConfigured() || !supabase) return;
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) router.replace('/cases');
     });
   }, [router]);
+
+  if (!isSupabaseConfigured() || !supabase) {
+    return (
+      <div className="grid min-h-dvh place-items-center bg-[var(--paper)] px-4 py-10">
+        <div className="w-full max-w-2xl">
+          <SetupCallout title="Supabase Required For Login" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="grid min-h-dvh place-items-center bg-[var(--paper)] px-4 py-10">

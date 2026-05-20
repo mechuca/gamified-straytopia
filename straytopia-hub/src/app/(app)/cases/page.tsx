@@ -8,7 +8,43 @@ import type { Block, CaseRow, Shelter } from '@/lib/types';
 import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
 import { Button } from '@/components/ui/Button';
+import { SetupCallout } from '@/components/SetupCallout';
 import { Check, Filter, X } from 'lucide-react';
+
+const demoCases: CaseRow[] = [
+  {
+    id: 'demo-1',
+    external_id: 'SY-7421',
+    citizen_id: null,
+    block_id: null,
+    shelter_id: null,
+    category: 'rescue',
+    severity: 'urgent',
+    description: 'Dog trapped near market drain, needs urgent help.',
+    location_text: 'Main Market, 1st cross',
+    status: 'submitted',
+    reject_reason_code: null,
+    reject_reason_text: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'demo-2',
+    external_id: 'SY-1054',
+    citizen_id: null,
+    block_id: null,
+    shelter_id: null,
+    category: 'water',
+    severity: 'today',
+    description: 'Water station empty near park.',
+    location_text: 'Park Street corner',
+    status: 'under_review',
+    reject_reason_code: null,
+    reject_reason_text: null,
+    created_at: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+    updated_at: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+  },
+];
 
 const rejectReasons = [
   { code: 'duplicate_case', label: 'Duplicate case' },
@@ -66,6 +102,10 @@ export default function CasesPage() {
   }, [cases, q, statusFilter]);
 
   async function load() {
+    if (!supabase) {
+      setCases(demoCases);
+      return;
+    }
     const [{ data: cData }, { data: bData }, { data: sData }] = await Promise.all([
       supabase.from('cases').select('*').order('created_at', { ascending: false }).limit(200),
       supabase.from('blocks').select('id,name,code').order('name', { ascending: true }),
@@ -78,6 +118,7 @@ export default function CasesPage() {
 
   useEffect(() => {
     load();
+    if (!supabase) return;
     const channel = supabase
       .channel('hub_cases')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'cases' }, () => load())
@@ -90,6 +131,7 @@ export default function CasesPage() {
   }, []);
 
   async function acceptCase(c: CaseRow) {
+    if (!supabase) return;
     setBusyId(c.id);
     const { data: userData } = await supabase.auth.getUser();
     // Mark under_review immediately for clarity.
@@ -105,6 +147,7 @@ export default function CasesPage() {
   }
 
   async function rejectCase(c: CaseRow, payload: { fixed_reason_code: string; free_text_reason: string }) {
+    if (!supabase) return;
     setBusyId(c.id);
     const { data: userData } = await supabase.auth.getUser();
     await supabase.from('cases').update({
@@ -128,6 +171,7 @@ export default function CasesPage() {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
+      {!supabase && <SetupCallout />}
       <Card className="p-4 md:p-5">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-2">

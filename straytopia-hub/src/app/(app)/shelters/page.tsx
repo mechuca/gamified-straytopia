@@ -7,18 +7,21 @@ import { getSupabase } from '@/lib/supabase/client';
 import type { Shelter } from '@/lib/types';
 import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
+import { SetupCallout } from '@/components/SetupCallout';
 
 export default function SheltersPage() {
   const supabase = getSupabase();
   const [shelters, setShelters] = useState<Shelter[]>([]);
 
   async function load() {
+    if (!supabase) return;
     const { data } = await supabase.from('shelters').select('id,name,block_id,status').order('name', { ascending: true });
     setShelters((data as any) ?? []);
   }
 
   useEffect(() => {
     load();
+    if (!supabase) return;
     const channel = supabase
       .channel('hub_shelters')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'shelters' }, () => load())
@@ -30,6 +33,7 @@ export default function SheltersPage() {
 
   return (
     <Card className="p-4 md:p-5">
+      {!supabase && <SetupCallout />}
       <div className="overflow-hidden rounded-[20px] border border-[var(--hairline)]">
         <div className="grid grid-cols-[1fr_140px] gap-3 bg-[var(--paper2)] px-4 py-3 text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">
           <div>Shelter</div>

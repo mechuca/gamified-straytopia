@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 import { useEffect, useState } from 'react';
 import { getSupabase } from '@/lib/supabase/client';
 import { Card } from '@/components/ui/Card';
+import { SetupCallout } from '@/components/SetupCallout';
 
 type CitizenRow = {
   id: string;
@@ -17,12 +18,14 @@ export default function CitizensPage() {
   const [citizens, setCitizens] = useState<CitizenRow[]>([]);
 
   async function load() {
+    if (!supabase) return;
     const { data } = await supabase.from('citizens').select('id,device_id,created_at').order('created_at', { ascending: false }).limit(200);
     setCitizens((data as any) ?? []);
   }
 
   useEffect(() => {
     load();
+    if (!supabase) return;
     const channel = supabase
       .channel('hub_citizens')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'citizens' }, () => load())
@@ -34,6 +37,7 @@ export default function CitizensPage() {
 
   return (
     <Card className="p-4 md:p-5">
+      {!supabase && <SetupCallout />}
       <div className="overflow-hidden rounded-[20px] border border-[var(--hairline)]">
         <div className="grid grid-cols-[1fr_240px] gap-3 bg-[var(--paper2)] px-4 py-3 text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">
           <div>Device</div>
