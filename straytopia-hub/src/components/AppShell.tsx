@@ -4,39 +4,121 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { clsx } from 'clsx';
 import { useEffect, useMemo, useState } from 'react';
-import { BarChart3, ClipboardList, Hospital, Image, Layers3, ListChecks, LogOut, Map, Search, ShieldAlert, Users } from 'lucide-react';
+import {
+  Activity,
+  Bell,
+  BrainCircuit,
+  Building2,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  Clock3,
+  Coins,
+  FileBarChart,
+  HeartHandshake,
+  Home,
+  Hospital,
+  LayoutDashboard,
+  LifeBuoy,
+  ListChecks,
+  LogOut,
+  Map,
+  Menu,
+  Search,
+  Settings,
+  ShieldAlert,
+  Stethoscope,
+  Users,
+  X,
+} from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase/client';
 
-const nav = [
-  { href: '/action-queue', label: 'Action Queue', icon: ListChecks },
-  { href: '/overview', label: 'Command', icon: BarChart3 },
-  { href: '/cases', label: 'Reports', icon: ShieldAlert },
-  { href: '/tasks', label: 'Field Work', icon: ClipboardList },
-  { href: '/proofs', label: 'Evidence', icon: Image },
-  { href: '/shelters', label: 'Partners', icon: Hospital },
-  { href: '/citizens', label: 'Community', icon: Users },
-  { href: '/blocks', label: 'Map', icon: Map },
-  { href: '/mel', label: 'Impact', icon: Layers3 },
+type Role = 'ops' | 'dispatcher' | 'shelter' | 'city_lead' | 'ngo';
+type NavItem = {
+  href?: string;
+  label: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  badge?: string;
+  roles?: Role[];
+  soon?: boolean;
+};
+
+const navGroups: Array<{ label: string; items: NavItem[] }> = [
+  {
+    label: 'Command',
+    items: [
+      { href: '/overview', label: 'Dashboard', icon: LayoutDashboard, badge: 'Live' },
+      { href: '/action-queue', label: 'Operational Queue', icon: ListChecks, badge: '4' },
+      { label: 'Notifications', icon: Bell, badge: '6', soon: true },
+    ],
+  },
+  {
+    label: 'Operations',
+    items: [
+      { href: '/cases', label: 'Active Rescue Cases', icon: ShieldAlert, badge: '7' },
+      { href: '/cases', label: 'Emergency Cases', icon: LifeBuoy, badge: '3' },
+      { href: '/tasks', label: 'Feeding Missions', icon: ClipboardList },
+      { href: '/tasks', label: 'Medical Cases', icon: Stethoscope, badge: '2' },
+      { href: '/shelters', label: 'Shelter Coordination', icon: Hospital },
+      { href: '/proofs', label: 'Evidence Review', icon: ClipboardList, badge: '2' },
+    ],
+  },
+  {
+    label: 'Network',
+    items: [
+      { href: '/blocks', label: 'Map Intelligence', icon: Map },
+      { href: '/citizens', label: 'Volunteers', icon: Users },
+      { href: '/shelters', label: 'NGOs & Partners', icon: Building2 },
+      { label: 'Adoptions & Foster', icon: HeartHandshake, soon: true },
+      { label: 'Donations', icon: Coins, soon: true },
+    ],
+  },
+  {
+    label: 'Intelligence',
+    items: [
+      { href: '/mel', label: 'Analytics', icon: FileBarChart },
+      { href: '/mel', label: 'Reports', icon: Activity },
+      { label: 'City Operations', icon: Home, soon: true, roles: ['city_lead', 'ops'] },
+      { label: 'AI Insights', icon: BrainCircuit, badge: 'New', soon: true },
+      { label: 'Audit Logs', icon: Clock3, soon: true },
+      { label: 'Settings', icon: Settings, soon: true },
+    ],
+  },
 ];
 
 const pageCopy: Record<string, string> = {
-  'Action Queue': 'The fastest route to the next decision: triage, assign, verify, or escalate.',
-  Command: 'Live health of the rescue network, backlog, and field outcomes.',
-  Reports: 'Triage incoming citizen reports and turn verified cases into work.',
-  'Field Work': 'Assign, monitor, and close operational work across shelters and blocks.',
-  Evidence: 'Review field evidence before crediting citizen and shelter actions.',
-  Partners: 'Manage capacity, coverage, and partner readiness.',
-  Community: 'Track active citizen devices and community participation.',
-  Map: 'Monitor local coverage and response density by neighborhood.',
-  Impact: 'Translate operations into measurable impact and funding evidence.',
+  Dashboard: 'Live operational intelligence for rescue load, field work, evidence, partners, and city risk.',
+  'Operational Queue': 'The fastest route to the next decision: triage, assign, verify, or escalate.',
+  'Active Rescue Cases': 'Triage incoming citizen reports and turn verified cases into work.',
+  'Feeding Missions': 'Assign, monitor, and close operational work across shelters and blocks.',
+  'Evidence Review': 'Review field evidence before crediting citizen and shelter actions.',
+  'Map Intelligence': 'Monitor coverage, risk, and response density by neighborhood.',
+  Analytics: 'Translate operations into measurable impact and funding evidence.',
 };
+
+function findActive(pathname: string | null) {
+  const items = navGroups.flatMap((group) => group.items);
+  if (pathname?.startsWith('/overview')) return items.find((item) => item.label === 'Dashboard');
+  if (pathname?.startsWith('/action-queue')) return items.find((item) => item.href === '/action-queue');
+  if (pathname?.startsWith('/blocks')) return items.find((item) => item.label === 'Map Intelligence');
+  if (pathname?.startsWith('/mel')) return items.find((item) => item.label === 'Analytics');
+  if (pathname?.startsWith('/cases')) return items.find((item) => item.label === 'Active Rescue Cases');
+  if (pathname?.startsWith('/tasks')) return items.find((item) => item.label === 'Feeding Missions');
+  if (pathname?.startsWith('/proofs')) return items.find((item) => item.label === 'Evidence Review');
+  if (pathname?.startsWith('/shelters')) return items.find((item) => item.label === 'Shelter Coordination');
+  if (pathname?.startsWith('/citizens')) return items.find((item) => item.label === 'Volunteers');
+  return items[0];
+}
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const supabase = getSupabase();
   const pathname = usePathname();
   const router = useRouter();
   const [email, setEmail] = useState<string | null>(null);
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const role: Role = 'ops';
 
   useEffect(() => {
     if (!isSupabaseConfigured() || !supabase) {
@@ -57,174 +139,168 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     };
   }, [supabase]);
 
-  const active = useMemo(() => nav.find((n) => pathname?.startsWith(n.href))?.label ?? 'Ops Hub', [pathname]);
+  const active = useMemo(() => findActive(pathname), [pathname]);
+  const activeLabel = active?.label ?? 'Dashboard';
+  const sidebarWidth = collapsed ? 'lg:pl-[104px]' : 'lg:pl-[308px]';
+
+  const sidebar = (
+    <div className="flex h-full flex-col border-r border-[var(--border)] bg-[var(--sidebar)] shadow-[var(--shadow-sm)] backdrop-blur-2xl">
+      <div className="flex items-center gap-3 border-b border-[var(--hairline)] p-4">
+        <Link href="/overview" className="grid h-11 w-11 shrink-0 place-items-center rounded-[16px] bg-[var(--jungle-soft)] ring-1 ring-[color-mix(in_srgb,var(--jungle)_18%,transparent)]">
+          <span className="fredoka text-[18px] font-semibold text-[var(--jungle-deep)]">S</span>
+        </Link>
+        {!collapsed && (
+          <div className="min-w-0">
+            <div className="fredoka truncate text-[19px] font-semibold leading-tight">Straytopia</div>
+            <div className="text-[11px] font-extrabold tracking-[0.22em] uppercase text-[var(--muted)]">Command Center</div>
+          </div>
+        )}
+      </div>
+
+      <div className="px-3 py-3">
+        <Link
+          href="/action-queue"
+          className={clsx(
+            'flex items-center gap-3 rounded-[18px] border border-[color-mix(in_srgb,var(--coral)_22%,transparent)] bg-[var(--coral-soft)] px-3 py-3 text-sm font-black text-[var(--coral-deep)] transition hover:bg-[color-mix(in_srgb,var(--coral-soft)_76%,white)]',
+            collapsed && 'justify-center px-2'
+          )}
+        >
+          <ShieldAlert size={18} />
+          {!collapsed && <span>Review urgent work</span>}
+        </Link>
+      </div>
+
+      <nav aria-label="Primary" className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
+        <div className="grid gap-5">
+          {navGroups.map((group) => {
+            const visibleItems = group.items.filter((item) => !item.roles || item.roles.includes(role));
+            return (
+              <section key={group.label}>
+                {!collapsed && <div className="px-3 pb-2 text-[10px] font-black tracking-[0.22em] uppercase text-[var(--muted)]">{group.label}</div>}
+                <div className="grid gap-1">
+                  {visibleItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = Boolean(item.href && (pathname === item.href || pathname?.startsWith(item.href + '/'))) || activeLabel === item.label;
+                    const className = clsx(
+                      'group flex min-h-10 items-center gap-3 rounded-[16px] px-3 py-2 text-sm font-extrabold outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--jungle)]',
+                      collapsed && 'justify-center px-2',
+                      isActive ? 'bg-[var(--ink)] text-white shadow-[var(--shadow-sm)]' : item.soon ? 'text-[var(--muted)] hover:bg-white/54' : 'text-[var(--ink2)] hover:bg-white/72 hover:text-[var(--ink)]'
+                    );
+                    const content = (
+                      <>
+                        <span className={clsx('grid h-8 w-8 shrink-0 place-items-center rounded-[12px]', isActive ? 'bg-white/12 text-white' : 'bg-[var(--paper2)] text-[var(--muted)] group-hover:text-[var(--ink)]')}>
+                          <Icon size={16} />
+                        </span>
+                        {!collapsed && <span className="min-w-0 flex-1 truncate">{item.label}</span>}
+                        {!collapsed && (item.badge || item.soon) && (
+                          <span className={clsx('rounded-full px-2 py-0.5 text-[10px] font-black', isActive ? 'bg-white/14 text-white' : item.soon ? 'bg-white/60 text-[var(--muted)]' : 'bg-[var(--jungle-soft)] text-[var(--jungle-deep)]')}>
+                            {item.badge ?? 'Soon'}
+                          </span>
+                        )}
+                      </>
+                    );
+                    if (!item.href) return <button key={item.label} type="button" disabled={item.soon} className={className} title={item.label}>{content}</button>;
+                    return <Link key={`${item.href}-${item.label}`} href={item.href} className={className} onClick={() => setMobileOpen(false)} title={item.label}>{content}</Link>;
+                  })}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      </nav>
+
+      <div className="grid gap-3 border-t border-[var(--hairline)] p-3">
+        {!collapsed && !isSupabaseConfigured() && (
+          <div className="rounded-[20px] border border-[color-mix(in_srgb,var(--gold)_28%,transparent)] bg-[color-mix(in_srgb,var(--gold-soft)_48%,white)] p-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-[11px] font-black tracking-widest uppercase text-[var(--gold-deep)]">Demo mode</div>
+              <span className="h-2 w-2 rounded-full bg-[var(--gold)]" />
+            </div>
+            <div className="mt-1 text-xs font-semibold leading-5 text-[var(--ink2)]">Sample data only. Connect Supabase for realtime.</div>
+          </div>
+        )}
+
+        <Button
+          variant="paper"
+          size="sm"
+          className={clsx('w-full', collapsed && 'px-2')}
+          onClick={async () => {
+            if (!supabase) return;
+            await supabase.auth.signOut();
+            router.push('/login');
+          }}
+          disabled={!isSupabaseConfigured()}
+          title={isSupabaseConfigured() ? 'Sign out' : 'Demo mode'}
+          type="button"
+        >
+          <LogOut size={14} />
+          {!collapsed && (isSupabaseConfigured() ? 'Sign out' : 'Demo workspace')}
+        </Button>
+
+        <button
+          type="button"
+          className="hidden items-center justify-center rounded-[14px] border border-[var(--border)] bg-white/62 px-3 py-2 text-sm font-black text-[var(--ink2)] transition hover:bg-white lg:flex"
+          onClick={() => setCollapsed((value) => !value)}
+        >
+          {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          {!collapsed && <span className="ml-2">Collapse</span>}
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-dvh text-[var(--ink)]">
-      <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-white/72 backdrop-blur-2xl">
-        <div className="mx-auto flex max-w-[1440px] items-center gap-5 px-4 py-3 md:px-8 lg:pr-[300px]">
-          <Link href="/action-queue" className="flex shrink-0 items-center gap-3 rounded-[18px] pr-2 transition hover:bg-white/50">
-            <div className="grid h-11 w-11 place-items-center rounded-[16px] bg-[var(--jungle-soft)] ring-1 ring-[color-mix(in_srgb,var(--jungle)_16%,transparent)]">
-              <span className="fredoka text-[18px] font-semibold text-[var(--jungle-deep)]">S</span>
-            </div>
-            <div>
-              <div className="fredoka text-[19px] font-semibold leading-tight">Straytopia</div>
-              <div className="text-[11px] font-extrabold tracking-[0.22em] uppercase text-[var(--muted)]">Operations</div>
-            </div>
-          </Link>
+      <aside className={clsx('fixed top-0 bottom-0 left-0 z-40 hidden transition-[width] duration-200 lg:block', collapsed ? 'w-[84px]' : 'w-[288px]')}>
+        {sidebar}
+      </aside>
 
-          <div className="ml-auto flex items-center gap-3">
-            <div className="hidden items-center gap-2 rounded-full border border-[var(--border)] bg-white/70 px-3 py-2 text-sm text-[var(--muted)] xl:flex">
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <button type="button" aria-label="Close navigation" className="absolute inset-0 bg-[rgba(11,18,32,0.42)] backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
+          <aside className="absolute top-0 bottom-0 left-0 w-[88vw] max-w-[340px]">
+            <div className="absolute top-4 right-4 z-10">
+              <button type="button" aria-label="Close navigation" className="grid h-10 w-10 place-items-center rounded-full border border-[var(--border)] bg-white/78 text-[var(--ink)]" onClick={() => setMobileOpen(false)}>
+                <X size={18} />
+              </button>
+            </div>
+            {sidebar}
+          </aside>
+        </div>
+      )}
+
+      <div className={clsx('transition-[padding] duration-200', sidebarWidth)}>
+        <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--topbar)] backdrop-blur-2xl">
+          <div className="mx-auto flex max-w-[1500px] items-center gap-3 px-4 py-3 md:px-8">
+            <button type="button" aria-label="Open navigation" className="grid h-10 w-10 place-items-center rounded-full border border-[var(--border)] bg-white/70 text-[var(--ink)] lg:hidden" onClick={() => setMobileOpen(true)}>
+              <Menu size={18} />
+            </button>
+
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] font-extrabold tracking-[0.22em] uppercase text-[var(--muted)]">Operations Hub</div>
+              <h1 className="fredoka mt-1 truncate text-[30px] font-semibold tracking-tight md:text-[42px]">{activeLabel}</h1>
+              <p className="mt-1 hidden max-w-3xl text-sm font-semibold leading-6 text-[var(--muted)] md:block">
+                {pageCopy[activeLabel] ?? 'Coordinate Straytopia operations with one shared source of truth.'}
+              </p>
+            </div>
+
+            <div className="hidden min-w-[240px] items-center gap-2 rounded-full border border-[var(--border)] bg-white/68 px-3 py-2 text-sm text-[var(--muted)] xl:flex">
               <Search size={16} />
-              <span className="select-none">Search</span>
-              <span className="mono ml-2 rounded-full border border-[var(--border)] bg-white px-2 py-0.5 text-[11px] text-[var(--muted)]">⌘K</span>
+              <span className="select-none">Jump to case, block, task</span>
+              <span className="mono ml-auto rounded-full border border-[var(--border)] bg-white px-2 py-0.5 text-[11px] text-[var(--muted)]">⌘K</span>
             </div>
 
             <div className="hidden text-right md:block">
-              <div className="text-[11px] font-extrabold tracking-[0.22em] uppercase text-[var(--muted)]">Account</div>
-              <div className="max-w-[220px] truncate text-sm font-semibold text-[var(--ink2)]">{email ?? 'Unknown'}</div>
+              <div className="text-[10px] font-extrabold tracking-[0.22em] uppercase text-[var(--muted)]">Signed in</div>
+              <div className="max-w-[190px] truncate text-sm font-black text-[var(--ink2)]">{email ?? 'Unknown'}</div>
             </div>
-
-            <Button
-              variant="paper"
-              size="sm"
-              className="lg:hidden"
-              onClick={async () => {
-                if (!supabase) return;
-                await supabase.auth.signOut();
-                router.push('/login');
-              }}
-              disabled={!isSupabaseConfigured()}
-              title={isSupabaseConfigured() ? 'Sign out' : 'Demo mode'}
-              type="button"
-            >
-              <LogOut size={14} />
-              {isSupabaseConfigured() ? 'Sign out' : 'Demo'}
-            </Button>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <div className="border-b border-[var(--border)] bg-white/35 lg:hidden">
-        <nav className="mx-auto flex max-w-[1440px] gap-2 overflow-x-auto px-4 py-3 md:px-8">
-          {nav.map((item) => {
-            const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={clsx(
-                  'inline-flex shrink-0 items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold transition',
-                  isActive ? 'bg-[var(--ink)] text-white' : 'bg-white/60 text-[var(--ink2)]'
-                )}
-              >
-                <Icon size={15} />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
+        <main className="mx-auto max-w-[1500px] px-4 py-6 md:px-8 md:py-8">
+          {children}
+        </main>
       </div>
-
-      <aside className="fixed top-[88px] right-5 bottom-6 z-30 hidden w-[260px] lg:block">
-        <div className="flex h-full flex-col rounded-[28px] border border-[var(--border)] bg-white/72 p-3 shadow-[var(--shadow-md)] backdrop-blur-2xl">
-          <div className="px-3 py-3">
-            <div className="text-[11px] font-extrabold tracking-[0.22em] uppercase text-[var(--muted)]">Workspace</div>
-            <div className="fredoka mt-1 text-[20px] font-semibold">Navigation</div>
-          </div>
-
-          <nav className="mt-1 grid gap-1.5">
-            {nav.map((item) => {
-              const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={clsx(
-                    'group flex items-center justify-between gap-3 rounded-[18px] px-3 py-2.5 text-sm font-extrabold transition',
-                    isActive
-                      ? 'bg-[var(--ink)] text-white shadow-[var(--shadow-sm)]'
-                      : 'text-[var(--ink2)] hover:bg-white hover:text-[var(--ink)]'
-                  )}
-                >
-                  <span className="flex min-w-0 items-center gap-3">
-                    <span className={clsx(
-                      'grid h-8 w-8 shrink-0 place-items-center rounded-[12px] transition',
-                      isActive ? 'bg-white/12 text-white' : 'bg-[var(--paper2)] text-[var(--muted)] group-hover:text-[var(--ink)]'
-                    )}>
-                      <Icon size={16} />
-                    </span>
-                    <span className="truncate">{item.label}</span>
-                  </span>
-                  {isActive && <span className="h-2 w-2 rounded-full bg-[var(--jungle)]" />}
-                </Link>
-              );
-            })}
-          </nav>
-
-          <div className="mt-auto grid gap-3">
-            {!isSupabaseConfigured() && (
-              <div className="rounded-[20px] border border-[color-mix(in_srgb,var(--gold)_26%,transparent)] bg-[color-mix(in_srgb,var(--gold-soft)_42%,white)] p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="text-[11px] font-black tracking-widest uppercase text-[var(--gold-deep)]">Demo mode</div>
-                  <span className="h-2 w-2 rounded-full bg-[var(--gold)]" />
-                </div>
-                <div className="mt-1 text-xs font-semibold leading-5 text-[var(--ink2)]">
-                  Sample data only. Connect Supabase env vars for realtime.
-                </div>
-              </div>
-            )}
-
-            <Button
-              variant="paper"
-              size="sm"
-              className="w-full"
-              onClick={async () => {
-                if (!supabase) return;
-                await supabase.auth.signOut();
-                router.push('/login');
-              }}
-              disabled={!isSupabaseConfigured()}
-              title={isSupabaseConfigured() ? 'Sign out' : 'Demo mode'}
-              type="button"
-            >
-              <LogOut size={14} />
-              {isSupabaseConfigured() ? 'Sign out' : 'Demo workspace'}
-            </Button>
-
-            <div className="rounded-[22px] border border-[var(--border)] bg-white/64 p-4">
-            <div className="text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">Fast Path</div>
-            <div className="mt-2 text-sm font-semibold leading-5 text-[var(--ink2)]">
-              Start at Action Queue, clear urgent items, then review Evidence for impact credit.
-            </div>
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      <main className="mx-auto max-w-[1440px] px-4 py-6 md:px-8 md:py-8 lg:pr-[300px]">
-        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <div className="text-[11px] font-extrabold tracking-[0.22em] uppercase text-[var(--muted)]">Operations Hub</div>
-            <h1 className="fredoka mt-2 text-[38px] font-semibold tracking-tight md:text-[48px]">{active}</h1>
-            <p className="mt-1 max-w-2xl text-sm font-semibold leading-6 text-[var(--muted)] md:text-base">
-              {pageCopy[active] ?? 'Coordinate Straytopia operations with one shared source of truth.'}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 md:gap-3">
-            <div className="rounded-full border border-[var(--border)] bg-white/70 px-4 py-2 text-sm font-semibold text-[var(--ink2)] shadow-[var(--shadow-sm)]">
-              Live workspace
-            </div>
-            <div className="rounded-full border border-[var(--border)] bg-white/70 px-4 py-2 text-sm font-semibold text-[var(--muted)] shadow-[var(--shadow-sm)]">
-              {new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-            </div>
-          </div>
-        </div>
-
-        {children}
-      </main>
     </div>
   );
 }

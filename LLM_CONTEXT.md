@@ -31,6 +31,9 @@ The operations hub lives in `straytopia-hub/` and is intended to be the shared c
 ### Supabase Schema
 
 - `supabase/migrations/001_init.sql`
+- `supabase/migrations/002_missions_and_proofs.sql`
+- `supabase/migrations/003_security_and_rls.sql`
+- `supabase/migrations/004_audit_location_metadata.sql`
 
 ### Ops Hub Key Files
 

@@ -10,7 +10,8 @@ This folder contains the database schema used by both:
 2. In Supabase SQL Editor, run `migrations/001_init.sql`.
 3. Then run `migrations/002_missions_and_proofs.sql`.
 4. Then run `migrations/003_security_and_rls.sql`.
-5. Configure environment variables.
+5. Then run `migrations/004_audit_location_metadata.sql`.
+6. Configure environment variables.
 
 ### Ops hub (`straytopia-hub`)
 
@@ -49,3 +50,7 @@ on conflict (user_id) do update set role = excluded.role;
 RLS policies are tightened in `003_security_and_rls.sql`:
 - Citizens must authenticate (anonymous auth in mobile) and can only read/write their own rows.
 - Ops users can read/write everything, but only if they have `user_profiles.role = 'ops'`.
+
+`004_audit_location_metadata.sql` adds:
+- Nullable lat/lng, accuracy, privacy, media, outcome, and shelter capacity metadata.
+- `operational_events`, an ops-readable append-only ledger automatically populated by triggers on `cases`, `case_reviews`, `tasks`, and `proofs`.

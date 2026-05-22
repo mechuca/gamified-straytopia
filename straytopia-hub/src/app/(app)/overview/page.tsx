@@ -2,137 +2,201 @@
 
 export const dynamic = 'force-dynamic';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { getSupabase } from '@/lib/supabase/client';
+import {
+  AlertTriangle,
+  ArrowUpRight,
+  Bell,
+  BrainCircuit,
+  CheckCircle2,
+  Clock3,
+  HeartHandshake,
+  Hospital,
+  LifeBuoy,
+  MapPinned,
+  ShieldAlert,
+  Stethoscope,
+  Utensils,
+  Users,
+} from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
-import { AlertTriangle, ArrowUpRight, CheckCircle2, Clock3, ShieldCheck } from 'lucide-react';
-import { demoCases, demoProofs, demoTasks } from '@/lib/demoData';
+import { LineChart, BarChart, RadialProgress, HeatmapGrid } from '@/components/dashboard/Charts';
+import { getSupabase } from '@/lib/supabase/client';
+import { buildOpsAnalytics, type OpsDataset } from '@/lib/opsAnalytics';
+import type { Block, CaseRow, ProofRow, Shelter, TaskRow, TaskTemplateRow } from '@/lib/types';
+import { demoBlocks, demoCases, demoProofs, demoShelters, demoTaskTemplates, demoTasks } from '@/lib/demoData';
+
+const emptyDataset: OpsDataset = {
+  cases: [],
+  tasks: [],
+  proofs: [],
+  blocks: [],
+  shelters: [],
+  templates: [],
+};
+
+function MetricCard({
+  label,
+  value,
+  caption,
+  icon: Icon,
+  tone,
+  href,
+}: {
+  label: string;
+  value: string | number;
+  caption: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  tone: 'jungle' | 'coral' | 'gold' | 'sky' | 'plum' | 'paper';
+  href?: string;
+}) {
+  const body = (
+    <Card className="group h-full p-5 transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]">
+      <div className="flex items-start justify-between gap-4">
+        <div className="grid h-11 w-11 place-items-center rounded-[16px] bg-[var(--paper2)] text-[var(--ink2)] ring-1 ring-[var(--hairline)]">
+          <Icon size={19} />
+        </div>
+        <Pill tone={tone} variant="soft">live</Pill>
+      </div>
+      <div className="mono mt-5 text-[34px] font-black tracking-tight text-[var(--ink)]">{value}</div>
+      <div className="mt-1 text-[11px] font-black uppercase tracking-[0.16em] text-[var(--muted)]">{label}</div>
+      <div className="mt-3 text-sm font-semibold leading-5 text-[var(--ink2)]">{caption}</div>
+    </Card>
+  );
+
+  if (!href) return body;
+  return <Link href={href}>{body}</Link>;
+}
+
+function StatusRow({ label, value, tone }: { label: string; value: string | number; tone: 'jungle' | 'coral' | 'gold' | 'sky' | 'plum' | 'paper' }) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+      <div className="text-sm font-black text-[var(--ink2)]">{label}</div>
+      <div className="flex items-center gap-3">
+        <div className="mono text-sm font-black text-[var(--ink)]">{value}</div>
+        <Pill tone={tone} variant="soft">now</Pill>
+      </div>
+    </div>
+  );
+}
 
 export default function OverviewPage() {
   const supabase = getSupabase();
-  const [counts, setCounts] = useState({
-    submitted: 0,
-    under_review: 0,
-    accepted: 0,
-    rejected: 0,
-    tasks: 0,
-    pendingProofs: 0,
-  });
-
-  async function load() {
-    if (!supabase) {
-      const byStatus: Record<string, number> = {};
-      for (const row of demoCases) byStatus[row.status] = (byStatus[row.status] ?? 0) + 1;
-      setCounts({
-        submitted: byStatus.submitted ?? 0,
-        under_review: byStatus.under_review ?? 0,
-        accepted: byStatus.accepted ?? 0,
-        rejected: byStatus.rejected ?? 0,
-        tasks: demoTasks.length,
-        pendingProofs: demoProofs.filter((p) => p.verification_status === 'pending').length,
-      });
-      return;
-    }
-    const [cases, tasks, proofs] = await Promise.all([
-      supabase.from('cases').select('status', { count: 'exact', head: false }),
-      supabase.from('tasks').select('id', { count: 'exact', head: true }),
-      supabase.from('proofs').select('id', { count: 'exact', head: true }).eq('verification_status', 'pending'),
-    ]);
-
-    const statuses = (((cases.data ?? []) as unknown) as Array<{ status: string }>);
-    const byStatus: Record<string, number> = {};
-    for (const row of statuses) byStatus[row.status] = (byStatus[row.status] ?? 0) + 1;
-
-    setCounts({
-      submitted: byStatus.submitted ?? 0,
-      under_review: byStatus.under_review ?? 0,
-      accepted: byStatus.accepted ?? 0,
-      rejected: byStatus.rejected ?? 0,
-      tasks: tasks.count ?? 0,
-      pendingProofs: proofs.count ?? 0,
-    });
-  }
+  const [dataset, setDataset] = useState<OpsDataset>(emptyDataset);
+  const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   useEffect(() => {
+    let mounted = true;
+
+    async function load() {
+      if (!supabase) {
+        if (!mounted) return;
+        setDataset({ cases: demoCases, tasks: demoTasks, proofs: demoProofs, blocks: demoBlocks, shelters: demoShelters, templates: demoTaskTemplates });
+        setLoading(false);
+        setLastUpdated(new Date());
+        return;
+      }
+
+      const [cases, tasks, proofs, blocks, shelters, templates] = await Promise.all([
+        supabase.from('cases').select('*').order('created_at', { ascending: false }).limit(500),
+        supabase.from('tasks').select('*').order('created_at', { ascending: false }).limit(500),
+        supabase.from('proofs').select('*').order('submitted_at', { ascending: false }).limit(500),
+        supabase.from('blocks').select('id,name,code').order('name', { ascending: true }),
+        supabase.from('shelters').select('id,name,block_id,status').order('name', { ascending: true }),
+        supabase.from('task_templates').select('*').order('type', { ascending: true }),
+      ]);
+
+      if (!mounted) return;
+      setDataset({
+        cases: ((cases.data ?? []) as unknown) as CaseRow[],
+        tasks: ((tasks.data ?? []) as unknown) as TaskRow[],
+        proofs: ((proofs.data ?? []) as unknown) as ProofRow[],
+        blocks: ((blocks.data ?? []) as unknown) as Block[],
+        shelters: ((shelters.data ?? []) as unknown) as Shelter[],
+        templates: ((templates.data ?? []) as unknown) as TaskTemplateRow[],
+      });
+      setLoading(false);
+      setLastUpdated(new Date());
+    }
+
     load();
-    if (!supabase) return;
+    if (!supabase) return () => { mounted = false; };
+
     const channel = supabase
-      .channel('hub_overview')
+      .channel('hub_overview_intelligence')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'cases' }, () => load())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'proofs' }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'shelters' }, () => load())
       .subscribe();
+
     return () => {
+      mounted = false;
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [supabase]);
 
-  const openCases = counts.submitted + counts.under_review + counts.accepted;
-  const kpis = useMemo(() => [
-    { label: 'Open cases', value: openCases, tone: openCases > 0 ? 'gold' as const : 'paper' as const, icon: AlertTriangle, caption: 'needs movement' },
-    { label: 'In review', value: counts.under_review, tone: 'sky' as const, icon: Clock3, caption: 'triage queue' },
-    { label: 'Active tasks', value: counts.tasks, tone: 'jungle' as const, icon: CheckCircle2, caption: 'field work' },
-    { label: 'Proofs', value: counts.pendingProofs, tone: 'plum' as const, icon: ShieldCheck, caption: 'pending review' },
-  ], [counts.pendingProofs, counts.tasks, counts.under_review, openCases]);
+  const analytics = useMemo(() => buildOpsAnalytics(dataset), [dataset]);
+  const healthScore = Math.max(0, Math.min(100, Math.round(92 - analytics.emergencyCases * 9 - analytics.pendingEscalations * 6 - analytics.failedMissions * 4 + analytics.missionCompletionRate * 0.18)));
+  const healthTone = healthScore >= 80 ? 'jungle' : healthScore >= 62 ? 'gold' : 'coral';
+
+  if (loading) {
+    return (
+      <div className="grid gap-4 md:grid-cols-4">
+        {Array.from({ length: 8 }).map((_, index) => <div key={index} className="h-40 animate-pulse rounded-[var(--radius-lg)] bg-[var(--paper2)]" />)}
+      </div>
+    );
+  }
 
   return (
     <div className="grid gap-6">
       <Card className="overflow-hidden p-0">
-        <div className="grid gap-0 lg:grid-cols-[1.15fr_0.85fr]">
-          <div className="border-b border-[var(--hairline)] p-6 lg:border-r lg:border-b-0">
-            <div className="flex items-start justify-between gap-4">
+        <div className="grid lg:grid-cols-[1.08fr_0.92fr]">
+          <div className="border-b border-[var(--hairline)] p-6 md:p-7 lg:border-r lg:border-b-0">
+            <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
               <div>
-                <div className="text-[11px] font-extrabold tracking-[0.22em] uppercase text-[var(--muted)]">Today</div>
-                <div className="fredoka mt-2 max-w-xl text-[30px] font-semibold leading-tight tracking-tight md:text-[38px]">
-                  Keep urgent work moving before it becomes backlog.
+                <div className="flex flex-wrap items-center gap-2">
+                  <Pill tone={healthTone} variant="soft">Operational health {healthScore}%</Pill>
+                  <Pill tone="paper" variant="soft">Updated {lastUpdated?.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</Pill>
                 </div>
-                <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-[var(--muted)]">
-                  The hub now separates incoming triage, assigned field work, and evidence review so ops can act from the same surface.
+                <h2 className="fredoka mt-4 max-w-3xl text-[34px] font-semibold leading-tight tracking-tight md:text-[48px]">
+                  City welfare operations, compressed into one calm decision surface.
+                </h2>
+                <p className="mt-4 max-w-2xl text-sm font-semibold leading-6 text-[var(--muted)] md:text-base">
+                  Emergencies stay visible, field work stays accountable, and every chart points to the next operational action.
                 </p>
               </div>
-              <Pill tone="jungle" variant="soft">Live</Pill>
+              <Link href="/action-queue" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--ink)] px-5 py-3 text-sm font-black text-white shadow-[var(--shadow-sm)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]">
+                Open queue
+                <ArrowUpRight size={16} />
+              </Link>
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-              {kpis.map((k) => {
-                const Icon = k.icon;
-                return (
-                  <div key={k.label} className="rounded-[20px] border border-[var(--border)] bg-white/62 p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="grid h-9 w-9 place-items-center rounded-[14px] bg-[var(--paper2)] text-[var(--ink2)]">
-                        <Icon size={17} />
-                      </div>
-                      <Pill tone={k.tone} variant="soft">{k.caption}</Pill>
-                    </div>
-                    <div className="mono mt-5 text-[30px] font-bold tracking-tight text-[var(--ink)]">{k.value}</div>
-                    <div className="mt-1 text-xs font-extrabold tracking-[0.16em] uppercase text-[var(--muted)]">{k.label}</div>
-                  </div>
-                );
-              })}
+            <div className="mt-7 grid gap-3 md:grid-cols-3">
+              <StatusRow label="Pending escalations" value={analytics.pendingEscalations} tone={analytics.pendingEscalations > 0 ? 'coral' : 'jungle'} />
+              <StatusRow label="Avg response age" value={`${analytics.responseMinutes}m`} tone={analytics.responseMinutes > 90 ? 'coral' : 'gold'} />
+              <StatusRow label="Live notifications" value={analytics.notifications.length} tone="sky" />
             </div>
           </div>
 
-          <div className="p-6">
+          <div className="p-6 md:p-7">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <div className="text-[11px] font-extrabold tracking-[0.22em] uppercase text-[var(--muted)]">Decision Queue</div>
-                <div className="fredoka mt-2 text-[22px] font-semibold">Ops posture</div>
+                <div className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--muted)]">AI Operational Recommendations</div>
+                <div className="fredoka mt-2 text-2xl font-semibold">Next best moves</div>
               </div>
-              <ArrowUpRight size={18} className="text-[var(--muted)]" />
+              <div className="grid h-11 w-11 place-items-center rounded-[16px] bg-[var(--plum-soft)] text-[var(--ink)] ring-1 ring-[color-mix(in_srgb,var(--plum)_20%,transparent)]">
+                <BrainCircuit size={20} />
+              </div>
             </div>
-
             <div className="mt-5 grid gap-3">
-              {[
-                { label: 'Submitted reports', value: counts.submitted, tone: 'paper' as const },
-                { label: 'Under review', value: counts.under_review, tone: 'gold' as const },
-                { label: 'Rejected / non-actionable', value: counts.rejected, tone: 'coral' as const },
-              ].map((row) => (
-                <div key={row.label} className="flex items-center justify-between rounded-[18px] border border-[var(--border)] bg-white/60 px-4 py-3">
-                  <div className="text-sm font-semibold text-[var(--ink2)]">{row.label}</div>
-                  <div className="flex items-center gap-3">
-                    <div className="mono text-sm font-bold">{row.value}</div>
-                    <Pill tone={row.tone} variant="soft">cases</Pill>
-                  </div>
+              {analytics.recommendations.map((recommendation, index) => (
+                <div key={recommendation} className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4">
+                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--muted)]">Recommendation {index + 1}</div>
+                  <div className="mt-2 text-sm font-bold leading-6 text-[var(--ink2)]">{recommendation}</div>
                 </div>
               ))}
             </div>
@@ -140,46 +204,114 @@ export default function OverviewPage() {
         </div>
       </Card>
 
-      <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard href="/cases" label="Active rescue cases" value={analytics.activeRescueCases} caption="Rescue, abandoned, or aggression cases that still need movement." icon={ShieldAlert} tone={analytics.activeRescueCases > 0 ? 'gold' : 'jungle'} />
+        <MetricCard href="/cases" label="Emergency cases" value={analytics.emergencyCases} caption="Urgent open cases that should stay above normal operations." icon={LifeBuoy} tone={analytics.emergencyCases > 0 ? 'coral' : 'jungle'} />
+        <MetricCard href="/tasks" label="Feeding missions today" value={analytics.feedingMissionsToday} caption="Open feeding routes and proof-pending community work." icon={Utensils} tone="sky" />
+        <MetricCard href="/citizens" label="Volunteer availability" value={`${analytics.volunteerAvailability}%`} caption="Estimated capacity after active citizen assignments." icon={Users} tone={analytics.volunteerAvailability > 60 ? 'jungle' : 'gold'} />
+        <MetricCard href="/shelters" label="Shelter capacity" value={`${analytics.shelterCapacity}%`} caption="Pressure estimate across active and limited partner shelters." icon={Hospital} tone={analytics.shelterCapacity > 82 ? 'coral' : 'gold'} />
+        <MetricCard href="/tasks" label="Medical cases" value={analytics.medicalCases} caption="Open injured or sick reports requiring medical coordination." icon={Stethoscope} tone={analytics.medicalCases > 0 ? 'coral' : 'jungle'} />
+        <MetricCard label="Adoption pipeline" value={analytics.adoptionPipeline} caption="Adoption-interest reports waiting for a dedicated future pipeline." icon={HeartHandshake} tone="plum" />
+        <MetricCard href="/mel" label="Daily impact" value={analytics.dailyImpact} caption="Completed field tasks plus resolved cases counted today." icon={CheckCircle2} tone="jungle" />
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <Card className="p-6">
           <div className="flex items-start justify-between gap-4">
-          <div>
-            <div className="text-[11px] font-extrabold tracking-[0.22em] uppercase text-[var(--muted)]">Workflow</div>
-            <div className="fredoka mt-2 text-[22px] font-semibold">What changed</div>
-            <div className="mt-1 text-sm font-semibold text-[var(--muted)]">A cleaner audit trail for case and task decisions.</div>
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--muted)]">Weekly Rescue Trends</div>
+              <div className="fredoka mt-2 text-2xl font-semibold">Where emergency load is moving</div>
+              <p className="mt-1 text-sm font-semibold text-[var(--muted)]">Rising trend means dispatch should pre-position volunteers and partner shelters.</p>
+            </div>
+            <Pill tone="coral" variant="soft">Rescue</Pill>
           </div>
-          <Pill tone="paper" variant="soft">Realtime</Pill>
-        </div>
-
-        <div className="mt-5 grid gap-3 md:grid-cols-3">
-          {[
-            { label: 'First response target', value: '< 30m', tone: 'gold' as const },
-            { label: 'Proof review SLA', value: '< 2h', tone: 'plum' as const },
-            { label: 'Resolution signal', value: 'Case + proof', tone: 'jungle' as const },
-          ].map((row) => (
-            <div key={row.label} className="rounded-[18px] border border-[var(--border)] bg-white/60 p-4">
-              <div className="text-[11px] font-extrabold tracking-[0.18em] uppercase text-[var(--muted)]">{row.label}</div>
-              <div className="mt-3 flex items-end justify-between gap-3">
-                <div className="mono text-[22px] font-bold text-[var(--ink)]">{row.value}</div>
-                <Pill tone={row.tone} variant="soft">target</Pill>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Card>
-
-        <Card className="p-6">
-          <div className="text-[11px] font-extrabold tracking-[0.22em] uppercase text-[var(--muted)]">Guided</div>
-          <div className="fredoka mt-2 text-[22px] font-semibold">Next best action</div>
-          <div className="mt-1 text-sm font-semibold text-[var(--muted)]">Use the queue with the highest risk first.</div>
-
-          <div className="mt-5 rounded-[22px] border border-[var(--border)] bg-white/70 p-4">
-            <div className="text-sm font-semibold text-[var(--ink2)]">Suggested focus</div>
-            <div className="mt-3 rounded-[18px] border border-[var(--border)] bg-white px-4 py-3 text-sm font-semibold text-[var(--muted)]">
-              Review urgent cases first, then clear pending proofs so completed field work can count toward impact metrics.
-            </div>
+          <div className="mt-5">
+            <LineChart points={analytics.rescueTrend} label="Seven day rescue and emergency volume trend" tone="coral" />
           </div>
         </Card>
+
+        <Card className="p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--muted)]">Mission Completion Rate</div>
+              <div className="fredoka mt-2 text-2xl font-semibold">Are missions closing cleanly?</div>
+              <p className="mt-1 text-sm font-semibold text-[var(--muted)]">Low completion means proof review, volunteer reliability, or shelter handoff is failing.</p>
+            </div>
+            <Pill tone="jungle" variant="soft">{analytics.missionCompletionRate}%</Pill>
+          </div>
+          <div className="mt-6 grid gap-6 md:grid-cols-[0.9fr_1.1fr] xl:grid-cols-1 2xl:grid-cols-[0.9fr_1.1fr]">
+            <RadialProgress value={analytics.missionCompletionRate} label="Mission completion" tone={analytics.missionCompletionRate >= 70 ? 'jungle' : 'gold'} />
+            <BarChart points={analytics.completionTrend} label="Seven day mission completion rate" tone="jungle" />
+          </div>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+        <Card className="p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--muted)]">City Heatmaps</div>
+              <div className="fredoka mt-2 text-2xl font-semibold">Animal density and risk zones</div>
+              <p className="mt-1 text-sm font-semibold text-[var(--muted)]">Higher risk zones need faster dispatch, feeding coverage, or shelter routing.</p>
+            </div>
+            <MapPinned size={20} className="text-[var(--muted)]" />
+          </div>
+          <div className="mt-5">
+            <HeatmapGrid values={analytics.densityZones.map((zone) => ({ label: zone.name, value: zone.risk }))} label="Block risk heatmap" />
+          </div>
+          <div className="mt-5 grid gap-3">
+            {analytics.densityZones.slice(0, 3).map((zone) => (
+              <div key={zone.id} className="flex items-center justify-between gap-4 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+                <div>
+                  <div className="text-sm font-black text-[var(--ink)]">{zone.name}</div>
+                  <div className="mono mt-0.5 text-xs font-bold text-[var(--muted)]">{zone.code}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Pill tone={zone.emergency > 0 ? 'coral' : 'paper'} variant="soft">{zone.emergency} emergency</Pill>
+                  <Pill tone="gold" variant="soft">{zone.open} open</Pill>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card className="p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--muted)]">Real-Time Notifications</div>
+              <div className="fredoka mt-2 text-2xl font-semibold">What needs attention now</div>
+              <p className="mt-1 text-sm font-semibold text-[var(--muted)]">A short live feed beats a wall of charts when dispatch is under pressure.</p>
+            </div>
+            <Bell size={20} className="text-[var(--muted)]" />
+          </div>
+          <div className="mt-5 grid gap-3">
+            {analytics.notifications.map((item) => (
+              <div key={item.id} className="flex gap-3 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4">
+                <span
+                  className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ background: `var(--${item.tone})`, boxShadow: `0 0 0 4px color-mix(in srgb, var(--${item.tone}) 16%, transparent)` }}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="truncate text-sm font-black text-[var(--ink)]">{item.title}</div>
+                    <div className="mono shrink-0 text-[11px] font-bold text-[var(--muted)]">{item.time}</div>
+                  </div>
+                  <div className="mt-1 text-sm font-semibold leading-5 text-[var(--muted)]">{item.detail}</div>
+                </div>
+              </div>
+            ))}
+            {analytics.notifications.length === 0 && (
+              <div className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-6 text-center text-sm font-semibold text-[var(--muted)]">No urgent notifications. Keep monitoring active routes.</div>
+            )}
+          </div>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-4">
+        <MetricCard href="/shelters" label="Active NGOs" value={analytics.activeNgos} caption="Partner network currently able to support operations." icon={Hospital} tone="jungle" />
+        <MetricCard href="/blocks" label="Live map activity" value={analytics.openCases + analytics.feedingMissionsToday} caption="Open cases and active missions contributing to map load." icon={MapPinned} tone="sky" />
+        <MetricCard href="/action-queue" label="Failed missions" value={analytics.failedMissions} caption="Blocked, cancelled, or rejected proof paths needing QA review." icon={AlertTriangle} tone={analytics.failedMissions > 0 ? 'coral' : 'jungle'} />
+        <MetricCard href="/proofs" label="Pending evidence" value={analytics.pendingProofs} caption="Proofs waiting for review before impact is credited." icon={Clock3} tone={analytics.pendingProofs > 0 ? 'plum' : 'jungle'} />
       </div>
     </div>
   );
