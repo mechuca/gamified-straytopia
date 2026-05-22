@@ -8,7 +8,6 @@ import type { Block, CaseRow, Shelter, TaskRow, TaskTemplateRow } from '@/lib/ty
 import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
 import { Button } from '@/components/ui/Button';
-import { SetupCallout } from '@/components/SetupCallout';
 import { CheckCircle2, ClipboardList, Plus } from 'lucide-react';
 
 const demoTasks: TaskRow[] = [
@@ -100,8 +99,6 @@ export default function TasksPage() {
 
   return (
     <div className="grid gap-6">
-      {!supabase && <SetupCallout />}
-
       <div className="grid gap-4 md:grid-cols-3">
         {[
           { label: 'Queued', value: queuedCount, tone: queuedCount > 0 ? 'gold' as const : 'paper' as const },

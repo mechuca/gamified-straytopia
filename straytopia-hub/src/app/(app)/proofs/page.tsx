@@ -8,7 +8,6 @@ import type { Block, CaseRow, ProofRow, ProofVerificationStatus, Shelter, TaskRo
 import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
 import { Button } from '@/components/ui/Button';
-import { SetupCallout } from '@/components/SetupCallout';
 import { Check, Image as ImageIcon, Search, X } from 'lucide-react';
 
 const demoTemplates: TaskTemplateRow[] = [
@@ -187,8 +186,6 @@ export default function ProofsPage() {
 
   return (
     <div className="grid gap-6">
-      {!supabase && <SetupCallout title="Demo evidence queue" />}
-
       <div className="grid gap-6 lg:grid-cols-[440px_1fr]">
         <Card className="overflow-hidden p-0">
           <div className="border-b border-[var(--hairline)] bg-[var(--paper)] p-4">

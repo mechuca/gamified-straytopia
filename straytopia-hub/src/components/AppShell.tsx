@@ -62,7 +62,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-dvh text-[var(--ink)]">
       <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-white/72 backdrop-blur-2xl">
-        <div className="mx-auto flex max-w-[1440px] items-center gap-5 px-4 py-3 md:px-8">
+        <div className="mx-auto flex max-w-[1440px] items-center gap-5 px-4 py-3 md:px-8 lg:pr-[300px]">
           <Link href="/action-queue" className="flex shrink-0 items-center gap-3 rounded-[18px] pr-2 transition hover:bg-white/50">
             <div className="grid h-11 w-11 place-items-center rounded-[16px] bg-[var(--jungle-soft)] ring-1 ring-[color-mix(in_srgb,var(--jungle)_16%,transparent)]">
               <span className="fredoka text-[18px] font-semibold text-[var(--jungle-deep)]">S</span>
@@ -72,28 +72,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <div className="text-[11px] font-extrabold tracking-[0.22em] uppercase text-[var(--muted)]">Operations</div>
             </div>
           </Link>
-
-          <nav className="hidden flex-1 items-center justify-center gap-1 lg:flex">
-            {nav.map((item) => {
-              const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={clsx(
-                    'inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold transition',
-                    isActive
-                      ? 'bg-[var(--ink)] text-white shadow-[var(--shadow-sm)]'
-                      : 'text-[var(--ink2)] hover:bg-white/70 hover:text-[var(--ink)]'
-                  )}
-                >
-                  <Icon size={15} />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
 
           <div className="ml-auto flex items-center gap-3">
             <div className="hidden items-center gap-2 rounded-full border border-[var(--border)] bg-white/70 px-3 py-2 text-sm text-[var(--muted)] xl:flex">
@@ -110,6 +88,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Button
               variant="paper"
               size="sm"
+              className="lg:hidden"
               onClick={async () => {
                 if (!supabase) return;
                 await supabase.auth.signOut();
@@ -148,7 +127,84 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
       </div>
 
-      <main className="mx-auto max-w-[1440px] px-4 py-6 md:px-8 md:py-8">
+      <aside className="fixed top-[88px] right-5 bottom-6 z-30 hidden w-[260px] lg:block">
+        <div className="flex h-full flex-col rounded-[28px] border border-[var(--border)] bg-white/72 p-3 shadow-[var(--shadow-md)] backdrop-blur-2xl">
+          <div className="px-3 py-3">
+            <div className="text-[11px] font-extrabold tracking-[0.22em] uppercase text-[var(--muted)]">Workspace</div>
+            <div className="fredoka mt-1 text-[20px] font-semibold">Navigation</div>
+          </div>
+
+          <nav className="mt-1 grid gap-1.5">
+            {nav.map((item) => {
+              const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={clsx(
+                    'group flex items-center justify-between gap-3 rounded-[18px] px-3 py-2.5 text-sm font-extrabold transition',
+                    isActive
+                      ? 'bg-[var(--ink)] text-white shadow-[var(--shadow-sm)]'
+                      : 'text-[var(--ink2)] hover:bg-white hover:text-[var(--ink)]'
+                  )}
+                >
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span className={clsx(
+                      'grid h-8 w-8 shrink-0 place-items-center rounded-[12px] transition',
+                      isActive ? 'bg-white/12 text-white' : 'bg-[var(--paper2)] text-[var(--muted)] group-hover:text-[var(--ink)]'
+                    )}>
+                      <Icon size={16} />
+                    </span>
+                    <span className="truncate">{item.label}</span>
+                  </span>
+                  {isActive && <span className="h-2 w-2 rounded-full bg-[var(--jungle)]" />}
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="mt-auto grid gap-3">
+            {!isSupabaseConfigured() && (
+              <div className="rounded-[20px] border border-[color-mix(in_srgb,var(--gold)_26%,transparent)] bg-[color-mix(in_srgb,var(--gold-soft)_42%,white)] p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-[11px] font-black tracking-widest uppercase text-[var(--gold-deep)]">Demo mode</div>
+                  <span className="h-2 w-2 rounded-full bg-[var(--gold)]" />
+                </div>
+                <div className="mt-1 text-xs font-semibold leading-5 text-[var(--ink2)]">
+                  Sample data only. Connect Supabase env vars for realtime.
+                </div>
+              </div>
+            )}
+
+            <Button
+              variant="paper"
+              size="sm"
+              className="w-full"
+              onClick={async () => {
+                if (!supabase) return;
+                await supabase.auth.signOut();
+                router.push('/login');
+              }}
+              disabled={!isSupabaseConfigured()}
+              title={isSupabaseConfigured() ? 'Sign out' : 'Demo mode'}
+              type="button"
+            >
+              <LogOut size={14} />
+              {isSupabaseConfigured() ? 'Sign out' : 'Demo workspace'}
+            </Button>
+
+            <div className="rounded-[22px] border border-[var(--border)] bg-white/64 p-4">
+            <div className="text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">Fast Path</div>
+            <div className="mt-2 text-sm font-semibold leading-5 text-[var(--ink2)]">
+              Start at Action Queue, clear urgent items, then review Evidence for impact credit.
+            </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <main className="mx-auto max-w-[1440px] px-4 py-6 md:px-8 md:py-8 lg:pr-[300px]">
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div className="text-[11px] font-extrabold tracking-[0.22em] uppercase text-[var(--muted)]">Operations Hub</div>

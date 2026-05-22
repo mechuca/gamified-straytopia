@@ -8,7 +8,6 @@ import type { Block, CaseRow, ProofRow, ProofVerificationStatus, Shelter, TaskRo
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
-import { SetupCallout } from '@/components/SetupCallout';
 import { AlertTriangle, ArrowUpRight, Check, Clock3, Compass, FileText, Image as ImageIcon, Layers3, Map as MapIcon, Search, ShieldCheck, Users, X } from 'lucide-react';
 
 type Persona = 'ops' | 'shelter' | 'impact';
@@ -349,8 +348,6 @@ export default function ActionQueuePage() {
 
   return (
     <div className="grid gap-6">
-      {!supabase && <SetupCallout title="Demo mode: connect Supabase for live workflows" />}
-
       <div className="grid gap-4 md:grid-cols-4">
         {stats.map((stat) => (
           <Card key={stat.label} className="p-5">

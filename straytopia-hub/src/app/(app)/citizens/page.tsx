@@ -5,7 +5,6 @@ export const dynamic = 'force-dynamic';
 import { useEffect, useState } from 'react';
 import { getSupabase } from '@/lib/supabase/client';
 import { Card } from '@/components/ui/Card';
-import { SetupCallout } from '@/components/SetupCallout';
 
 type CitizenRow = {
   id: string;
@@ -37,7 +36,6 @@ export default function CitizensPage() {
 
   return (
     <Card className="p-4 md:p-5">
-      {!supabase && <SetupCallout />}
       <div className="overflow-hidden rounded-[20px] border border-[var(--hairline)]">
         <div className="grid grid-cols-[1fr_240px] gap-3 bg-[var(--paper2)] px-4 py-3 text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">
           <div>Device</div>

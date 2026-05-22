@@ -8,7 +8,6 @@ import type { Block, CaseRow, Shelter } from '@/lib/types';
 import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
 import { Button } from '@/components/ui/Button';
-import { SetupCallout } from '@/components/SetupCallout';
 import { Check, Search, X } from 'lucide-react';
 
 const demoCases: CaseRow[] = [
@@ -178,7 +177,6 @@ export default function CasesPage() {
 
   return (
     <div className="grid gap-6">
-      {!supabase && <SetupCallout />}
       <div className="grid gap-6 lg:grid-cols-[420px_1fr]">
         <Card className="overflow-hidden p-0">
           <div className="border-b border-[var(--hairline)] bg-[var(--paper)] p-4">

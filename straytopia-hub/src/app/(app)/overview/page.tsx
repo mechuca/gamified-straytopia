@@ -6,7 +6,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { getSupabase } from '@/lib/supabase/client';
 import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
-import { SetupCallout } from '@/components/SetupCallout';
 import { AlertTriangle, ArrowUpRight, CheckCircle2, Clock3, ShieldCheck } from 'lucide-react';
 
 export default function OverviewPage() {
@@ -68,8 +67,6 @@ export default function OverviewPage() {
 
   return (
     <div className="grid gap-6">
-      {!supabase && <SetupCallout />}
-
       <Card className="overflow-hidden p-0">
         <div className="grid gap-0 lg:grid-cols-[1.15fr_0.85fr]">
           <div className="border-b border-[var(--hairline)] p-6 lg:border-r lg:border-b-0">

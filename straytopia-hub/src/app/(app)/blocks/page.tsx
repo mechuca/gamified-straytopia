@@ -7,7 +7,6 @@ import { getSupabase } from '@/lib/supabase/client';
 import type { Block, CaseRow } from '@/lib/types';
 import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
-import { SetupCallout } from '@/components/SetupCallout';
 
 export default function BlocksPage() {
   const supabase = getSupabase();
@@ -52,7 +51,6 @@ export default function BlocksPage() {
 
   return (
     <Card className="p-4 md:p-5">
-      {!supabase && <SetupCallout />}
       <div className="overflow-hidden rounded-[20px] border border-[var(--hairline)]">
         <div className="grid grid-cols-[1fr_120px_120px_120px] gap-3 bg-[var(--paper2)] px-4 py-3 text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">
           <div>Block</div>

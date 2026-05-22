@@ -7,7 +7,6 @@ import { getSupabase } from '@/lib/supabase/client';
 import type { CaseRow, TaskRow } from '@/lib/types';
 import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
-import { SetupCallout } from '@/components/SetupCallout';
 
 export default function MelPage() {
   const supabase = getSupabase();
@@ -64,7 +63,6 @@ export default function MelPage() {
 
   return (
     <div className="grid gap-6">
-      {!supabase && <SetupCallout />}
       <div className="grid gap-4 md:grid-cols-4">
         {kpis.map((k) => (
           <Card key={k.label} className="p-5">
