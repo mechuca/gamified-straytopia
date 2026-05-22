@@ -1,4 +1,4 @@
-import { supabase } from '@/app/lib/supabase';
+import { ensureAuthed, supabase } from '@/app/lib/supabase';
 import { getDeviceId } from '@/app/lib/deviceId';
 import type { Report } from '@/app/store/reports';
 
@@ -26,12 +26,16 @@ export function mapSpineStatusToMobileStatus(status: SpineCaseStatus) {
 export async function syncReportToSpine(report: Report, opts?: { blockName?: string | null }) {
   if (!supabase) return;
   try {
+    await ensureAuthed();
     const deviceId = await getDeviceId();
+
+    const { data: user } = await supabase.auth.getUser();
+    const userId = user.user?.id ?? null;
 
     // Ensure citizen exists.
     const citizenUpsert = await supabase
       .from('citizens')
-      .upsert({ device_id: deviceId }, { onConflict: 'device_id' })
+      .upsert({ device_id: deviceId, user_id: userId }, { onConflict: 'device_id' })
       .select('id')
       .single();
 
@@ -85,6 +89,7 @@ export async function upsertMissionTask(params: {
 }) {
   if (!supabase) return;
   try {
+    await ensureAuthed();
     const deviceId = await getDeviceId();
     const externalRef = `mission:${deviceId}:${params.missionId}`;
 
@@ -132,6 +137,7 @@ export async function insertMissionProof(params: {
 }) {
   if (!supabase) return;
   try {
+    await ensureAuthed();
     const deviceId = await getDeviceId();
     const externalRef = `mission:${deviceId}:${params.missionId}`;
     const { data: task } = await supabase
@@ -159,6 +165,7 @@ export async function updateMissionProofStatus(params: {
 }) {
   if (!supabase) return;
   try {
+    await ensureAuthed();
     const deviceId = await getDeviceId();
     const externalRef = `mission:${deviceId}:${params.missionId}`;
     const { data: task } = await supabase

@@ -73,11 +73,11 @@ export default function TasksPage() {
       supabase.from('blocks').select('id,name,code').order('name', { ascending: true }),
       supabase.from('shelters').select('id,name,block_id,status').order('name', { ascending: true }),
     ]);
-    setTasks((t.data as any) ?? []);
-    setTemplates((tt.data as any) ?? []);
-    setCases((c.data as any) ?? []);
-    setBlocks((b.data as any) ?? []);
-    setShelters((s.data as any) ?? []);
+    setTasks(((t.data ?? []) as unknown) as TaskRow[]);
+    setTemplates(((tt.data ?? []) as unknown) as TaskTemplateRow[]);
+    setCases(((c.data ?? []) as unknown) as CaseRow[]);
+    setBlocks(((b.data ?? []) as unknown) as Block[]);
+    setShelters(((s.data ?? []) as unknown) as Shelter[]);
   }
 
   useEffect(() => {
@@ -94,41 +94,55 @@ export default function TasksPage() {
   }, []);
 
   const defaultShelterId = shelters[0]?.id ?? null;
+  const queuedCount = tasks.filter((t) => t.status === 'queued').length;
+  const activeCount = tasks.filter((t) => t.status === 'assigned' || t.status === 'in_progress' || t.status === 'proof_pending').length;
+  const criticalCount = tasks.filter((t) => t.priority === 'critical' || t.priority === 'high').length;
 
   return (
-    <Card className="p-4 md:p-5">
+    <div className="grid gap-6">
       {!supabase && <SetupCallout />}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <ClipboardList size={18} className="text-[var(--muted)]" />
-          <div className="text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">Backlog</div>
-          <Pill tone="paper" variant="soft">{tasks.length} tasks</Pill>
-        </div>
 
-        <Button
-          variant="paper"
-          size="sm"
-          onClick={() => {
-            setCreateTemplateId(templates[0]?.id ?? '');
-            setCreateBlockId(blocks[0]?.id ?? '');
-            setCreatePriority('medium');
-            setCreateOpen(true);
-          }}
-          disabled={!supabase}
-          type="button"
-        >
-          <Plus size={14} />
-          Create task
-        </Button>
+      <div className="grid gap-4 md:grid-cols-3">
+        {[
+          { label: 'Queued', value: queuedCount, tone: queuedCount > 0 ? 'gold' as const : 'paper' as const },
+          { label: 'Active', value: activeCount, tone: 'sky' as const },
+          { label: 'High priority', value: criticalCount, tone: criticalCount > 0 ? 'coral' as const : 'paper' as const },
+        ].map((item) => (
+          <Card key={item.label} className="p-5">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">{item.label}</div>
+              <Pill tone={item.tone} variant="soft">tasks</Pill>
+            </div>
+            <div className="mono mt-4 text-[30px] font-bold text-[var(--ink)]">{item.value}</div>
+          </Card>
+        ))}
       </div>
 
-      <div className="mt-4 overflow-hidden rounded-[20px] border border-[var(--hairline)]">
-        <div className="grid grid-cols-[1.1fr_1fr_120px_120px_180px] gap-3 bg-[var(--paper2)] px-4 py-3 text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">
-          <div>Task</div>
-          <div>Linked case</div>
-          <div>Priority</div>
-          <div>Status</div>
-          <div>Assign</div>
+      <Card className="overflow-hidden p-0">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--hairline)] bg-[var(--paper)] p-4 md:p-5">
+          <div className="flex items-center gap-2">
+            <ClipboardList size={18} className="text-[var(--muted)]" />
+            <div>
+              <div className="text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">Backlog</div>
+              <div className="mt-1 text-sm font-semibold text-[var(--ink2)]">Assign work to shelters and keep case timelines moving.</div>
+            </div>
+          </div>
+
+          <Button
+            variant="paper"
+            size="sm"
+            onClick={() => {
+              setCreateTemplateId(templates[0]?.id ?? '');
+              setCreateBlockId(blocks[0]?.id ?? '');
+              setCreatePriority('medium');
+              setCreateOpen(true);
+            }}
+            disabled={!supabase}
+            type="button"
+          >
+            <Plus size={14} />
+            Create task
+          </Button>
         </div>
 
         <div className="divide-y divide-[var(--hairline)] bg-[var(--surface)]">
@@ -138,22 +152,22 @@ export default function TasksPage() {
             const b = t.block_id ? blockById.get(t.block_id) : null;
             const assignedShelter = t.shelter_id ? shelterById.get(t.shelter_id) : null;
             return (
-              <div key={t.id} className="grid grid-cols-[1.1fr_1fr_120px_120px_180px] gap-3 px-4 py-3">
+              <div key={t.id} className="grid gap-4 px-4 py-4 md:grid-cols-[1.2fr_0.8fr_220px] md:items-center md:px-5">
                 <div className="min-w-0">
-                  <div className="truncate text-sm font-extrabold text-[var(--ink)]">{tpl?.title ?? 'Task'}</div>
-                  <div className="mt-0.5 truncate text-xs font-semibold text-[var(--muted)]">{b?.name ?? 'Unknown block'}</div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="truncate text-sm font-extrabold text-[var(--ink)]">{tpl?.title ?? 'Task'}</div>
+                    <Pill tone={toneForPriority(t.priority)} variant="soft">{t.priority}</Pill>
+                  </div>
+                  <div className="mt-1 truncate text-xs font-semibold text-[var(--muted)]">{b?.name ?? 'Unknown block'} · {new Date(t.created_at).toLocaleString()}</div>
                 </div>
                 <div className="min-w-0">
-                  <div className="mono truncate text-[12px] font-bold text-[var(--ink2)]">{c?.external_id ?? '—'}</div>
-                  <div className="mt-0.5 truncate text-xs font-semibold text-[var(--muted)]">{c?.category ? c.category.toUpperCase() : ''}</div>
+                  <div className="mono truncate text-[12px] font-bold text-[var(--ink2)]">{c?.external_id ?? 'No case linked'}</div>
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <Pill tone={toneForStatus(t.status)} variant="soft">{t.status.replace('_', ' ')}</Pill>
+                    <span className="truncate text-xs font-semibold text-[var(--muted)]">{c?.category ? c.category.toUpperCase() : 'manual task'}</span>
+                  </div>
                 </div>
-                <div className="flex items-center">
-                  <Pill tone={toneForPriority(t.priority) as any} variant="soft">{t.priority}</Pill>
-                </div>
-                <div className="flex items-center">
-                  <Pill tone={toneForStatus(t.status) as any} variant="soft">{t.status.replace('_', ' ')}</Pill>
-                </div>
-                <div className="flex items-center justify-end gap-2">
+                <div className="flex items-center justify-between gap-3 md:justify-end">
                   <div className="truncate text-xs font-semibold text-[var(--muted)]">{assignedShelter?.name ?? 'Unassigned'}</div>
                   <Button
                     variant="paper"
@@ -187,7 +201,7 @@ export default function TasksPage() {
             <div className="px-4 py-10 text-center text-sm font-semibold text-[var(--muted)]">No tasks yet. Accept a case to auto-create one.</div>
           )}
         </div>
-      </div>
+      </Card>
 
       {createOpen && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 px-4 py-10">
@@ -225,10 +239,10 @@ export default function TasksPage() {
 
               <label className="mt-2 text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">Priority</label>
               <select
-                value={createPriority}
-                onChange={(e) => setCreatePriority(e.target.value as any)}
-                className="h-11 rounded-[16px] border border-[var(--hairline2)] bg-[var(--paper)] px-3 text-sm font-bold outline-none focus:border-[var(--jungle)]"
-              >
+                  value={createPriority}
+                  onChange={(e) => setCreatePriority(e.target.value as TaskRow['priority'])}
+                  className="h-11 rounded-[16px] border border-[var(--hairline2)] bg-[var(--paper)] px-3 text-sm font-bold outline-none focus:border-[var(--jungle)]"
+                >
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
                 <option value="high">High</option>
@@ -261,6 +275,6 @@ export default function TasksPage() {
           </Card>
         </div>
       )}
-    </Card>
+    </div>
   );
 }

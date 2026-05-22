@@ -16,7 +16,7 @@ export default function SheltersPage() {
   async function load() {
     if (!supabase) return;
     const { data } = await supabase.from('shelters').select('id,name,block_id,status').order('name', { ascending: true });
-    setShelters((data as any) ?? []);
+    setShelters(((data ?? []) as unknown) as Shelter[]);
   }
 
   useEffect(() => {

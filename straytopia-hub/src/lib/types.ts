@@ -85,6 +85,7 @@ export interface TaskRow {
   template_id: string | null;
   block_id: string | null;
   shelter_id: string | null;
+  external_ref?: string | null;
   status: TaskStatus;
   priority: 'low' | 'medium' | 'high' | 'critical';
   assigned_to_type: 'shelter' | 'staff' | 'volunteer' | 'citizen' | null;
@@ -92,4 +93,17 @@ export interface TaskRow {
   due_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export type ProofVerificationStatus = 'pending' | 'verified' | 'rejected' | 'needs_review';
+
+export interface ProofRow {
+  id: string;
+  task_id: string;
+  photo_uri: string | null;
+  note: string | null;
+  captured_at: string | null;
+  submitted_at: string;
+  verification_status: ProofVerificationStatus;
+  created_at: string;
 }

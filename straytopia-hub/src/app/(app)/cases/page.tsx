@@ -9,7 +9,7 @@ import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
 import { Button } from '@/components/ui/Button';
 import { SetupCallout } from '@/components/SetupCallout';
-import { Check, Filter, X } from 'lucide-react';
+import { Check, Search, X } from 'lucide-react';
 
 const demoCases: CaseRow[] = [
   {
@@ -104,6 +104,7 @@ export default function CasesPage() {
   async function load() {
     if (!supabase) {
       setCases(demoCases);
+      setSelectedId((prev) => prev ?? demoCases[0]?.id ?? null);
       return;
     }
     const [{ data: cData }, { data: bData }, { data: sData }] = await Promise.all([
@@ -111,9 +112,15 @@ export default function CasesPage() {
       supabase.from('blocks').select('id,name,code').order('name', { ascending: true }),
       supabase.from('shelters').select('id,name,block_id,status').order('name', { ascending: true }),
     ]);
-    setCases((cData as any) ?? []);
-    setBlocks((bData as any) ?? []);
-    setShelters((sData as any) ?? []);
+    const rows = (((cData ?? []) as unknown) as CaseRow[]);
+    setCases(rows);
+    setBlocks(((bData ?? []) as unknown) as Block[]);
+    setShelters(((sData ?? []) as unknown) as Shelter[]);
+
+    setSelectedId((prev) => {
+      if (prev && rows.some((r) => r.id === prev)) return prev;
+      return rows[0]?.id ?? null;
+    });
   }
 
   useEffect(() => {
@@ -170,30 +177,20 @@ export default function CasesPage() {
   const [rejectText, setRejectText] = useState('');
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
+    <div className="grid gap-6">
       {!supabase && <SetupCallout />}
-      <Card className="p-4 md:p-5">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-2">
-            <div className="text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">Queue</div>
-            <Pill tone="paper" variant="soft">{filtered.length} cases</Pill>
-          </div>
-
-          <div className="flex flex-col gap-2 md:flex-row md:items-center">
-            <div className="relative">
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Search ID, location, notes…"
-                className="h-11 w-full rounded-[16px] border border-[var(--hairline2)] bg-[var(--paper)] px-4 text-sm font-semibold outline-none focus:border-[var(--jungle)] md:w-[280px]"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Filter size={16} className="text-[var(--muted)]" />
+      <div className="grid gap-6 lg:grid-cols-[420px_1fr]">
+        <Card className="overflow-hidden p-0">
+          <div className="border-b border-[var(--hairline)] bg-[var(--paper)] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <div className="text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">Queue</div>
+                <Pill tone="paper" variant="soft">{filtered.length}</Pill>
+              </div>
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as any)}
-                className="h-11 rounded-[16px] border border-[var(--hairline2)] bg-[var(--paper)] px-3 text-sm font-bold outline-none focus:border-[var(--jungle)]"
+                onChange={(e) => setStatusFilter(e.target.value as 'all' | CaseRow['status'])}
+                className="h-9 rounded-[14px] border border-[var(--hairline2)] bg-white/70 px-3 text-sm font-bold outline-none focus:border-[var(--jungle)]"
               >
                 <option value="all">All</option>
                 <option value="submitted">Submitted</option>
@@ -206,16 +203,18 @@ export default function CasesPage() {
                 <option value="rejected">Rejected</option>
               </select>
             </div>
-          </div>
-        </div>
 
-        <div className="mt-4 overflow-hidden rounded-[20px] border border-[var(--hairline)]">
-          <div className="grid grid-cols-[120px_1fr_110px_110px] gap-3 bg-[var(--paper2)] px-4 py-3 text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">
-            <div>Case</div>
-            <div>Details</div>
-            <div>Severity</div>
-            <div>Status</div>
+            <div className="mt-3 flex items-center gap-2 rounded-[16px] border border-[var(--hairline2)] bg-white/70 px-3">
+              <Search size={16} className="text-[var(--muted)]" />
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search ID, location, notes"
+                className="h-10 w-full bg-transparent text-sm font-semibold text-[var(--ink2)] outline-none placeholder:text-[var(--muted)]"
+              />
+            </div>
           </div>
+
           <div className="divide-y divide-[var(--hairline)] bg-[var(--surface)]">
             {filtered.map((c) => {
               const b = c.block_id ? blockById.get(c.block_id) : null;
@@ -226,25 +225,28 @@ export default function CasesPage() {
                   key={c.id}
                   onClick={() => setSelectedId(c.id)}
                   className={
-                    'grid w-full grid-cols-[120px_1fr_110px_110px] gap-3 px-4 py-3 text-left transition ' +
+                    'w-full px-4 py-3 text-left transition ' +
                     (isSelected ? 'bg-[var(--jungle-soft)]' : 'hover:bg-[var(--paper)]')
                   }
                   type="button"
                 >
-                  <div>
-                    <div className="mono text-[12px] font-bold text-[var(--ink)]">{c.external_id}</div>
-                    <div className="mt-1 text-xs font-semibold text-[var(--muted)]">{new Date(c.created_at).toLocaleString()}</div>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="mono text-[12px] font-bold text-[var(--ink)]">{c.external_id}</div>
+                      <div className="mt-1 truncate text-sm font-extrabold text-[var(--ink)]">{c.category.toUpperCase()}</div>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <Pill tone={toneForSeverity(c.severity)} variant="soft">{c.severity}</Pill>
+                      <Pill tone={toneForStatus(c.status)} variant="soft">{c.status.replace('_', ' ')}</Pill>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-extrabold text-[var(--ink)]">{c.category.toUpperCase()}</div>
-                    <div className="mt-0.5 truncate text-sm font-semibold text-[var(--ink2)]">{c.location_text || 'No location'}</div>
-                    <div className="mt-0.5 truncate text-xs font-semibold text-[var(--muted)]">{b?.name ?? 'Unknown block'}{s ? ` · ${s.name}` : ''}</div>
-                  </div>
-                  <div className="flex items-center justify-start">
-                    <Pill tone={toneForSeverity(c.severity)} variant="soft">{c.severity}</Pill>
-                  </div>
-                  <div className="flex items-center justify-start">
-                    <Pill tone={toneForStatus(c.status) as any} variant="soft">{c.status.replace('_', ' ')}</Pill>
+
+                  <div className="mt-2 truncate text-sm font-semibold text-[var(--ink2)]">{c.location_text || 'No location'}</div>
+                  <div className="mt-1 flex items-center justify-between gap-3">
+                    <div className="truncate text-xs font-semibold text-[var(--muted)]">
+                      {b?.name ?? 'Unknown block'}{s ? ` · ${s.name}` : ''}
+                    </div>
+                    <div className="text-xs font-semibold text-[var(--muted)]">{new Date(c.created_at).toLocaleString()}</div>
                   </div>
                 </button>
               );
@@ -253,10 +255,9 @@ export default function CasesPage() {
               <div className="px-4 py-10 text-center text-sm font-semibold text-[var(--muted)]">No cases match your filters.</div>
             )}
           </div>
-        </div>
-      </Card>
+        </Card>
 
-      <Card className="p-4 md:p-5">
+        <Card className="p-4 md:p-5">
         {!selected ? (
           <div className="grid min-h-[320px] place-items-center">
             <div className="text-center">
@@ -285,7 +286,7 @@ export default function CasesPage() {
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <Pill tone="paper" variant="soft">{selected.category}</Pill>
-                <Pill tone={toneForStatus(selected.status) as any} variant="soft">{selected.status.replace('_', ' ')}</Pill>
+                <Pill tone={toneForStatus(selected.status)} variant="soft">{selected.status.replace('_', ' ')}</Pill>
               </div>
             </div>
 
@@ -373,7 +374,8 @@ export default function CasesPage() {
             )}
           </>
         )}
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

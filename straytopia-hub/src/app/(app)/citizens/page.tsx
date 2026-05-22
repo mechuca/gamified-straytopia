@@ -20,7 +20,7 @@ export default function CitizensPage() {
   async function load() {
     if (!supabase) return;
     const { data } = await supabase.from('citizens').select('id,device_id,created_at').order('created_at', { ascending: false }).limit(200);
-    setCitizens((data as any) ?? []);
+    setCitizens(((data ?? []) as unknown) as CitizenRow[]);
   }
 
   useEffect(() => {

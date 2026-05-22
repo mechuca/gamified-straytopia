@@ -20,8 +20,8 @@ export default function BlocksPage() {
       supabase.from('blocks').select('id,name,code').order('name', { ascending: true }),
       supabase.from('cases').select('id,block_id,status').order('created_at', { ascending: false }).limit(400),
     ]);
-    setBlocks((b.data as any) ?? []);
-    setCases((c.data as any) ?? []);
+    setBlocks(((b.data ?? []) as unknown) as Block[]);
+    setCases(((c.data ?? []) as unknown) as CaseRow[]);
   }
 
   useEffect(() => {

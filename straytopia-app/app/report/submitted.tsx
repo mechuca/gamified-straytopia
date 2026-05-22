@@ -13,7 +13,7 @@ import { useReports } from '@/app/store/reports';
 import { useUser } from '@/app/store/user';
 import { COLOR } from '@/app/lib/theme';
 import { AlertTriangle, CheckCircle2, Clock, MapPin, Shield, Home } from 'lucide-react-native';
-import { hasSupabase, supabase } from '@/app/lib/supabase';
+import { ensureAuthed, hasSupabase, supabase } from '@/app/lib/supabase';
 import { mapSpineStatusToMobileStatus, syncReportToSpine } from '@/app/lib/spineSync';
 
 export default function ReportSubmittedScreen() {
@@ -38,6 +38,7 @@ export default function ReportSubmittedScreen() {
   useEffect(() => {
     const client = supabase;
     if (!hasSupabase() || !client || !lastReport) return;
+    void ensureAuthed();
     const channel = client
       .channel(`case_${lastReport.id}`)
       .on(

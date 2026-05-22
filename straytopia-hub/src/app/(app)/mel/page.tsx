@@ -20,8 +20,8 @@ export default function MelPage() {
       supabase.from('cases').select('*').order('created_at', { ascending: false }).limit(500),
       supabase.from('tasks').select('*').order('created_at', { ascending: false }).limit(500),
     ]);
-    setCases((c.data as any) ?? []);
-    setTasks((t.data as any) ?? []);
+    setCases(((c.data ?? []) as unknown) as CaseRow[]);
+    setTasks(((t.data ?? []) as unknown) as TaskRow[]);
   }
 
   useEffect(() => {
@@ -71,7 +71,7 @@ export default function MelPage() {
             <div className="text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">{k.label}</div>
             <div className="mt-2 flex items-end justify-between">
               <div className="mono text-[26px] font-bold text-[var(--ink)]">{k.value}</div>
-              <Pill tone={k.tone as any} variant="soft">funding</Pill>
+              <Pill tone={k.tone} variant="soft">funding</Pill>
             </div>
           </Card>
         ))}

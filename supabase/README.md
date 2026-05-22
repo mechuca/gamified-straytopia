@@ -9,7 +9,8 @@ This folder contains the database schema used by both:
 1. Create a new Supabase project.
 2. In Supabase SQL Editor, run `migrations/001_init.sql`.
 3. Then run `migrations/002_missions_and_proofs.sql`.
-3. Configure environment variables.
+4. Then run `migrations/003_security_and_rls.sql`.
+5. Configure environment variables.
 
 ### Ops hub (`straytopia-hub`)
 
@@ -37,8 +38,14 @@ For v1 manual testing:
 - Create a user in Supabase Auth (Email/Password).
 - Sign in via `straytopia-hub` at `/login`.
 
-RLS policies in `001_init.sql` currently allow:
-- `authenticated`: read/write (ops hub)
-- `anon`: read/write cases/citizens and read tasks/templates (citizen app)
+Then create an ops profile row:
 
-Tighten these policies before production.
+```sql
+insert into public.user_profiles (user_id, role)
+values ('<auth.users.id>', 'ops')
+on conflict (user_id) do update set role = excluded.role;
+```
+
+RLS policies are tightened in `003_security_and_rls.sql`:
+- Citizens must authenticate (anonymous auth in mobile) and can only read/write their own rows.
+- Ops users can read/write everything, but only if they have `user_profiles.role = 'ops'`.
