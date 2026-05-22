@@ -7,6 +7,7 @@ import { getSupabase } from '@/lib/supabase/client';
 import type { Block, CaseRow } from '@/lib/types';
 import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
+import { demoBlocks, demoCases } from '@/lib/demoData';
 
 export default function BlocksPage() {
   const supabase = getSupabase();
@@ -14,7 +15,11 @@ export default function BlocksPage() {
   const [cases, setCases] = useState<CaseRow[]>([]);
 
   async function load() {
-    if (!supabase) return;
+    if (!supabase) {
+      setBlocks(demoBlocks);
+      setCases(demoCases);
+      return;
+    }
     const [b, c] = await Promise.all([
       supabase.from('blocks').select('id,name,code').order('name', { ascending: true }),
       supabase.from('cases').select('id,block_id,status').order('created_at', { ascending: false }).limit(400),

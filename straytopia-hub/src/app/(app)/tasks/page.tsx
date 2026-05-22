@@ -9,23 +9,7 @@ import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
 import { Button } from '@/components/ui/Button';
 import { CheckCircle2, ClipboardList, Plus } from 'lucide-react';
-
-const demoTasks: TaskRow[] = [
-  {
-    id: 't-demo-1',
-    case_id: null,
-    template_id: null,
-    block_id: null,
-    shelter_id: null,
-    status: 'queued',
-    priority: 'high',
-    assigned_to_type: null,
-    assigned_to_id: null,
-    due_at: null,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-];
+import { demoBlocks, demoCases, demoShelters, demoTaskTemplates, demoTasks } from '@/lib/demoData';
 
 function toneForPriority(p: TaskRow['priority']) {
   if (p === 'critical') return 'coral' as const;
@@ -63,6 +47,10 @@ export default function TasksPage() {
   async function load() {
     if (!supabase) {
       setTasks(demoTasks);
+      setTemplates(demoTaskTemplates);
+      setCases(demoCases);
+      setBlocks(demoBlocks);
+      setShelters(demoShelters);
       return;
     }
     const [t, tt, c, b, s] = await Promise.all([
@@ -171,8 +159,19 @@ export default function TasksPage() {
                     size="sm"
                     disabled={!defaultShelterId || busyId === t.id || t.status === 'completed'}
                     onClick={async () => {
-                      if (!supabase) return;
                       if (!defaultShelterId) return;
+                      if (!supabase) {
+                        setTasks((prev) => prev.map((row) => row.id === t.id ? {
+                          ...row,
+                          shelter_id: defaultShelterId,
+                          assigned_to_type: 'shelter',
+                          assigned_to_id: defaultShelterId,
+                          status: row.status === 'queued' ? 'assigned' : row.status,
+                          updated_at: new Date().toISOString(),
+                        } : row));
+                        if (t.case_id) setCases((prev) => prev.map((c) => c.id === t.case_id ? { ...c, status: 'assigned', updated_at: new Date().toISOString() } : c));
+                        return;
+                      }
                       setBusyId(t.id);
                       await supabase.from('tasks').update({
                         shelter_id: defaultShelterId,

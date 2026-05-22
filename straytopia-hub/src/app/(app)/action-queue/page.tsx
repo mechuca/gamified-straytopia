@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
 import { AlertTriangle, ArrowUpRight, Check, Clock3, Compass, FileText, Image as ImageIcon, Layers3, Map as MapIcon, Search, ShieldCheck, Users, X } from 'lucide-react';
+import { demoBlocks, demoCases, demoProofs, demoShelters, demoTaskTemplates, demoTasks } from '@/lib/demoData';
 
 type Persona = 'ops' | 'shelter' | 'impact';
 type Mode = 'work' | 'audit';
@@ -29,78 +30,6 @@ type WorkItem = {
   taskRow?: TaskRow;
   proofRow?: ProofRow;
 };
-
-const now = Date.now();
-
-const demoCases: CaseRow[] = [
-  {
-    id: 'case-demo-urgent',
-    external_id: 'SY-7421',
-    citizen_id: null,
-    block_id: null,
-    shelter_id: null,
-    category: 'rescue',
-    severity: 'urgent',
-    description: 'Dog trapped near market drain. Caller says traffic is heavy and animal cannot leave safely.',
-    location_text: 'Indiranagar Market, 1st cross',
-    status: 'submitted',
-    reject_reason_code: null,
-    reject_reason_text: null,
-    created_at: new Date(now - 1000 * 60 * 42).toISOString(),
-    updated_at: new Date(now - 1000 * 60 * 42).toISOString(),
-  },
-  {
-    id: 'case-demo-water',
-    external_id: 'SY-1054',
-    citizen_id: null,
-    block_id: null,
-    shelter_id: null,
-    category: 'water',
-    severity: 'today',
-    description: 'Water station empty near park entrance.',
-    location_text: 'Park Street corner',
-    status: 'under_review',
-    reject_reason_code: null,
-    reject_reason_text: null,
-    created_at: new Date(now - 1000 * 60 * 100).toISOString(),
-    updated_at: new Date(now - 1000 * 60 * 60).toISOString(),
-  },
-];
-
-const demoTemplates: TaskTemplateRow[] = [
-  { id: 'tpl-rescue', type: 'rescue_assessment', title: 'Rescue Assessment', description: '', required_proof: 'photo_location', sla_minutes: 60 },
-  { id: 'tpl-feed', type: 'feed', title: 'Feed', description: '', required_proof: 'photo', sla_minutes: 240 },
-];
-
-const demoTasks: TaskRow[] = [
-  {
-    id: 'task-demo-feed',
-    case_id: 'case-demo-water',
-    template_id: 'tpl-feed',
-    block_id: null,
-    shelter_id: null,
-    status: 'queued',
-    priority: 'high',
-    assigned_to_type: null,
-    assigned_to_id: null,
-    due_at: new Date(now + 1000 * 60 * 95).toISOString(),
-    created_at: new Date(now - 1000 * 60 * 80).toISOString(),
-    updated_at: new Date(now - 1000 * 60 * 80).toISOString(),
-  },
-];
-
-const demoProofs: ProofRow[] = [
-  {
-    id: 'proof-demo-1',
-    task_id: 'task-demo-feed',
-    photo_uri: 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=1200&q=60',
-    note: 'Water refilled and two bowls cleaned.',
-    captured_at: new Date(now - 1000 * 60 * 22).toISOString(),
-    submitted_at: new Date(now - 1000 * 60 * 18).toISOString(),
-    verification_status: 'pending',
-    created_at: new Date(now - 1000 * 60 * 18).toISOString(),
-  },
-];
 
 function statusTone(status: string): WorkItem['tone'] {
   if (status.includes('urgent') || status.includes('critical') || status.includes('rejected') || status.includes('overdue')) return 'coral';
@@ -176,7 +105,9 @@ export default function ActionQueuePage() {
       setCases(demoCases);
       setTasks(demoTasks);
       setProofs(demoProofs);
-      setTemplates(demoTemplates);
+      setTemplates(demoTaskTemplates);
+      setBlocks(demoBlocks);
+      setShelters(demoShelters);
       return;
     }
 
@@ -297,6 +228,31 @@ export default function ActionQueuePage() {
   const selectedTemplate = selected?.taskRow?.template_id ? templateById.get(selected.taskRow.template_id) : null;
 
   async function runPrimaryAction(item: WorkItem) {
+    if (!supabase) {
+      if (item.kind === 'case' && item.caseRow) {
+        setCases((prev) => prev.map((c) => c.id === item.caseRow?.id ? { ...c, status: 'task_created', updated_at: new Date().toISOString() } : c));
+      }
+      if (item.kind === 'task' && item.taskRow) {
+        const shelterId = defaultShelterId ?? demoShelters[0]?.id ?? null;
+        setTasks((prev) => prev.map((t) => t.id === item.taskRow?.id ? {
+          ...t,
+          shelter_id: shelterId,
+          assigned_to_type: 'shelter',
+          assigned_to_id: shelterId,
+          status: t.status === 'queued' ? 'assigned' : t.status,
+          updated_at: new Date().toISOString(),
+        } : t));
+        if (item.taskRow.case_id) {
+          setCases((prev) => prev.map((c) => c.id === item.taskRow?.case_id ? { ...c, status: 'assigned', updated_at: new Date().toISOString() } : c));
+        }
+      }
+      if (item.kind === 'proof' && item.proofRow) {
+        setProofs((prev) => prev.map((p) => p.id === item.proofRow?.id ? { ...p, verification_status: 'verified' } : p));
+        if (item.taskRow) setTasks((prev) => prev.map((t) => t.id === item.taskRow?.id ? { ...t, status: 'completed', updated_at: new Date().toISOString() } : t));
+        if (item.caseRow) setCases((prev) => prev.map((c) => c.id === item.caseRow?.id ? { ...c, status: 'resolved', updated_at: new Date().toISOString() } : c));
+      }
+      return;
+    }
     if (!supabase) return;
     setBusyItem(item.key);
     if (item.kind === 'case' && item.caseRow) {
@@ -328,6 +284,21 @@ export default function ActionQueuePage() {
   }
 
   async function rejectSelected() {
+    if (!supabase && selected) {
+      if (selected.kind === 'case' && selected.caseRow) {
+        setCases((prev) => prev.map((c) => c.id === selected.caseRow?.id ? {
+          ...c,
+          status: 'rejected',
+          reject_reason_code: 'not_actionable',
+          reject_reason_text: 'Rejected from demo action queue.',
+          updated_at: new Date().toISOString(),
+        } : c));
+      }
+      if (selected.kind === 'proof' && selected.proofRow) {
+        setProofs((prev) => prev.map((p) => p.id === selected.proofRow?.id ? { ...p, verification_status: 'rejected' } : p));
+      }
+      return;
+    }
     if (!supabase || !selected) return;
     setBusyItem(selected.key);
     if (selected.kind === 'case' && selected.caseRow) {
@@ -545,11 +516,11 @@ export default function ActionQueuePage() {
                 </div>
 
                 <div className="grid gap-3 md:grid-cols-3">
-                  <Button disabled={!supabase || busyItem === selected.key} onClick={() => runPrimaryAction(selected)} type="button">
+                  <Button disabled={busyItem === selected.key} onClick={() => runPrimaryAction(selected)} type="button">
                     <Check size={16} />
                     {busyItem === selected.key ? 'Working...' : selected.primaryAction}
                   </Button>
-                  <Button variant="paper" disabled={!supabase || busyItem === selected.key || selected.kind === 'task'} onClick={rejectSelected} type="button">
+                  <Button variant="paper" disabled={busyItem === selected.key || selected.kind === 'task'} onClick={rejectSelected} type="button">
                     <X size={16} />
                     Reject + notify
                   </Button>

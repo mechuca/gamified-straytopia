@@ -7,6 +7,7 @@ import { getSupabase } from '@/lib/supabase/client';
 import type { CaseRow, TaskRow } from '@/lib/types';
 import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
+import { demoCases, demoTasks } from '@/lib/demoData';
 
 export default function MelPage() {
   const supabase = getSupabase();
@@ -14,7 +15,11 @@ export default function MelPage() {
   const [tasks, setTasks] = useState<TaskRow[]>([]);
 
   async function load() {
-    if (!supabase) return;
+    if (!supabase) {
+      setCases(demoCases);
+      setTasks(demoTasks);
+      return;
+    }
     const [c, t] = await Promise.all([
       supabase.from('cases').select('*').order('created_at', { ascending: false }).limit(500),
       supabase.from('tasks').select('*').order('created_at', { ascending: false }).limit(500),

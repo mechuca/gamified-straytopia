@@ -9,66 +9,7 @@ import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
 import { Button } from '@/components/ui/Button';
 import { Check, Image as ImageIcon, Search, X } from 'lucide-react';
-
-const demoTemplates: TaskTemplateRow[] = [
-  {
-    id: 'tpl-demo-feed',
-    type: 'feed',
-    title: 'Feed',
-    description: 'Offer safe food and submit a proof photo.',
-    required_proof: 'photo',
-    sla_minutes: 240,
-  },
-];
-
-const demoCases: CaseRow[] = [
-  {
-    id: 'case-demo-1',
-    external_id: 'SY-7421',
-    citizen_id: null,
-    block_id: null,
-    shelter_id: null,
-    category: 'feeding',
-    severity: 'today',
-    description: 'Stray dog near bus stand.',
-    location_text: 'Bus Stand, Gate 2',
-    status: 'assigned',
-    reject_reason_code: null,
-    reject_reason_text: null,
-    created_at: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
-    updated_at: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
-  },
-];
-
-const demoTasks: TaskRow[] = [
-  {
-    id: 'task-demo-1',
-    case_id: 'case-demo-1',
-    template_id: 'tpl-demo-feed',
-    block_id: null,
-    shelter_id: null,
-    status: 'proof_pending',
-    priority: 'medium',
-    assigned_to_type: 'citizen',
-    assigned_to_id: 'device-demo',
-    due_at: null,
-    created_at: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-    updated_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-  },
-];
-
-const demoProofs: ProofRow[] = [
-  {
-    id: 'proof-demo-1',
-    task_id: 'task-demo-1',
-    photo_uri: 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=1200&q=60',
-    note: 'Fed at 6:10pm, dog stayed calm.',
-    captured_at: new Date(Date.now() - 1000 * 60 * 28).toISOString(),
-    submitted_at: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
-    verification_status: 'pending',
-    created_at: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
-  },
-];
+import { demoBlocks, demoCases, demoProofs, demoShelters, demoTaskTemplates, demoTasks } from '@/lib/demoData';
 
 function toneForProofStatus(s: ProofVerificationStatus) {
   if (s === 'verified') return 'jungle' as const;
@@ -123,10 +64,12 @@ export default function ProofsPage() {
 
   async function load() {
     if (!supabase) {
-      setTemplates(demoTemplates);
+      setTemplates(demoTaskTemplates);
       setCases(demoCases);
       setTasks(demoTasks);
       setProofs(demoProofs);
+      setBlocks(demoBlocks);
+      setShelters(demoShelters);
       setSelectedId((prev) => prev ?? demoProofs[0]?.id ?? null);
       return;
     }

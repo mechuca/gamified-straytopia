@@ -7,6 +7,7 @@ import { getSupabase } from '@/lib/supabase/client';
 import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
 import { AlertTriangle, ArrowUpRight, CheckCircle2, Clock3, ShieldCheck } from 'lucide-react';
+import { demoCases, demoProofs, demoTasks } from '@/lib/demoData';
 
 export default function OverviewPage() {
   const supabase = getSupabase();
@@ -21,7 +22,16 @@ export default function OverviewPage() {
 
   async function load() {
     if (!supabase) {
-      setCounts({ submitted: 12, under_review: 5, accepted: 19, rejected: 2, tasks: 34, pendingProofs: 7 });
+      const byStatus: Record<string, number> = {};
+      for (const row of demoCases) byStatus[row.status] = (byStatus[row.status] ?? 0) + 1;
+      setCounts({
+        submitted: byStatus.submitted ?? 0,
+        under_review: byStatus.under_review ?? 0,
+        accepted: byStatus.accepted ?? 0,
+        rejected: byStatus.rejected ?? 0,
+        tasks: demoTasks.length,
+        pendingProofs: demoProofs.filter((p) => p.verification_status === 'pending').length,
+      });
       return;
     }
     const [cases, tasks, proofs] = await Promise.all([

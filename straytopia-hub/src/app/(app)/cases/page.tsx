@@ -9,41 +9,7 @@ import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
 import { Button } from '@/components/ui/Button';
 import { Check, Search, X } from 'lucide-react';
-
-const demoCases: CaseRow[] = [
-  {
-    id: 'demo-1',
-    external_id: 'SY-7421',
-    citizen_id: null,
-    block_id: null,
-    shelter_id: null,
-    category: 'rescue',
-    severity: 'urgent',
-    description: 'Dog trapped near market drain, needs urgent help.',
-    location_text: 'Main Market, 1st cross',
-    status: 'submitted',
-    reject_reason_code: null,
-    reject_reason_text: null,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'demo-2',
-    external_id: 'SY-1054',
-    citizen_id: null,
-    block_id: null,
-    shelter_id: null,
-    category: 'water',
-    severity: 'today',
-    description: 'Water station empty near park.',
-    location_text: 'Park Street corner',
-    status: 'under_review',
-    reject_reason_code: null,
-    reject_reason_text: null,
-    created_at: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-    updated_at: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-  },
-];
+import { demoBlocks, demoCases, demoShelters } from '@/lib/demoData';
 
 const rejectReasons = [
   { code: 'duplicate_case', label: 'Duplicate case' },
@@ -103,6 +69,8 @@ export default function CasesPage() {
   async function load() {
     if (!supabase) {
       setCases(demoCases);
+      setBlocks(demoBlocks);
+      setShelters(demoShelters);
       setSelectedId((prev) => prev ?? demoCases[0]?.id ?? null);
       return;
     }
@@ -137,7 +105,10 @@ export default function CasesPage() {
   }, []);
 
   async function acceptCase(c: CaseRow) {
-    if (!supabase) return;
+    if (!supabase) {
+      setCases((prev) => prev.map((row) => row.id === c.id ? { ...row, status: 'task_created', updated_at: new Date().toISOString() } : row));
+      return;
+    }
     setBusyId(c.id);
     const { data: userData } = await supabase.auth.getUser();
     // Mark under_review immediately for clarity.
@@ -153,7 +124,16 @@ export default function CasesPage() {
   }
 
   async function rejectCase(c: CaseRow, payload: { fixed_reason_code: string; free_text_reason: string }) {
-    if (!supabase) return;
+    if (!supabase) {
+      setCases((prev) => prev.map((row) => row.id === c.id ? {
+        ...row,
+        status: 'rejected',
+        reject_reason_code: payload.fixed_reason_code,
+        reject_reason_text: payload.free_text_reason,
+        updated_at: new Date().toISOString(),
+      } : row));
+      return;
+    }
     setBusyId(c.id);
     const { data: userData } = await supabase.auth.getUser();
     await supabase.from('cases').update({
