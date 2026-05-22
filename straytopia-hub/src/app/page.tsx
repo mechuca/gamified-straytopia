@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
 
 export default function Root() {
-  redirect('/cases');
+  redirect('/action-queue');
 }

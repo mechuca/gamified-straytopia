@@ -187,7 +187,7 @@ export default function ProofsPage() {
 
   return (
     <div className="grid gap-6">
-      {!supabase && <SetupCallout title="Supabase Not Configured (Proofs)" />}
+      {!supabase && <SetupCallout title="Demo evidence queue" />}
 
       <div className="grid gap-6 lg:grid-cols-[440px_1fr]">
         <Card className="overflow-hidden p-0">

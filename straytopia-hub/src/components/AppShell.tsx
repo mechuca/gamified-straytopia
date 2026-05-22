@@ -4,30 +4,32 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { clsx } from 'clsx';
 import { useEffect, useMemo, useState } from 'react';
-import { BarChart3, ClipboardList, Hospital, Image, Layers3, LogOut, Map, Search, ShieldAlert, Users } from 'lucide-react';
+import { BarChart3, ClipboardList, Hospital, Image, Layers3, ListChecks, LogOut, Map, Search, ShieldAlert, Users } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase/client';
 
 const nav = [
-  { href: '/overview', label: 'Overview', icon: BarChart3 },
-  { href: '/cases', label: 'Cases', icon: ShieldAlert },
-  { href: '/tasks', label: 'Tasks', icon: ClipboardList },
-  { href: '/proofs', label: 'Proofs', icon: Image },
-  { href: '/shelters', label: 'Shelters', icon: Hospital },
-  { href: '/citizens', label: 'Citizens', icon: Users },
-  { href: '/blocks', label: 'Blocks', icon: Map },
-  { href: '/mel', label: 'MEL', icon: Layers3 },
+  { href: '/action-queue', label: 'Action Queue', icon: ListChecks },
+  { href: '/overview', label: 'Command', icon: BarChart3 },
+  { href: '/cases', label: 'Reports', icon: ShieldAlert },
+  { href: '/tasks', label: 'Field Work', icon: ClipboardList },
+  { href: '/proofs', label: 'Evidence', icon: Image },
+  { href: '/shelters', label: 'Partners', icon: Hospital },
+  { href: '/citizens', label: 'Community', icon: Users },
+  { href: '/blocks', label: 'Map', icon: Map },
+  { href: '/mel', label: 'Impact', icon: Layers3 },
 ];
 
 const pageCopy: Record<string, string> = {
-  Overview: 'Live health of the rescue network, backlog, and field outcomes.',
-  Cases: 'Triage incoming citizen reports and turn verified cases into work.',
-  Tasks: 'Assign, monitor, and close operational work across shelters and blocks.',
-  Proofs: 'Review field evidence before crediting citizen and shelter actions.',
-  Shelters: 'Manage capacity, coverage, and partner readiness.',
-  Citizens: 'Track active citizen devices and community participation.',
-  Blocks: 'Monitor local coverage and response density by neighborhood.',
-  MEL: 'Translate operations into measurable impact and funding evidence.',
+  'Action Queue': 'The fastest route to the next decision: triage, assign, verify, or escalate.',
+  Command: 'Live health of the rescue network, backlog, and field outcomes.',
+  Reports: 'Triage incoming citizen reports and turn verified cases into work.',
+  'Field Work': 'Assign, monitor, and close operational work across shelters and blocks.',
+  Evidence: 'Review field evidence before crediting citizen and shelter actions.',
+  Partners: 'Manage capacity, coverage, and partner readiness.',
+  Community: 'Track active citizen devices and community participation.',
+  Map: 'Monitor local coverage and response density by neighborhood.',
+  Impact: 'Translate operations into measurable impact and funding evidence.',
 };
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -61,7 +63,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-dvh text-[var(--ink)]">
       <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-white/72 backdrop-blur-2xl">
         <div className="mx-auto flex max-w-[1440px] items-center gap-5 px-4 py-3 md:px-8">
-          <Link href="/overview" className="flex shrink-0 items-center gap-3 rounded-[18px] pr-2 transition hover:bg-white/50">
+          <Link href="/action-queue" className="flex shrink-0 items-center gap-3 rounded-[18px] pr-2 transition hover:bg-white/50">
             <div className="grid h-11 w-11 place-items-center rounded-[16px] bg-[var(--jungle-soft)] ring-1 ring-[color-mix(in_srgb,var(--jungle)_16%,transparent)]">
               <span className="fredoka text-[18px] font-semibold text-[var(--jungle-deep)]">S</span>
             </div>
