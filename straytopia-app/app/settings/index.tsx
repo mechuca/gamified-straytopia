@@ -62,14 +62,14 @@ export default function SettingsScreen() {
             <Bell size={20} color={COLOR.sky} />
             <View style={{ flex: 1 }}>
               <Text variant="h">Notifications</Text>
-              <Text variant="meta">Mission alerts and updates</Text>
+              <Text variant="meta">Not connected yet. Realtime case updates work in-app when Supabase is configured.</Text>
             </View>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 }}>
             <Shield size={20} color={COLOR.jungle} />
             <View style={{ flex: 1 }}>
               <Text variant="h">Privacy</Text>
-              <Text variant="meta">Control your visibility</Text>
+              <Text variant="meta">Local preference only until backend profile sync is connected.</Text>
             </View>
           </View>
         </Card>
@@ -78,7 +78,7 @@ export default function SettingsScreen() {
           <RotateCcw size={32} color={COLOR.coral} />
           <Text variant="h" color="coralInk" style={{ marginTop: 12 }}>Reset Demo</Text>
           <Text variant="body" color="coralInk" align="center" style={{ marginTop: 4 }}>
-            Clear all data and start from the beginning.
+            Clears local prototype state only. It does not delete already-synced ops records.
           </Text>
           <Button variant="coral" size="md" onPress={handleReset} style={{ marginTop: 16 }}>
             Reset Everything

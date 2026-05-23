@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/app/components/primitives/ScreenContainer';
 import { Text } from '@/app/components/primitives/Text';
 import { Card } from '@/app/components/primitives/Card';
@@ -10,7 +9,7 @@ import { Bob } from '@/app/components/motion/Bob';
 import { RiseIn } from '@/app/components/motion/RiseIn';
 import { Avatar } from '@/app/components/primitives/Avatar';
 import { COLOR } from '@/app/lib/theme';
-import { BookOpen, Heart, ChevronRight } from 'lucide-react-native';
+import { BookOpen, Heart } from 'lucide-react-native';
 
 const stories = [
   { id: 's1', type: 'rescue', title: 'Pluto found his forever home', body: 'After 3 months of care, the limping tan dog from the bakery was adopted by a family on 100 Feet Road.', helpers: ['A', 'R', 'S'] as string[], hearts: 47, badge: 'RESCUE STORY', badgeTone: 'plum' as const },
@@ -19,8 +18,6 @@ const stories = [
 ];
 
 export default function StoriesScreen() {
-  const router = useRouter();
-
   return (
     <ScreenContainer bg="paper" tabBar statusBarStyle="dark">
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
@@ -42,6 +39,12 @@ export default function StoriesScreen() {
             <Pill tone="paper">Adoptions</Pill>
           </View>
         </ScrollView>
+
+        <Card tone="paper-2" style={{ marginBottom: 16, padding: 14 }}>
+          <Text variant="meta" align="center">
+            Demo stories only. Ops-published rescue updates and story moderation are not connected yet.
+          </Text>
+        </Card>
 
         {stories.map((story, i) => (
           <RiseIn key={story.id} delay={i * 100}>

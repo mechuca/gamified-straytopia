@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, ScrollView } from 'react-native';
+import React from 'react';
+import { Pressable, View, ScrollView } from 'react-native';
 import { ScreenContainer } from '@/app/components/primitives/ScreenContainer';
 import { Text } from '@/app/components/primitives/Text';
 import { Card } from '@/app/components/primitives/Card';
@@ -9,7 +9,7 @@ import { RiseIn } from '@/app/components/motion/RiseIn';
 import { useLeaderboard, LeaderboardScope } from '@/app/store/leaderboard';
 import { useUser } from '@/app/store/user';
 import { COLOR } from '@/app/lib/theme';
-import { Trophy, TrendingUp, TrendingDown, Minus, Clock } from 'lucide-react-native';
+import { Trophy, TrendingUp, TrendingDown, Minus } from 'lucide-react-native';
 
 const scopes: { key: LeaderboardScope; label: string }[] = [
   { key: 'today', label: 'Today' },
@@ -43,7 +43,7 @@ export default function LeagueScreen() {
     <ScreenContainer bg="paper" tabBar statusBarStyle="dark">
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
         <View style={{ marginBottom: 16 }}>
-          <Text variant="eyebrow">INDIRANAGAR · WEEK 19</Text>
+          <Text variant="eyebrow">LOCAL PREVIEW · NOT OPS VERIFIED</Text>
           <Text variant="display-3">Gold League</Text>
         </View>
 
@@ -52,8 +52,8 @@ export default function LeagueScreen() {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <Trophy size={32} color={COLOR.goldInk} />
             <View style={{ flex: 1 }}>
-              <Text variant="h" color="goldInk">Top 3 promote to Sapphire</Text>
-              <Text variant="body" color="goldInk">Bottom 5 fall to Bronze on Monday</Text>
+              <Text variant="h" color="goldInk">Prototype ranking</Text>
+              <Text variant="body" color="goldInk">Live rank moderation and anti-abuse scoring are not connected yet.</Text>
             </View>
           </View>
         </Card>
@@ -62,9 +62,11 @@ export default function LeagueScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             {scopes.map((s) => (
-              <Pill key={s.key} tone={scope === s.key ? 'ink' : 'paper'} variant={scope === s.key ? 'solid' : 'soft'}>
-                {s.label}
-              </Pill>
+              <Pressable key={s.key} onPress={() => setScope(s.key)}>
+                <Pill tone={scope === s.key ? 'ink' : 'paper'} variant={scope === s.key ? 'solid' : 'soft'}>
+                  {s.label}
+                </Pill>
+              </Pressable>
             ))}
           </View>
         </ScrollView>
@@ -108,7 +110,7 @@ export default function LeagueScreen() {
 
         <Card tone="paper-2" style={{ marginTop: 16, padding: 14 }}>
           <Text variant="meta" align="center">
-            Acts = verified feeds + valid reports + resolved cases. Resets Monday at sunrise.
+            Preview standings use local seed data. Ops-verified scoring requires proof review, abuse checks, and regional aggregation.
           </Text>
         </Card>
       </ScrollView>

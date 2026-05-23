@@ -10,17 +10,17 @@ import { usePoints } from '@/app/store/points';
 import { useBadges } from '@/app/store/badges';
 import { useUser } from '@/app/store/user';
 import { COLOR } from '@/app/lib/theme';
-import { CheckCircle2, Loader2, Shield, Search, Clock, ArrowRight } from 'lucide-react-native';
+import { CheckCircle2, Loader2, Clock } from 'lucide-react-native';
 
 const steps = [
-  { label: 'Checking proof quality', icon: 'quality' },
-  { label: 'Checking location & time', icon: 'location' },
-  { label: 'Matching mission type', icon: 'match' },
-  { label: 'Checking for duplicates', icon: 'duplicate' },
-  { label: 'Scoring confidence', icon: 'score' },
+  { label: 'Saving proof locally', icon: 'local' },
+  { label: 'Preparing ops task update', icon: 'task' },
+  { label: 'Queueing evidence for hub review', icon: 'queue' },
+  { label: 'Updating demo mission state', icon: 'state' },
+  { label: 'Syncing when backend is available', icon: 'sync' },
 ];
 
-export default function AIVerificationScreen() {
+export default function ProofReviewPreviewScreen() {
   const router = useRouter();
   const activeMissionId = useMissions((s) => s.activeMissionId);
   const mission = useMissions((s) => s.missions.find((m) => m.id === activeMissionId));
@@ -68,8 +68,8 @@ export default function AIVerificationScreen() {
             <Loader2 size={48} color={COLOR.jungle} />
           </View>
 
-          <Text variant="display-3" align="center">Verifying your proof</Text>
-          <Text variant="body-l" align="center">Our AI is checking your submission...</Text>
+          <Text variant="display-3" align="center">Preparing your proof</Text>
+          <Text variant="body-l" align="center">This prototype queues evidence for ops review and updates the local mission state.</Text>
 
           <Card style={{ width: '100%', padding: 16 }}>
             {steps.map((step, i) => (

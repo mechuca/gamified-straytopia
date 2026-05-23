@@ -12,6 +12,7 @@ import { Bob } from '@/app/components/motion/Bob';
 import { RiseIn } from '@/app/components/motion/RiseIn';
 import { useMissions } from '@/app/store/missions';
 import { usePoints } from '@/app/store/points';
+import { useReports } from '@/app/store/reports';
 import { useUser } from '@/app/store/user';
 import { useOpsTasks } from '@/app/lib/useOpsTasks';
 import { COLOR } from '@/app/lib/theme';
@@ -22,12 +23,14 @@ export default function HomeScreen() {
   const missions = useMissions((s) => s.missions);
   const totalPoints = usePoints((s) => s.total);
   const neighborhood = useUser((s) => s.neighborhood);
+  const reports = useReports((s) => s.reports);
   const opsTasks = useOpsTasks();
   const [refreshing, setRefreshing] = useState(false);
 
   const availableMissions = missions.filter((m) => m.status === 'available');
   const urgentMissions = availableMissions.filter((m) => m.urgency === 'critical' || m.urgency === 'high');
   const completedCount = useMissions((s) => s.completedCount);
+  const localStreak = completedCount > 0 ? 1 : 0;
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -57,7 +60,7 @@ export default function HomeScreen() {
           <View style={{ flexDirection: 'row', gap: 16 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
               <Flame size={20} color={COLOR.coral} />
-              <Text variant="num" style={{ fontSize: 18, color: COLOR.coralDeep }}>3</Text>
+              <Text variant="num" style={{ fontSize: 18, color: COLOR.coralDeep }}>{localStreak}</Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
               <Zap size={20} color={COLOR.gold} />
@@ -65,7 +68,7 @@ export default function HomeScreen() {
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
               <Heart size={20} color={COLOR.coral} fill={COLOR.coral} />
-              <Text variant="num" style={{ fontSize: 18, color: COLOR.coralDeep }}>5</Text>
+              <Text variant="num" style={{ fontSize: 18, color: COLOR.coralDeep }}>{reports.length}</Text>
             </View>
           </View>
         </View>
@@ -76,10 +79,10 @@ export default function HomeScreen() {
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <View>
                 <Text variant="eyebrow" style={{ color: 'rgba(255,255,255,0.7)' }}>
-                  NEARBY MISSIONS
+                  LOCAL CARE MISSIONS
                 </Text>
                 <Text variant="title" style={{ color: '#fff', marginTop: 4 }}>
-                  {availableMissions.length} missions waiting
+                  {availableMissions.length} local mission options
                 </Text>
               </View>
               <BookOpen size={28} color="#fff" />
@@ -186,7 +189,7 @@ export default function HomeScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text variant="h" color="coralInk">See something that needs help?</Text>
-                <Text variant="body" color="coralInk">File a report and volunteers will respond.</Text>
+                <Text variant="body" color="coralInk">File a report so ops can review and assign help.</Text>
               </View>
             </View>
             <Button variant="coral" size="md" onPress={() => router.push('/report/new')} style={{ marginTop: 12 }}>

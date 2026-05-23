@@ -10,7 +10,7 @@ import { Biscuit } from '@/app/components/mascot/Biscuit';
 import { Bob } from '@/app/components/motion/Bob';
 import { useReports, ReportType, ReportSeverity } from '@/app/store/reports';
 import { COLOR } from '@/app/lib/theme';
-import { ArrowLeft, AlertTriangle, Droplets, Heart, Stethoscope, Shield, Home, Camera } from 'lucide-react-native';
+import { ArrowLeft } from 'lucide-react-native';
 
 const categories: { key: ReportType; emoji: string; title: string; sub: string; tone: string }[] = [
   { key: 'injured', emoji: '🤕', title: 'Injured', sub: 'Animal needs medical help', tone: 'coral' },
@@ -120,7 +120,7 @@ export default function ReportNewScreen() {
         </Card>
 
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <Text variant="meta">AVG RESPONSE / 27 min</Text>
+          <Text variant="meta">OPS REVIEW QUEUE</Text>
           <Button variant="coral" size="md" onPress={handleSubmit} disabled={!canSubmit}>
             Send for help
           </Button>
