@@ -39,7 +39,6 @@ type NavItem = {
   href?: string;
   label: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;
-  badge?: string;
   roles?: Role[];
   soon?: boolean;
 };
@@ -48,20 +47,20 @@ const navGroups: Array<{ label: string; items: NavItem[] }> = [
   {
     label: 'Command',
     items: [
-      { href: '/overview', label: 'Dashboard', icon: LayoutDashboard, badge: 'Live' },
-      { href: '/action-queue', label: 'Operational Queue', icon: ListChecks, badge: '4' },
-      { label: 'Notifications', icon: Bell, badge: '6', soon: true },
+      { href: '/overview', label: 'Dashboard', icon: LayoutDashboard },
+      { href: '/action-queue', label: 'Operational Queue', icon: ListChecks },
+      { label: 'Notifications', icon: Bell, soon: true },
     ],
   },
   {
     label: 'Operations',
     items: [
-      { href: '/cases', label: 'Active Rescue Cases', icon: ShieldAlert, badge: '7' },
-      { href: '/cases', label: 'Emergency Cases', icon: LifeBuoy, badge: '3' },
+      { href: '/cases', label: 'Active Rescue Cases', icon: ShieldAlert },
+      { href: '/cases', label: 'Emergency Cases', icon: LifeBuoy },
       { href: '/tasks', label: 'Feeding Missions', icon: ClipboardList },
-      { href: '/tasks', label: 'Medical Cases', icon: Stethoscope, badge: '2' },
+      { href: '/tasks', label: 'Medical Cases', icon: Stethoscope },
       { href: '/shelters', label: 'Shelter Coordination', icon: Hospital },
-      { href: '/proofs', label: 'Evidence Review', icon: ClipboardList, badge: '2' },
+      { href: '/proofs', label: 'Evidence Review', icon: ClipboardList },
     ],
   },
   {
@@ -80,7 +79,7 @@ const navGroups: Array<{ label: string; items: NavItem[] }> = [
       { href: '/mel', label: 'Analytics', icon: FileBarChart },
       { href: '/mel', label: 'Reports', icon: Activity },
       { label: 'City Operations', icon: Home, soon: true, roles: ['city_lead', 'ops'] },
-      { label: 'AI Insights', icon: BrainCircuit, badge: 'New', soon: true },
+      { label: 'Decision Insights', icon: BrainCircuit, soon: true },
       { label: 'Audit Logs', icon: Clock3, soon: true },
       { label: 'Settings', icon: Settings, soon: true },
     ],
@@ -88,12 +87,12 @@ const navGroups: Array<{ label: string; items: NavItem[] }> = [
 ];
 
 const pageCopy: Record<string, string> = {
-  Dashboard: 'Live operational intelligence for rescue load, field work, evidence, partners, and city risk.',
+  Dashboard: 'Operational intelligence for rescue load, field work, evidence, partners, and city risk.',
   'Operational Queue': 'The fastest route to the next decision: triage, assign, verify, or escalate.',
   'Active Rescue Cases': 'Triage incoming citizen reports and turn verified cases into work.',
   'Feeding Missions': 'Assign, monitor, and close operational work across shelters and blocks.',
   'Evidence Review': 'Review field evidence before crediting citizen and shelter actions.',
-  'Map Intelligence': 'Monitor coverage, risk, and response density by neighborhood.',
+  'Map Intelligence': 'Monitor coverage and risk by neighborhood from block-level operational records.',
   Analytics: 'Translate operations into measurable impact and funding evidence.',
 };
 
@@ -192,9 +191,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                           <Icon size={16} />
                         </span>
                         {!collapsed && <span className="min-w-0 flex-1 truncate">{item.label}</span>}
-                        {!collapsed && (item.badge || item.soon) && (
-                          <span className={clsx('rounded-full px-2 py-0.5 text-[10px] font-black', isActive ? 'bg-white/14 text-white' : item.soon ? 'bg-white/60 text-[var(--muted)]' : 'bg-[var(--jungle-soft)] text-[var(--jungle-deep)]')}>
-                            {item.badge ?? 'Soon'}
+                        {!collapsed && item.soon && (
+                          <span className={clsx('rounded-full px-2 py-0.5 text-[10px] font-black', isActive ? 'bg-white/14 text-white' : 'bg-white/60 text-[var(--muted)]')}>
+                            Soon
                           </span>
                         )}
                       </>

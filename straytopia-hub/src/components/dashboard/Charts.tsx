@@ -56,7 +56,7 @@ export function BarChart({ points, label, tone = 'sky' }: { points: TrendPoint[]
           <div className="relative flex h-[110px] w-full items-end overflow-hidden rounded-full bg-[var(--paper2)] ring-1 ring-[var(--hairline)]">
             <div
               className="w-full rounded-full"
-              style={{ height: `${Math.max(10, (point.value / max) * 100)}%`, background: `linear-gradient(180deg, var(--${tone}) 0%, color-mix(in_srgb, var(--${tone}) 58%, transparent) 100%)` }}
+              style={{ height: point.value === 0 ? '0%' : `${Math.max(8, (point.value / max) * 100)}%`, background: `linear-gradient(180deg, var(--${tone}) 0%, color-mix(in_srgb, var(--${tone}) 58%, transparent) 100%)` }}
             />
           </div>
           <span className="text-[10px] font-black uppercase tracking-wider text-[var(--muted)]">{point.label}</span>

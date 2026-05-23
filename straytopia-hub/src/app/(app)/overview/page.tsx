@@ -58,7 +58,7 @@ function MetricCard({
         <div className="grid h-11 w-11 place-items-center rounded-[16px] bg-[var(--paper2)] text-[var(--ink2)] ring-1 ring-[var(--hairline)]">
           <Icon size={19} />
         </div>
-        <Pill tone={tone} variant="soft">live</Pill>
+        <Pill tone={tone} variant="soft">rows</Pill>
       </div>
       <div className="mono mt-5 text-[34px] font-black tracking-tight text-[var(--ink)]">{value}</div>
       <div className="mt-1 text-[11px] font-black uppercase tracking-[0.16em] text-[var(--muted)]">{label}</div>
@@ -159,7 +159,7 @@ export default function OverviewPage() {
             <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <Pill tone={healthTone} variant="soft">Operational health {healthScore}%</Pill>
+                  <Pill tone={healthTone} variant="soft">Operational posture {healthScore}%</Pill>
                   <Pill tone="paper" variant="soft">Updated {lastUpdated?.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</Pill>
                 </div>
                 <h2 className="fredoka mt-4 max-w-3xl text-[34px] font-semibold leading-tight tracking-tight md:text-[48px]">
@@ -178,14 +178,14 @@ export default function OverviewPage() {
             <div className="mt-7 grid gap-3 md:grid-cols-3">
               <StatusRow label="Pending escalations" value={analytics.pendingEscalations} tone={analytics.pendingEscalations > 0 ? 'coral' : 'jungle'} />
               <StatusRow label="Avg response age" value={`${analytics.responseMinutes}m`} tone={analytics.responseMinutes > 90 ? 'coral' : 'gold'} />
-              <StatusRow label="Live notifications" value={analytics.notifications.length} tone="sky" />
+              <StatusRow label="Active alerts" value={analytics.notifications.length} tone="sky" />
             </div>
           </div>
 
           <div className="p-6 md:p-7">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <div className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--muted)]">AI Operational Recommendations</div>
+                <div className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--muted)]">Rule-Based Recommendations</div>
                 <div className="fredoka mt-2 text-2xl font-semibold">Next best moves</div>
               </div>
               <div className="grid h-11 w-11 place-items-center rounded-[16px] bg-[var(--plum-soft)] text-[var(--ink)] ring-1 ring-[color-mix(in_srgb,var(--plum)_20%,transparent)]">
@@ -195,7 +195,7 @@ export default function OverviewPage() {
             <div className="mt-5 grid gap-3">
               {analytics.recommendations.map((recommendation, index) => (
                 <div key={recommendation} className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4">
-                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--muted)]">Recommendation {index + 1}</div>
+                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--muted)]">Action rule {index + 1}</div>
                   <div className="mt-2 text-sm font-bold leading-6 text-[var(--ink2)]">{recommendation}</div>
                 </div>
               ))}
@@ -207,12 +207,12 @@ export default function OverviewPage() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard href="/cases" label="Active rescue cases" value={analytics.activeRescueCases} caption="Rescue, abandoned, or aggression cases that still need movement." icon={ShieldAlert} tone={analytics.activeRescueCases > 0 ? 'gold' : 'jungle'} />
         <MetricCard href="/cases" label="Emergency cases" value={analytics.emergencyCases} caption="Urgent open cases that should stay above normal operations." icon={LifeBuoy} tone={analytics.emergencyCases > 0 ? 'coral' : 'jungle'} />
-        <MetricCard href="/tasks" label="Feeding missions today" value={analytics.feedingMissionsToday} caption="Open feeding routes and proof-pending community work." icon={Utensils} tone="sky" />
-        <MetricCard href="/citizens" label="Volunteer availability" value={`${analytics.volunteerAvailability}%`} caption="Estimated capacity after active citizen assignments." icon={Users} tone={analytics.volunteerAvailability > 60 ? 'jungle' : 'gold'} />
-        <MetricCard href="/shelters" label="Shelter capacity" value={`${analytics.shelterCapacity}%`} caption="Pressure estimate across active and limited partner shelters." icon={Hospital} tone={analytics.shelterCapacity > 82 ? 'coral' : 'gold'} />
+        <MetricCard href="/tasks" label="Open feeding missions" value={analytics.openFeedingMissions} caption="Feeding routes and proof-pending community work from task rows." icon={Utensils} tone="sky" />
+        <MetricCard href="/citizens" label="Citizen field tasks" value={analytics.activeCitizenTasks} caption="Active work assigned to citizen devices through the task ledger." icon={Users} tone={analytics.activeCitizenTasks > 0 ? 'sky' : 'paper'} />
+        <MetricCard href="/shelters" label="Shelter readiness" value={`${analytics.shelterReadiness}%`} caption="Readiness derived only from current partner status values." icon={Hospital} tone={analytics.shelterReadiness < 60 ? 'coral' : 'gold'} />
         <MetricCard href="/tasks" label="Medical cases" value={analytics.medicalCases} caption="Open injured or sick reports requiring medical coordination." icon={Stethoscope} tone={analytics.medicalCases > 0 ? 'coral' : 'jungle'} />
-        <MetricCard label="Adoption pipeline" value={analytics.adoptionPipeline} caption="Adoption-interest reports waiting for a dedicated future pipeline." icon={HeartHandshake} tone="plum" />
-        <MetricCard href="/mel" label="Daily impact" value={analytics.dailyImpact} caption="Completed field tasks plus resolved cases counted today." icon={CheckCircle2} tone="jungle" />
+        <MetricCard label="Adoption reports" value={analytics.adoptionReports} caption="Open adoption-category reports. A true adoption pipeline is not implemented yet." icon={HeartHandshake} tone="plum" />
+        <MetricCard href="/mel" label="Today's resolved impact" value={analytics.todaysResolvedImpact} caption="Tasks completed and cases resolved today by updated timestamp." icon={CheckCircle2} tone="jungle" />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
@@ -278,9 +278,9 @@ export default function OverviewPage() {
         <Card className="p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <div className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--muted)]">Real-Time Notifications</div>
+              <div className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--muted)]">Operational Alerts</div>
               <div className="fredoka mt-2 text-2xl font-semibold">What needs attention now</div>
-              <p className="mt-1 text-sm font-semibold text-[var(--muted)]">A short live feed beats a wall of charts when dispatch is under pressure.</p>
+              <p className="mt-1 text-sm font-semibold text-[var(--muted)]">Derived from urgent cases, blocked tasks, and pending proof rows. Push notifications are not wired yet.</p>
             </div>
             <Bell size={20} className="text-[var(--muted)]" />
           </div>
@@ -309,7 +309,7 @@ export default function OverviewPage() {
 
       <div className="grid gap-4 md:grid-cols-4">
         <MetricCard href="/shelters" label="Active NGOs" value={analytics.activeNgos} caption="Partner network currently able to support operations." icon={Hospital} tone="jungle" />
-        <MetricCard href="/blocks" label="Live map activity" value={analytics.openCases + analytics.feedingMissionsToday} caption="Open cases and active missions contributing to map load." icon={MapPinned} tone="sky" />
+        <MetricCard href="/blocks" label="Block activity signals" value={analytics.openCases + analytics.openFeedingMissions} caption="Open cases and feeding tasks contributing to block-level map intelligence." icon={MapPinned} tone="sky" />
         <MetricCard href="/action-queue" label="Failed missions" value={analytics.failedMissions} caption="Blocked, cancelled, or rejected proof paths needing QA review." icon={AlertTriangle} tone={analytics.failedMissions > 0 ? 'coral' : 'jungle'} />
         <MetricCard href="/proofs" label="Pending evidence" value={analytics.pendingProofs} caption="Proofs waiting for review before impact is credited." icon={Clock3} tone={analytics.pendingProofs > 0 ? 'plum' : 'jungle'} />
       </div>

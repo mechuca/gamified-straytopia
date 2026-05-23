@@ -74,8 +74,8 @@ export default function BlocksPage() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--muted)]">Map Intelligence</div>
-                <h2 className="fredoka mt-2 text-[34px] font-semibold leading-tight md:text-[44px]">Block risk, without needing a heavy map first.</h2>
-                <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-[var(--muted)]">This view keeps the list fallback operational while the GIS layer is wired to migration 004 location metadata.</p>
+                <h2 className="fredoka mt-2 text-[34px] font-semibold leading-tight md:text-[44px]">Block-level operations before precise GIS is live.</h2>
+                <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-[var(--muted)]">This view uses real cases and tasks grouped by block. Precise pins, routes, and heatmaps wait until location metadata is captured from the field.</p>
               </div>
               <MapPinned size={22} className="text-[var(--muted)]" />
             </div>
@@ -83,15 +83,15 @@ export default function BlocksPage() {
             <div className="mt-6 grid gap-3 sm:grid-cols-3">
               <div className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4">
                 <div className="mono text-3xl font-black text-[var(--ink)]">{analytics.openCases}</div>
-                <div className="mt-2 text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">Open pins</div>
+                <div className="mt-2 text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">Open case signals</div>
               </div>
               <div className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4">
                 <div className="mono text-3xl font-black text-[var(--ink)]">{analytics.emergencyCases}</div>
-                <div className="mt-2 text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">Emergency hotspots</div>
+                <div className="mt-2 text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">Urgent case signals</div>
               </div>
               <div className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4">
-                <div className="mono text-3xl font-black text-[var(--ink)]">{analytics.feedingMissionsToday}</div>
-                <div className="mt-2 text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">Feeding clusters</div>
+                <div className="mono text-3xl font-black text-[var(--ink)]">{analytics.openFeedingMissions}</div>
+                <div className="mt-2 text-[11px] font-black uppercase tracking-wider text-[var(--muted)]">Open feeding tasks</div>
               </div>
             </div>
           </div>
@@ -99,7 +99,7 @@ export default function BlocksPage() {
           <div className="p-6 md:p-7">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <div className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--muted)]">Live Map Activity</div>
+                <div className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--muted)]">Block Activity</div>
                 <div className="fredoka mt-2 text-2xl font-semibold">Dispatcher focus</div>
               </div>
               <Pill tone={strongestZone?.risk > 65 ? 'coral' : 'gold'} variant="soft">{strongestZone?.name ?? 'No zone'}</Pill>
@@ -107,7 +107,7 @@ export default function BlocksPage() {
             <div className="mt-5 rounded-[24px] border border-[var(--border)] bg-[linear-gradient(135deg,rgba(45,198,83,0.10),rgba(28,176,246,0.10),rgba(255,200,61,0.10))] p-5">
               <div className="grid min-h-[240px] grid-cols-2 gap-3 sm:grid-cols-4">
                 {analytics.densityZones.map((zone) => (
-                  <div key={zone.id} className="relative overflow-hidden rounded-[22px] border border-white/40 bg-white/54 p-4 backdrop-blur-xl dark:bg-white/10">
+                  <div key={zone.id} className="relative overflow-hidden rounded-[22px] border border-white/40 bg-white/54 p-4 backdrop-blur-xl">
                     <div className="absolute right-3 top-3 h-12 w-12 rounded-full opacity-50 blur-xl" style={{ background: zone.risk > 65 ? 'var(--coral)' : zone.risk > 30 ? 'var(--gold)' : 'var(--jungle)' }} />
                     <div className="relative text-sm font-black text-[var(--ink)]">{zone.name}</div>
                     <div className="relative mono mt-2 text-3xl font-black text-[var(--ink)]">{zone.risk}</div>
@@ -128,13 +128,13 @@ export default function BlocksPage() {
         <Card className="p-6">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <div className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--muted)]">Animal Density Zones</div>
-              <div className="fredoka mt-2 text-2xl font-semibold">Heatmap risk score</div>
+              <div className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--muted)]">Operational Density Zones</div>
+              <div className="fredoka mt-2 text-2xl font-semibold">Block risk score</div>
             </div>
             <RadioTower size={20} className="text-[var(--muted)]" />
           </div>
           <div className="mt-5">
-            <HeatmapGrid values={analytics.densityZones.map((zone) => ({ label: zone.name, value: zone.risk }))} label="Animal density heatmap by block" />
+            <HeatmapGrid values={analytics.densityZones.map((zone) => ({ label: zone.name, value: zone.risk }))} label="Operational risk heatmap by block" />
           </div>
         </Card>
 
@@ -180,7 +180,7 @@ export default function BlocksPage() {
           </div>
           <div>
             <div className="text-sm font-black text-[var(--ink)]">GIS readiness note</div>
-            <div className="mt-1 text-sm font-semibold leading-6 text-[var(--muted)]">Migration 004 adds nullable lat/lng, accuracy, and privacy fields. The next production step is capturing those fields from reports, proofs, shelters, and task assignments, then replacing this block-level intelligence with true pins, routes, and overlays.</div>
+            <div className="mt-1 text-sm font-semibold leading-6 text-[var(--muted)]">Migration 004 adds nullable lat/lng, accuracy, and privacy fields. Until mobile and hub capture those fields, this page must remain block-level intelligence, not a precise live map.</div>
           </div>
         </div>
       </Card>

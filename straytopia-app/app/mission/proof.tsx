@@ -90,8 +90,8 @@ export default function ProofSubmissionScreen() {
         {/* Location + Time */}
         <Card tone="paper-2" style={{ marginBottom: 20, padding: 14 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-            <MapPin size={18} color={COLOR.jungle} />
-            <Text variant="body">Location confirmed</Text>
+            <MapPin size={18} color={COLOR.gold} />
+            <Text variant="body">Area context only. GPS proof is not captured yet.</Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <Clock size={18} color={COLOR.gold} />
