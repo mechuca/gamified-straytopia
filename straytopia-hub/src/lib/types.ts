@@ -107,3 +107,20 @@ export interface ProofRow {
   verification_status: ProofVerificationStatus;
   created_at: string;
 }
+
+export interface OperationalEventRow {
+  id: string;
+  actor_user_id: string | null;
+  actor_role: string | null;
+  action: string;
+  entity_table: string;
+  entity_id: string | null;
+  case_id: string | null;
+  task_id: string | null;
+  proof_id: string | null;
+  reason: string | null;
+  before_state: Record<string, unknown> | null;
+  after_state: Record<string, unknown> | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}

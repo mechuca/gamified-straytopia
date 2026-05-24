@@ -5,29 +5,20 @@ import { usePathname, useRouter } from 'next/navigation';
 import { clsx } from 'clsx';
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Activity,
-  Bell,
-  BrainCircuit,
   Building2,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
   Clock3,
-  Coins,
   FileBarChart,
-  HeartHandshake,
-  Home,
   Hospital,
   LayoutDashboard,
-  LifeBuoy,
   ListChecks,
   LogOut,
   Map,
   Menu,
   Search,
-  Settings,
   ShieldAlert,
-  Stethoscope,
   Users,
   X,
 } from 'lucide-react';
@@ -40,7 +31,6 @@ type NavItem = {
   label: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;
   roles?: Role[];
-  soon?: boolean;
 };
 
 const navGroups: Array<{ label: string; items: NavItem[] }> = [
@@ -49,16 +39,13 @@ const navGroups: Array<{ label: string; items: NavItem[] }> = [
     items: [
       { href: '/overview', label: 'Dashboard', icon: LayoutDashboard },
       { href: '/action-queue', label: 'Operational Queue', icon: ListChecks },
-      { label: 'Notifications', icon: Bell, soon: true },
     ],
   },
   {
     label: 'Operations',
     items: [
       { href: '/cases', label: 'Active Rescue Cases', icon: ShieldAlert },
-      { href: '/cases', label: 'Emergency Cases', icon: LifeBuoy },
-      { href: '/tasks', label: 'Feeding Missions', icon: ClipboardList },
-      { href: '/tasks', label: 'Medical Cases', icon: Stethoscope },
+      { href: '/tasks', label: 'Field Work', icon: ClipboardList },
       { href: '/shelters', label: 'Shelter Coordination', icon: Hospital },
       { href: '/proofs', label: 'Evidence Review', icon: ClipboardList },
     ],
@@ -69,19 +56,13 @@ const navGroups: Array<{ label: string; items: NavItem[] }> = [
       { href: '/blocks', label: 'Map Intelligence', icon: Map },
       { href: '/citizens', label: 'Volunteers', icon: Users },
       { href: '/shelters', label: 'NGOs & Partners', icon: Building2 },
-      { label: 'Adoptions & Foster', icon: HeartHandshake, soon: true },
-      { label: 'Donations', icon: Coins, soon: true },
     ],
   },
   {
     label: 'Intelligence',
     items: [
       { href: '/mel', label: 'Analytics', icon: FileBarChart },
-      { href: '/mel', label: 'Reports', icon: Activity },
-      { label: 'City Operations', icon: Home, soon: true, roles: ['city_lead', 'ops'] },
-      { label: 'Decision Insights', icon: BrainCircuit, soon: true },
-      { label: 'Audit Logs', icon: Clock3, soon: true },
-      { label: 'Settings', icon: Settings, soon: true },
+      { href: '/audit', label: 'Audit Logs', icon: Clock3 },
     ],
   },
 ];
@@ -90,10 +71,11 @@ const pageCopy: Record<string, string> = {
   Dashboard: 'Operational intelligence for rescue load, field work, evidence, partners, and city risk.',
   'Operational Queue': 'The fastest route to the next decision: triage, assign, verify, or escalate.',
   'Active Rescue Cases': 'Triage incoming citizen reports and turn verified cases into work.',
-  'Feeding Missions': 'Assign, monitor, and close operational work across shelters and blocks.',
+  'Field Work': 'Assign, monitor, and close operational work across shelters and blocks.',
   'Evidence Review': 'Review field evidence before crediting citizen and shelter actions.',
   'Map Intelligence': 'Monitor coverage and risk by neighborhood from block-level operational records.',
   Analytics: 'Translate operations into measurable impact and funding evidence.',
+  'Audit Logs': 'Review operational mutations, status changes, and decision accountability.',
 };
 
 function findActive(pathname: string | null) {
@@ -101,9 +83,10 @@ function findActive(pathname: string | null) {
   if (pathname?.startsWith('/overview')) return items.find((item) => item.label === 'Dashboard');
   if (pathname?.startsWith('/action-queue')) return items.find((item) => item.href === '/action-queue');
   if (pathname?.startsWith('/blocks')) return items.find((item) => item.label === 'Map Intelligence');
+  if (pathname?.startsWith('/audit')) return items.find((item) => item.label === 'Audit Logs');
   if (pathname?.startsWith('/mel')) return items.find((item) => item.label === 'Analytics');
   if (pathname?.startsWith('/cases')) return items.find((item) => item.label === 'Active Rescue Cases');
-  if (pathname?.startsWith('/tasks')) return items.find((item) => item.label === 'Feeding Missions');
+  if (pathname?.startsWith('/tasks')) return items.find((item) => item.label === 'Field Work');
   if (pathname?.startsWith('/proofs')) return items.find((item) => item.label === 'Evidence Review');
   if (pathname?.startsWith('/shelters')) return items.find((item) => item.label === 'Shelter Coordination');
   if (pathname?.startsWith('/citizens')) return items.find((item) => item.label === 'Volunteers');
@@ -183,7 +166,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     const className = clsx(
                       'group flex min-h-10 items-center gap-3 rounded-[16px] px-3 py-2 text-sm font-extrabold outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--jungle)]',
                       collapsed && 'justify-center px-2',
-                      isActive ? 'bg-[var(--ink)] text-white shadow-[var(--shadow-sm)]' : item.soon ? 'text-[var(--muted)] hover:bg-white/54' : 'text-[var(--ink2)] hover:bg-white/72 hover:text-[var(--ink)]'
+                      isActive ? 'bg-[var(--ink)] text-white shadow-[var(--shadow-sm)]' : 'text-[var(--ink2)] hover:bg-white/72 hover:text-[var(--ink)]'
                     );
                     const content = (
                       <>
@@ -191,14 +174,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                           <Icon size={16} />
                         </span>
                         {!collapsed && <span className="min-w-0 flex-1 truncate">{item.label}</span>}
-                        {!collapsed && item.soon && (
-                          <span className={clsx('rounded-full px-2 py-0.5 text-[10px] font-black', isActive ? 'bg-white/14 text-white' : 'bg-white/60 text-[var(--muted)]')}>
-                            Soon
-                          </span>
-                        )}
                       </>
                     );
-                    if (!item.href) return <button key={item.label} type="button" disabled={item.soon} className={className} title={item.label}>{content}</button>;
+                    if (!item.href) return <button key={item.label} type="button" className={className} title={item.label}>{content}</button>;
                     return <Link key={`${item.href}-${item.label}`} href={item.href} className={className} onClick={() => setMobileOpen(false)} title={item.label}>{content}</Link>;
                   })}
                 </div>
