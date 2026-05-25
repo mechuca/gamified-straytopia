@@ -4,17 +4,17 @@ export const dynamic = 'force-dynamic';
 
 import { useEffect, useMemo, useState } from 'react';
 import { getSupabase } from '@/lib/supabase/client';
-import type { Block, CaseRow, ProofRow, ProofVerificationStatus, Shelter, TaskRow, TaskTemplateRow } from '@/lib/types';
+import type { Block, CaseRow, CitizenRow, ProofRow, ProofVerificationStatus, Shelter, TaskRow, TaskTemplateRow } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
-import { AlertTriangle, ArrowUpRight, Check, Clock3, Compass, FileText, Image as ImageIcon, Layers3, Map as MapIcon, Search, ShieldCheck, Users, X } from 'lucide-react';
-import { demoBlocks, demoCases, demoProofs, demoShelters, demoTaskTemplates, demoTasks } from '@/lib/demoData';
+import { AlertTriangle, Check, Clock3, Compass, FileText, Image as ImageIcon, Layers3, Map as MapIcon, Search, ShieldCheck, Users, X } from 'lucide-react';
+import { demoBlocks, demoCases, demoCitizens, demoProofs, demoShelters, demoTaskTemplates, demoTasks } from '@/lib/demoData';
 
-type Persona = 'ops' | 'shelter' | 'impact';
-type Mode = 'work' | 'audit';
 type WorkItemKind = 'case' | 'task' | 'proof';
-type QueueFilter = 'all' | 'emergency' | 'unassigned' | 'proof' | 'blocked' | 'stale' | 'done';
+type QueueStage = 'intake' | 'dispatch' | 'field' | 'proof' | 'exception' | 'done';
+type QueueFilter = 'all' | 'urgent' | 'review' | 'assign' | 'verify' | 'blocked';
+type WorkSource = 'mobile_report' | 'mobile_mission' | 'hub_dispatch' | 'field_proof';
 
 type WorkItem = {
   key: string;
@@ -23,10 +23,16 @@ type WorkItem = {
   subtitle: string;
   meta: string;
   status: string;
+  stage: QueueStage;
+  source: WorkSource;
+  sourceLabel: string;
+  mobileStatus: string;
+  mobileImpact: string;
   tone: 'jungle' | 'coral' | 'gold' | 'sky' | 'plum' | 'paper' | 'ink';
   priority: number;
   dueLabel: string;
   primaryAction: string;
+  duplicateMatches?: CaseRow[];
   caseRow?: CaseRow;
   taskRow?: TaskRow;
   proofRow?: ProofRow;
@@ -34,35 +40,144 @@ type WorkItem = {
 
 const queueFilters: Array<{ key: QueueFilter; label: string }> = [
   { key: 'all', label: 'All' },
-  { key: 'emergency', label: 'Emergency' },
-  { key: 'unassigned', label: 'Unassigned' },
-  { key: 'proof', label: 'Proof review' },
+  { key: 'urgent', label: 'Urgent' },
+  { key: 'review', label: 'Review' },
+  { key: 'assign', label: 'Assign' },
+  { key: 'verify', label: 'Verify' },
   { key: 'blocked', label: 'Blocked' },
-  { key: 'stale', label: 'Stale' },
-  { key: 'done', label: 'Done' },
 ];
 
 const openTaskStatuses: TaskRow['status'][] = ['queued', 'assigned', 'in_progress', 'proof_pending', 'blocked', 'escalated'];
+
+const stageCopy: Record<QueueStage, { label: string; mobile: string; hub: string; tone: WorkItem['tone'] }> = {
+  intake: {
+    label: 'Mobile intake',
+    mobile: 'Citizen sees Report submitted or Under review.',
+    hub: 'Validate category, urgency, block, and duplicate risk.',
+    tone: 'gold',
+  },
+  dispatch: {
+    label: 'Dispatch',
+    mobile: 'Citizen sees Under review until a task is assigned.',
+    hub: 'Assign shelter or mobile volunteer with an auditable reason.',
+    tone: 'sky',
+  },
+  field: {
+    label: 'In field',
+    mobile: 'Citizen sees Volunteer assigned or an active mission task.',
+    hub: 'Track SLA, owner, safety notes, and stalled work.',
+    tone: 'plum',
+  },
+  proof: {
+    label: 'Proof review',
+    mobile: 'Citizen has submitted photo evidence and waits for review.',
+    hub: 'Verify proof before credit, closure, or rejection.',
+    tone: 'jungle',
+  },
+  exception: {
+    label: 'Exception',
+    mobile: 'Citizen sees failed/rejected only when the case or proof is rejected.',
+    hub: 'Resolve blocked work, rejected proof, or emergency escalation.',
+    tone: 'coral',
+  },
+  done: {
+    label: 'Closed',
+    mobile: 'Citizen sees Resolved once the case is closed.',
+    hub: 'Keep the audit trail available for learning and impact reporting.',
+    tone: 'paper',
+  },
+};
 
 function displayStatus(status: string) {
   return status.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-function isDoneItem(item: WorkItem) {
-  if (item.kind === 'case') return Boolean(item.caseRow && ['rejected', 'resolved', 'closed'].includes(item.caseRow.status));
-  if (item.kind === 'task') return Boolean(item.taskRow && ['completed', 'cancelled'].includes(item.taskRow.status));
-  return Boolean(item.proofRow && ['verified', 'rejected'].includes(item.proofRow.verification_status));
+function isMobileMissionTask(task: TaskRow | undefined) {
+  return Boolean(task?.external_ref?.startsWith('mission:'));
+}
+
+function mobileCaseStatus(status: CaseRow['status']) {
+  if (status === 'submitted') return 'Mobile: submitted';
+  if (status === 'under_review' || status === 'accepted' || status === 'task_created') return 'Mobile: reviewing';
+  if (status === 'assigned' || status === 'in_progress') return 'Mobile: dispatched';
+  if (status === 'resolved' || status === 'closed') return 'Mobile: resolved';
+  return 'Mobile: failed';
+}
+
+function mobileTaskStatus(task: TaskRow) {
+  if (isMobileMissionTask(task)) return `Mission: ${displayStatus(task.status)}`;
+  if (task.assigned_to_type === 'citizen') return `Assigned in mobile: ${displayStatus(task.status)}`;
+  return 'Ops task, not directly visible in mobile unless assigned to citizen';
+}
+
+function sourceForTask(task: TaskRow): WorkSource {
+  if (isMobileMissionTask(task)) return 'mobile_mission';
+  if (task.assigned_to_type === 'citizen') return 'mobile_mission';
+  return 'hub_dispatch';
+}
+
+function sourceLabel(source: WorkSource) {
+  if (source === 'mobile_report') return 'Citizen report';
+  if (source === 'mobile_mission') return 'Mobile mission';
+  if (source === 'field_proof') return 'Field proof';
+  return 'Hub dispatch';
+}
+
+function stageForCase(c: CaseRow): QueueStage {
+  if (c.status === 'rejected') return 'exception';
+  if (c.status === 'resolved' || c.status === 'closed') return 'done';
+  if (c.status === 'submitted' || c.status === 'under_review' || c.status === 'accepted') return 'intake';
+  if (c.status === 'task_created') return 'dispatch';
+  return 'field';
+}
+
+function stageForTask(t: TaskRow): QueueStage {
+  if (t.status === 'completed' || t.status === 'cancelled') return 'done';
+  if (t.status === 'blocked' || t.status === 'escalated') return 'exception';
+  if (t.status === 'proof_pending') return 'proof';
+  if (t.status === 'queued') return 'dispatch';
+  return 'field';
+}
+
+function stageForProof(p: ProofRow): QueueStage {
+  if (p.verification_status === 'verified') return 'done';
+  if (p.verification_status === 'rejected') return 'exception';
+  return 'proof';
+}
+
+function isUrgentItem(item: WorkItem) {
+  return item.priority >= 85 || item.stage === 'exception' || item.dueLabel.startsWith('Overdue');
 }
 
 function matchesQueueFilter(item: WorkItem, filter: QueueFilter) {
   if (filter === 'all') return true;
-  if (filter === 'done') return isDoneItem(item);
-  if (filter === 'emergency') return item.caseRow?.severity === 'urgent' || item.taskRow?.priority === 'critical' || item.dueLabel.includes('Overdue');
-  if (filter === 'unassigned') return item.kind === 'task' ? item.taskRow?.status === 'queued' : item.caseRow?.status === 'submitted' || item.caseRow?.status === 'task_created';
-  if (filter === 'proof') return item.kind === 'proof' || item.taskRow?.status === 'proof_pending';
-  if (filter === 'blocked') return item.taskRow?.status === 'blocked' || item.caseRow?.status === 'rejected' || item.proofRow?.verification_status === 'rejected';
-  if (filter === 'stale') return item.dueLabel.includes('Overdue') || Boolean(item.caseRow && ageMinutes(item.caseRow.updated_at) > 240) || Boolean(item.taskRow && ageMinutes(item.taskRow.updated_at) > 240);
+  if (filter === 'urgent') return isUrgentItem(item);
+  if (filter === 'review') return item.stage === 'intake';
+  if (filter === 'assign') return item.stage === 'dispatch';
+  if (filter === 'verify') return item.stage === 'proof';
+  if (filter === 'blocked') return item.stage === 'exception';
   return true;
+}
+
+function normalizedText(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function duplicateReportCandidates(target: CaseRow, allCases: CaseRow[]) {
+  const targetLocation = normalizedText(target.location_text);
+  return allCases
+    .filter((candidate) => {
+      if (candidate.id === target.id) return false;
+      if (candidate.status === 'closed' || candidate.status === 'resolved') return false;
+      const sameBlock = Boolean(target.block_id && candidate.block_id === target.block_id);
+      const sameCategory = candidate.category === target.category;
+      const candidateLocation = normalizedText(candidate.location_text);
+      const locationOverlap = Boolean(targetLocation && candidateLocation && (targetLocation.includes(candidateLocation) || candidateLocation.includes(targetLocation)));
+      const closeInTime = Math.abs(new Date(target.created_at).getTime() - new Date(candidate.created_at).getTime()) <= 72 * 60 * 60 * 1000;
+      return closeInTime && (sameBlock || locationOverlap) && (sameCategory || locationOverlap);
+    })
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 3);
 }
 
 function rankedShelterSuggestions(shelters: Shelter[], tasks: TaskRow[], blockId: string | null | undefined) {
@@ -95,12 +210,26 @@ function rankedShelterSuggestions(shelters: Shelter[], tasks: TaskRow[], blockId
     .sort((a, b) => b.score - a.score);
 }
 
-function statusTone(status: string): WorkItem['tone'] {
-  if (status.includes('urgent') || status.includes('critical') || status.includes('rejected') || status.includes('overdue')) return 'coral';
-  if (status.includes('review') || status.includes('queued') || status.includes('pending')) return 'gold';
-  if (status.includes('assigned') || status.includes('progress')) return 'sky';
-  if (status.includes('verified') || status.includes('completed') || status.includes('resolved')) return 'jungle';
-  return 'paper';
+function rankedCitizenSuggestions(citizens: CitizenRow[], tasks: TaskRow[], blockId: string | null | undefined) {
+  return citizens
+    .map((citizen) => {
+      const activeLoad = tasks.filter((task) => task.assigned_to_type === 'citizen' && task.assigned_to_id === citizen.device_id && openTaskStatuses.includes(task.status)).length;
+      const reasons: string[] = [];
+      let score = 12;
+      if (blockId && citizen.block_id === blockId) {
+        score += 45;
+        reasons.push('same block');
+      }
+      if (activeLoad === 0) {
+        score += 20;
+        reasons.push('no open mobile tasks');
+      } else {
+        reasons.push(`${activeLoad} open mobile task${activeLoad === 1 ? '' : 's'}`);
+      }
+      score -= activeLoad * 8;
+      return { citizen, score, activeLoad, reasons };
+    })
+    .sort((a, b) => b.score - a.score);
 }
 
 function severityScore(c: CaseRow) {
@@ -142,10 +271,14 @@ function proofTone(status: ProofVerificationStatus): WorkItem['tone'] {
   return 'gold';
 }
 
+function canRunPrimaryAction(item: WorkItem) {
+  if (item.kind === 'case') return Boolean(item.caseRow && (item.caseRow.status === 'submitted' || item.caseRow.status === 'under_review'));
+  if (item.kind === 'task') return Boolean(item.taskRow && (item.taskRow.status === 'queued' || item.taskRow.status === 'assigned'));
+  return Boolean(item.proofRow && (item.proofRow.verification_status === 'pending' || item.proofRow.verification_status === 'needs_review'));
+}
+
 export default function ActionQueuePage() {
   const supabase = getSupabase();
-  const [persona, setPersona] = useState<Persona>('ops');
-  const [mode, setMode] = useState<Mode>('work');
   const [queueFilter, setQueueFilter] = useState<QueueFilter>('all');
   const [q, setQ] = useState('');
   const [busyItem, setBusyItem] = useState<string | null>(null);
@@ -158,6 +291,7 @@ export default function ActionQueuePage() {
   const [templates, setTemplates] = useState<TaskTemplateRow[]>([]);
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [shelters, setShelters] = useState<Shelter[]>([]);
+  const [citizens, setCitizens] = useState<CitizenRow[]>([]);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
   const caseById = useMemo(() => new Map(cases.map((c) => [c.id, c])), [cases]);
@@ -165,6 +299,8 @@ export default function ActionQueuePage() {
   const templateById = useMemo(() => new Map(templates.map((t) => [t.id, t])), [templates]);
   const blockById = useMemo(() => new Map(blocks.map((b) => [b.id, b])), [blocks]);
   const shelterById = useMemo(() => new Map(shelters.map((s) => [s.id, s])), [shelters]);
+  const citizenById = useMemo(() => new Map(citizens.map((citizen) => [citizen.id, citizen])), [citizens]);
+  const citizenByDevice = useMemo(() => new Map(citizens.map((citizen) => [citizen.device_id, citizen])), [citizens]);
   const defaultShelterId = shelters[0]?.id ?? null;
 
   async function load() {
@@ -176,20 +312,22 @@ export default function ActionQueuePage() {
       setTemplates(demoTaskTemplates);
       setBlocks(demoBlocks);
       setShelters(demoShelters);
+      setCitizens(demoCitizens);
       setLastUpdated(new Date());
       return;
     }
 
-    const [c, t, p, tt, b, s] = await Promise.all([
+    const [c, t, p, tt, b, s, cz] = await Promise.all([
       supabase.from('cases').select('*').order('created_at', { ascending: false }).limit(300),
       supabase.from('tasks').select('*').order('created_at', { ascending: false }).limit(300),
       supabase.from('proofs').select('*').order('submitted_at', { ascending: false }).limit(300),
       supabase.from('task_templates').select('*').order('type', { ascending: true }),
       supabase.from('blocks').select('id,name,code').order('name', { ascending: true }),
       supabase.from('shelters').select('id,name,block_id,status').order('name', { ascending: true }),
+      supabase.from('citizens').select('id,device_id,block_id,created_at,user_id').order('created_at', { ascending: false }).limit(300),
     ]);
 
-    const failure = [c.error, t.error, p.error, tt.error, b.error, s.error].find(Boolean);
+    const failure = [c.error, t.error, p.error, tt.error, b.error, s.error, cz.error].find(Boolean);
     if (failure) {
       setLoadError(failure.message);
     }
@@ -200,6 +338,7 @@ export default function ActionQueuePage() {
     setTemplates(((tt.data ?? []) as unknown) as TaskTemplateRow[]);
     setBlocks(((b.data ?? []) as unknown) as Block[]);
     setShelters(((s.data ?? []) as unknown) as Shelter[]);
+    setCitizens(((cz.data ?? []) as unknown) as CitizenRow[]);
     setLastUpdated(new Date());
   }
 
@@ -211,17 +350,20 @@ export default function ActionQueuePage() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'cases' }, () => load())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => load())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'proofs' }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'citizens' }, () => load())
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
   }, []);
 
-  const workItems = useMemo(() => {
+  const allWorkItems = useMemo(() => {
     const rows: WorkItem[] = [];
     for (const c of cases) {
-      if (['rejected', 'resolved', 'closed'].includes(c.status) && mode === 'work' && queueFilter !== 'done') continue;
+      if (['resolved', 'closed'].includes(c.status)) continue;
       const ageBonus = Math.min(25, Math.floor(ageMinutes(c.created_at) / 20));
+      const stage = stageForCase(c);
+      const duplicateMatches = duplicateReportCandidates(c, cases);
       rows.push({
         key: `case:${c.id}`,
         kind: 'case',
@@ -229,18 +371,26 @@ export default function ActionQueuePage() {
         subtitle: c.location_text || 'Location not provided',
         meta: c.external_id,
         status: displayStatus(c.status),
-        tone: statusTone(c.status === 'submitted' && c.severity === 'urgent' ? 'urgent' : c.status),
-        priority: severityScore(c) + ageBonus,
+        stage,
+        source: 'mobile_report',
+        sourceLabel: sourceLabel('mobile_report'),
+        mobileStatus: mobileCaseStatus(c.status),
+        mobileImpact: c.status === 'rejected' ? 'The reporter sees a failed/rejected state.' : c.status === 'resolved' || c.status === 'closed' ? 'The reporter sees resolved.' : c.status === 'assigned' || c.status === 'in_progress' ? 'The reporter sees volunteer assigned.' : 'The reporter is waiting for review.',
+        tone: stage === 'exception' ? 'coral' : stageCopy[stage].tone,
+        priority: severityScore(c) + ageBonus + (duplicateMatches.length > 0 ? 8 : 0),
         dueLabel: dueLabel(c.created_at, c.severity === 'urgent' ? 30 : c.severity === 'today' ? 180 : 480),
-        primaryAction: c.status === 'submitted' || c.status === 'under_review' ? 'Accept + create task' : 'Open report',
+        primaryAction: c.status === 'submitted' || c.status === 'under_review' ? 'Review + create task' : stage === 'dispatch' ? 'Dispatch field work' : 'Open report',
+        duplicateMatches,
         caseRow: c,
       });
     }
 
     for (const t of tasks) {
-      if (['completed', 'cancelled'].includes(t.status) && mode === 'work' && queueFilter !== 'done') continue;
+      if (['completed', 'cancelled'].includes(t.status)) continue;
       const tpl = t.template_id ? templateById.get(t.template_id) : null;
       const c = t.case_id ? caseById.get(t.case_id) : null;
+      const stage = stageForTask(t);
+      const source = sourceForTask(t);
       rows.push({
         key: `task:${t.id}`,
         kind: 'task',
@@ -248,20 +398,26 @@ export default function ActionQueuePage() {
         subtitle: c?.location_text || (t.block_id ? blockById.get(t.block_id)?.name ?? 'Unknown block' : 'No location context'),
         meta: c?.external_id ?? 'Manual task',
         status: displayStatus(t.status),
-        tone: statusTone(t.status),
+        stage,
+        source,
+        sourceLabel: sourceLabel(source),
+        mobileStatus: mobileTaskStatus(t),
+        mobileImpact: t.assigned_to_type === 'citizen' ? 'This task is readable by the assigned mobile device.' : t.status === 'queued' ? 'Assign to a citizen to make it appear under From shelter ops.' : 'Shelter-owned work updates the report status, not a specific mobile task card.',
+        tone: stageCopy[stage].tone,
         priority: priorityScore(t) + (t.status === 'queued' ? 12 : 0),
         dueLabel: t.due_at ? dueLabel(t.created_at, Math.max(15, Math.round((new Date(t.due_at).getTime() - new Date(t.created_at).getTime()) / 60000))) : 'No SLA set',
-        primaryAction: t.status === 'queued' ? 'Assign nearest shelter' : 'Update field work',
+        primaryAction: t.status === 'queued' ? 'Assign owner' : t.status === 'assigned' ? 'Start field work' : t.status === 'proof_pending' ? 'Review linked proof' : 'Open field context',
         taskRow: t,
         caseRow: c ?? undefined,
       });
     }
 
     for (const p of proofs) {
-      if (['verified', 'rejected'].includes(p.verification_status) && mode === 'work' && queueFilter !== 'done') continue;
+      if (p.verification_status === 'verified') continue;
       const t = taskById.get(p.task_id);
       const tpl = t?.template_id ? templateById.get(t.template_id) : null;
       const c = t?.case_id ? caseById.get(t.case_id) : null;
+      const stage = stageForProof(p);
       rows.push({
         key: `proof:${p.id}`,
         kind: 'proof',
@@ -269,6 +425,11 @@ export default function ActionQueuePage() {
         subtitle: p.note || 'No field note provided',
         meta: c?.external_id ?? 'Unlinked evidence',
         status: displayStatus(p.verification_status),
+        stage,
+        source: 'field_proof',
+        sourceLabel: sourceLabel('field_proof'),
+        mobileStatus: t ? mobileTaskStatus(t) : 'Unlinked proof',
+        mobileImpact: p.verification_status === 'rejected' ? 'The mission/report needs a clear rejection reason.' : 'The mobile user is waiting for evidence review.',
         tone: proofTone(p.verification_status),
         priority: 70 + Math.min(20, Math.floor(ageMinutes(p.submitted_at) / 30)),
         dueLabel: dueLabel(p.submitted_at, 120),
@@ -279,17 +440,18 @@ export default function ActionQueuePage() {
       });
     }
 
+    return rows.sort((a, b) => b.priority - a.priority);
+  }, [blockById, caseById, cases, proofs, taskById, tasks, templateById]);
+
+  const workItems = useMemo(() => {
     const qq = q.trim().toLowerCase();
-    return rows
+    return allWorkItems
       .filter((row) => {
-        if (persona === 'shelter' && row.kind === 'proof') return false;
-        if (persona === 'impact' && row.kind !== 'proof' && row.kind !== 'case') return false;
         if (!matchesQueueFilter(row, queueFilter)) return false;
         if (!qq) return true;
-        return `${row.title} ${row.subtitle} ${row.meta} ${row.status}`.toLowerCase().includes(qq);
-      })
-      .sort((a, b) => b.priority - a.priority);
-  }, [blockById, caseById, cases, mode, persona, proofs, q, queueFilter, taskById, tasks, templateById]);
+        return `${row.title} ${row.subtitle} ${row.meta} ${row.status} ${row.sourceLabel} ${row.mobileStatus}`.toLowerCase().includes(qq);
+      });
+  }, [allWorkItems, q, queueFilter]);
 
   useEffect(() => {
     setSelectedKey((prev) => {
@@ -301,10 +463,40 @@ export default function ActionQueuePage() {
   const selected = workItems.find((item) => item.key === selectedKey) ?? workItems[0] ?? null;
   const selectedBlock = selected?.caseRow?.block_id ? blockById.get(selected.caseRow.block_id) : selected?.taskRow?.block_id ? blockById.get(selected.taskRow.block_id) : null;
   const selectedShelter = selected?.taskRow?.shelter_id ? shelterById.get(selected.taskRow.shelter_id) : selected?.caseRow?.shelter_id ? shelterById.get(selected.caseRow.shelter_id) : null;
+  const selectedCitizen = selected?.taskRow?.assigned_to_type === 'citizen' && selected.taskRow.assigned_to_id ? citizenByDevice.get(selected.taskRow.assigned_to_id) : selected?.caseRow?.citizen_id ? citizenById.get(selected.caseRow.citizen_id) : null;
   const selectedTemplate = selected?.taskRow?.template_id ? templateById.get(selected.taskRow.template_id) : null;
   const selectedShelterSuggestions = useMemo(() => rankedShelterSuggestions(shelters, tasks, selected?.taskRow?.block_id ?? selected?.caseRow?.block_id), [selected?.caseRow?.block_id, selected?.taskRow?.block_id, shelters, tasks]);
+  const selectedCitizenSuggestions = useMemo(() => rankedCitizenSuggestions(citizens, tasks, selected?.taskRow?.block_id ?? selected?.caseRow?.block_id), [citizens, selected?.caseRow?.block_id, selected?.taskRow?.block_id, tasks]);
   const recommendedShelterId = selectedShelterSuggestions.find((suggestion) => suggestion.shelter.status !== 'inactive')?.shelter.id ?? defaultShelterId;
   const nearbySignals = selectedBlock ? cases.filter((c) => c.block_id === selectedBlock.id && !['rejected', 'resolved', 'closed'].includes(c.status)).length : 0;
+
+  async function recordDomainEvent(item: WorkItem, eventType: string, summary: string, payload: Record<string, unknown> = {}) {
+    if (!supabase) return;
+    await supabase.from('domain_events').insert({
+      event_type: eventType,
+      actor_role: 'ops',
+      case_id: item.caseRow?.id ?? item.taskRow?.case_id ?? null,
+      task_id: item.taskRow?.id ?? null,
+      proof_id: item.proofRow?.id ?? null,
+      animal_id: item.caseRow?.animal_id ?? item.taskRow?.animal_id ?? item.proofRow?.animal_id ?? null,
+      block_id: item.caseRow?.block_id ?? item.taskRow?.block_id ?? null,
+      shelter_id: item.caseRow?.shelter_id ?? item.taskRow?.shelter_id ?? null,
+      summary,
+      payload,
+    });
+  }
+
+  async function recordAssignment(item: WorkItem, assignedToType: 'shelter' | 'citizen', assignedToId: string, reason: string) {
+    if (!supabase || !item.taskRow) return;
+    await supabase.from('task_assignments').insert({
+      task_id: item.taskRow.id,
+      assigned_to_type: assignedToType,
+      assigned_to_id: assignedToId,
+      assignment_reason: reason,
+      status: 'offered',
+    });
+    await recordDomainEvent(item, 'task.assigned', `Assigned ${item.title} to ${assignedToType}.`, { assigned_to_type: assignedToType, assigned_to_id: assignedToId, reason });
+  }
 
   async function assignTask(item: WorkItem, shelterId: string | null) {
     if (!item.taskRow || !shelterId) return;
@@ -331,16 +523,50 @@ export default function ActionQueuePage() {
       status: item.taskRow.status === 'queued' ? 'assigned' : item.taskRow.status,
     }).eq('id', item.taskRow.id);
     if (item.taskRow.case_id) await supabase.from('cases').update({ status: 'assigned' }).eq('id', item.taskRow.case_id);
+    await recordAssignment(item, 'shelter', shelterId, 'Assigned from action queue recommendation.');
+    setBusyItem(null);
+  }
+
+  async function assignTaskToCitizen(item: WorkItem, citizen: CitizenRow | null) {
+    if (!item.taskRow || !citizen) return;
+    if (!supabase) {
+      setTasks((prev) => prev.map((t) => t.id === item.taskRow?.id ? {
+        ...t,
+        assigned_to_type: 'citizen',
+        assigned_to_id: citizen.device_id,
+        status: t.status === 'queued' ? 'assigned' : t.status,
+        updated_at: new Date().toISOString(),
+      } : t));
+      if (item.taskRow.case_id) {
+        setCases((prev) => prev.map((c) => c.id === item.taskRow?.case_id ? { ...c, status: 'assigned', updated_at: new Date().toISOString() } : c));
+      }
+      return;
+    }
+
+    setBusyItem(item.key);
+    await supabase.from('tasks').update({
+      assigned_to_type: 'citizen',
+      assigned_to_id: citizen.device_id,
+      status: item.taskRow.status === 'queued' ? 'assigned' : item.taskRow.status,
+    }).eq('id', item.taskRow.id);
+    if (item.taskRow.case_id) await supabase.from('cases').update({ status: 'assigned' }).eq('id', item.taskRow.case_id);
+    await recordAssignment(item, 'citizen', citizen.device_id, 'Assigned to mobile volunteer from action queue.');
     setBusyItem(null);
   }
 
   async function runPrimaryAction(item: WorkItem) {
+    if (!canRunPrimaryAction(item)) return;
     if (!supabase) {
       if (item.kind === 'case' && item.caseRow) {
         setCases((prev) => prev.map((c) => c.id === item.caseRow?.id ? { ...c, status: 'task_created', updated_at: new Date().toISOString() } : c));
       }
       if (item.kind === 'task' && item.taskRow) {
-        await assignTask(item, recommendedShelterId ?? demoShelters[0]?.id ?? null);
+        if (item.taskRow.status === 'queued') {
+          await assignTask(item, recommendedShelterId ?? demoShelters[0]?.id ?? null);
+        } else if (item.taskRow.status === 'assigned') {
+          setTasks((prev) => prev.map((t) => t.id === item.taskRow?.id ? { ...t, status: 'in_progress', updated_at: new Date().toISOString() } : t));
+          if (item.caseRow) setCases((prev) => prev.map((c) => c.id === item.caseRow?.id ? { ...c, status: 'in_progress', updated_at: new Date().toISOString() } : c));
+        }
       }
       if (item.kind === 'proof' && item.proofRow) {
         setProofs((prev) => prev.map((p) => p.id === item.proofRow?.id ? { ...p, verification_status: 'verified' } : p));
@@ -361,14 +587,21 @@ export default function ActionQueuePage() {
         reviewer_user_id: userData.user?.id ?? null,
         decision: 'accepted',
       });
+      await recordDomainEvent(item, 'case.accepted', `Accepted ${item.meta} for operational follow-up.`, { source: item.source });
     }
-    if (item.kind === 'task' && item.taskRow && recommendedShelterId) {
+    if (item.kind === 'task' && item.taskRow?.status === 'queued' && recommendedShelterId) {
       await assignTask(item, recommendedShelterId);
+    }
+    if (item.kind === 'task' && item.taskRow?.status === 'assigned') {
+      await supabase.from('tasks').update({ status: 'in_progress' }).eq('id', item.taskRow.id);
+      if (item.taskRow.case_id) await supabase.from('cases').update({ status: 'in_progress' }).eq('id', item.taskRow.case_id);
+      await recordDomainEvent(item, 'task.started', `Started ${item.title}.`, { previous_status: item.taskRow.status });
     }
     if (item.kind === 'proof' && item.proofRow) {
       await supabase.from('proofs').update({ verification_status: 'verified' }).eq('id', item.proofRow.id);
       if (item.taskRow) await supabase.from('tasks').update({ status: 'completed' }).eq('id', item.taskRow.id);
       if (item.caseRow) await supabase.from('cases').update({ status: 'resolved' }).eq('id', item.caseRow.id);
+      await recordDomainEvent(item, 'proof.verified', `Verified evidence for ${item.meta}.`, { verification_status: 'verified' });
     }
     setBusyItem(null);
   }
@@ -395,34 +628,94 @@ export default function ActionQueuePage() {
       const { data: userData } = await supabase.auth.getUser();
       await supabase.from('cases').update({ status: 'rejected', reject_reason_code: 'not_actionable', reject_reason_text: 'Rejected from action queue.' }).eq('id', selected.caseRow.id);
       await supabase.from('case_reviews').insert({ case_id: selected.caseRow.id, reviewer_user_id: userData.user?.id ?? null, decision: 'rejected', fixed_reason_code: 'not_actionable', free_text_reason: 'Rejected from action queue.' });
+      await recordDomainEvent(selected, 'case.rejected', `Rejected ${selected.meta}.`, { reason: 'not_actionable' });
     }
-    if (selected.kind === 'proof' && selected.proofRow) await supabase.from('proofs').update({ verification_status: 'rejected' }).eq('id', selected.proofRow.id);
+    if (selected.kind === 'proof' && selected.proofRow) {
+      await supabase.from('proofs').update({ verification_status: 'rejected' }).eq('id', selected.proofRow.id);
+      await recordDomainEvent(selected, 'proof.rejected', `Rejected evidence for ${selected.meta}.`, { reason: 'not_actionable' });
+    }
     setBusyItem(null);
   }
 
-  const stats = [
-    { label: 'Needs triage', value: workItems.filter((i) => i.kind === 'case').length, tone: 'gold' as const },
-    { label: 'Needs assignment', value: workItems.filter((i) => i.kind === 'task' && i.taskRow?.status === 'queued').length, tone: 'sky' as const },
-    { label: 'Needs evidence review', value: workItems.filter((i) => i.kind === 'proof').length, tone: 'plum' as const },
-    { label: 'At risk', value: workItems.filter((i) => i.dueLabel.includes('Overdue') || i.priority > 85).length, tone: 'coral' as const },
+  const filterCounts: Record<QueueFilter, number> = {
+    all: allWorkItems.length,
+    urgent: allWorkItems.filter(isUrgentItem).length,
+    review: allWorkItems.filter((item) => item.stage === 'intake').length,
+    assign: allWorkItems.filter((item) => item.stage === 'dispatch').length,
+    verify: allWorkItems.filter((item) => item.stage === 'proof').length,
+    blocked: allWorkItems.filter((item) => item.stage === 'exception').length,
+  };
+
+  const summaryStats = [
+    { label: 'Open work', value: allWorkItems.length, tone: 'ink' as const },
+    { label: 'Urgent', value: filterCounts.urgent, tone: filterCounts.urgent > 0 ? 'coral' as const : 'jungle' as const },
+    { label: 'Needs assignment', value: filterCounts.assign, tone: 'sky' as const },
+    { label: 'Proofs waiting', value: filterCounts.verify, tone: 'jungle' as const },
   ];
 
+  const historySteps = selected ? [
+    ['Submitted', selected.caseRow?.created_at ?? selected.taskRow?.created_at ?? selected.proofRow?.submitted_at],
+    ['Reviewed', selected.caseRow?.status && selected.caseRow.status !== 'submitted' ? selected.caseRow.updated_at : null],
+    ['Assigned', selected.taskRow?.status === 'assigned' || selected.caseRow?.status === 'assigned' ? selected.taskRow?.updated_at ?? selected.caseRow?.updated_at : null],
+    ['Evidence submitted', selected.proofRow?.submitted_at ?? null],
+    ['Resolved', selected.caseRow?.status === 'resolved' ? selected.caseRow.updated_at : null],
+  ] : [];
+
   return (
-    <div className="grid gap-6">
-      <div className="grid gap-4 md:grid-cols-4">
-        {stats.map((stat) => (
-          <Card key={stat.label} className="p-5">
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">{stat.label}</div>
-              <Pill tone={stat.tone} variant="soft">now</Pill>
+    <div className="grid gap-5">
+      <Card className="p-5 md:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">Today&apos;s work queue</div>
+            <h2 className="fredoka mt-2 text-[30px] font-semibold leading-tight md:text-[38px]">One inbox for the next operational decision.</h2>
+            <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-[var(--muted)]">Review reports, assign field work, verify proof, and unblock exceptions without switching modes.</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Pill tone={supabase ? 'jungle' : 'gold'} variant="soft">{supabase ? 'live sync' : 'demo ledger'}</Pill>
+            <Pill tone="paper" variant="soft">{lastUpdated ? `updated ${lastUpdated.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}` : 'loading'}</Pill>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {summaryStats.map((stat) => (
+            <div key={stat.label} className="rounded-[20px] border border-[var(--border)] bg-white/60 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">{stat.label}</div>
+                <Pill tone={stat.tone} variant="soft">now</Pill>
+              </div>
+              <div className="mono mt-3 text-[28px] font-black text-[var(--ink)]">{stat.value}</div>
             </div>
-            <div className="mono mt-4 text-[30px] font-bold text-[var(--ink)]">{stat.value}</div>
-          </Card>
-        ))}
-      </div>
+          ))}
+        </div>
+
+        <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            {queueFilters.map((filter) => (
+              <button
+                key={filter.key}
+                onClick={() => setQueueFilter(filter.key)}
+                className={`rounded-full border px-3 py-2 text-xs font-black transition ${queueFilter === filter.key ? 'border-transparent bg-[var(--ink)] text-white' : 'border-[var(--border)] bg-white/70 text-[var(--ink2)] hover:bg-white'}`}
+                type="button"
+              >
+                {filter.label} <span className="mono opacity-70">{filterCounts[filter.key]}</span>
+              </button>
+            ))}
+          </div>
+          <div className="flex min-w-0 items-center gap-2 rounded-[16px] border border-[var(--border)] bg-white/70 px-3 lg:w-[320px]">
+            <Search size={15} className="shrink-0 text-[var(--muted)]" />
+            <input
+              value={q}
+              onChange={(event) => setQ(event.target.value)}
+              placeholder="Search area, case, proof"
+              className="h-10 min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none placeholder:text-[var(--muted)]"
+            />
+          </div>
+        </div>
+        {loadError && <div className="mt-4 rounded-[16px] border border-[color-mix(in_srgb,var(--coral)_28%,transparent)] bg-[var(--coral-soft)] px-4 py-3 text-sm font-bold text-[var(--coral-deep)]">Load issue: {loadError}</div>}
+      </Card>
 
       <Card className="overflow-hidden p-0">
-        <div className="grid lg:grid-cols-[420px_1fr]">
+        <div className="grid lg:grid-cols-[390px_1fr]">
           <div className="border-b border-[var(--hairline)] lg:border-r lg:border-b-0">
             <div className="border-b border-[var(--hairline)] bg-[var(--paper)] p-4">
               <div className="flex items-center justify-between gap-3">
@@ -430,68 +723,7 @@ export default function ActionQueuePage() {
                   <div className="text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">Action Queue</div>
                   <div className="mt-1 text-sm font-semibold text-[var(--ink2)]">Highest-risk work first. One decision per item.</div>
                 </div>
-                <Pill tone="ink" variant="soft">{mode}</Pill>
-              </div>
-
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                {queueFilters.map((filter) => (
-                  <button
-                    key={filter.key}
-                    onClick={() => setQueueFilter(filter.key)}
-                    className={`rounded-full border px-3 py-1.5 text-[11px] font-black transition ${queueFilter === filter.key ? 'border-transparent bg-[var(--ink)] text-white' : 'border-[var(--border)] bg-white/70 text-[var(--ink2)] hover:bg-white'}`}
-                    type="button"
-                  >
-                    {filter.label}
-                  </button>
-                ))}
-              </div>
-
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-[16px] border border-[var(--border)] bg-white/54 px-3 py-2 text-xs font-bold text-[var(--muted)]">
-                <span>{lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}` : 'Loading workspace'}</span>
-                <span>{loadError ? `Load issue: ${loadError}` : supabase ? 'Supabase realtime' : 'Demo ledger'}</span>
-              </div>
-
-              <div className="mt-4 grid grid-cols-3 gap-2">
-                {([
-                  ['ops', 'Ops'],
-                  ['shelter', 'Shelter'],
-                  ['impact', 'Impact'],
-                ] as const).map(([value, label]) => (
-                  <button
-                    key={value}
-                    onClick={() => setPersona(value)}
-                    className={`rounded-[14px] border px-3 py-2 text-xs font-extrabold transition ${persona === value ? 'border-transparent bg-[var(--ink)] text-white' : 'border-[var(--border)] bg-white/70 text-[var(--ink2)] hover:bg-white'}`}
-                    type="button"
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                {([
-                  ['work', 'Work mode'],
-                  ['audit', 'Audit mode'],
-                ] as const).map(([value, label]) => (
-                  <button
-                    key={value}
-                    onClick={() => setMode(value)}
-                    className={`rounded-[14px] border px-3 py-2 text-xs font-extrabold transition ${mode === value ? 'border-[var(--jungle)] bg-[var(--jungle-soft)] text-[var(--jungle-deep)]' : 'border-[var(--border)] bg-white/70 text-[var(--ink2)] hover:bg-white'}`}
-                    type="button"
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-
-              <div className="mt-3 flex items-center gap-2 rounded-[16px] border border-[var(--border)] bg-white/70 px-3">
-                <Search size={15} className="text-[var(--muted)]" />
-                <input
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder="urgent, proof, Indiranagar"
-                  className="h-10 min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none placeholder:text-[var(--muted)]"
-                />
+                <Pill tone={queueFilter === 'urgent' || queueFilter === 'blocked' ? 'coral' : 'ink'} variant="soft">{workItems.length}</Pill>
               </div>
             </div>
 
@@ -514,6 +746,11 @@ export default function ActionQueuePage() {
                       <div className="mt-1 truncate text-xs font-semibold text-[var(--muted)]">{item.meta} · {item.subtitle}</div>
                     </div>
                     <Pill tone={item.tone} variant="soft">{item.status}</Pill>
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {isUrgentItem(item) && <Pill tone="coral" variant="soft">urgent</Pill>}
+                    <Pill tone={stageCopy[item.stage].tone} variant="soft">{stageCopy[item.stage].label}</Pill>
+                    {item.duplicateMatches && item.duplicateMatches.length > 0 && <Pill tone="coral" variant="soft">possible duplicate</Pill>}
                   </div>
                   <div className="mt-2 flex items-center justify-between gap-3">
                     <span className="text-xs font-semibold text-[var(--muted)]">{item.dueLabel}</span>
@@ -542,7 +779,7 @@ export default function ActionQueuePage() {
               <div className="grid gap-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <div className="text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">{selected.kind}</div>
+                    <div className="text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">{selected.sourceLabel} · {stageCopy[selected.stage].label}</div>
                     <div className="fredoka mt-2 text-[28px] font-semibold leading-tight">{selected.title}</div>
                     <div className="mt-1 text-sm font-semibold text-[var(--muted)]">{selected.meta} · {selected.subtitle}</div>
                   </div>
@@ -558,7 +795,7 @@ export default function ActionQueuePage() {
                   <div className="rounded-[18px] border border-[var(--border)] bg-white/60 p-4">
                     <Users size={17} className="text-[var(--muted)]" />
                     <div className="mt-3 text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">Owner</div>
-                    <div className="mt-1 text-sm font-bold text-[var(--ink2)]">{selectedShelter?.name ?? 'Unassigned'}</div>
+                    <div className="mt-1 text-sm font-bold text-[var(--ink2)]">{selectedShelter?.name ?? selectedCitizen?.device_id ?? 'Unassigned'}</div>
                   </div>
                   <div className="rounded-[18px] border border-[var(--border)] bg-white/60 p-4">
                     <Layers3 size={17} className="text-[var(--muted)]" />
@@ -572,27 +809,42 @@ export default function ActionQueuePage() {
                   </div>
                 </div>
 
-                <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+                <div className="grid gap-4 xl:grid-cols-[1fr_0.9fr]">
+                  <div className="rounded-[22px] border border-[var(--border)] bg-white/62 p-5">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <div className="text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">Recommended action</div>
+                        <div className="fredoka mt-1 text-[20px] font-semibold">{selected.primaryAction}</div>
+                      </div>
+                      <Pill tone={stageCopy[selected.stage].tone} variant="soft">{selected.mobileStatus}</Pill>
+                    </div>
+                    <div className="mt-3 text-sm font-semibold leading-6 text-[var(--ink2)]">
+                      {selected.caseRow ? recommendationForCase(selected.caseRow) : selected.kind === 'proof' ? 'Verify proof quality, then complete the linked task and case if evidence is clear.' : selected.taskRow?.assigned_to_type === 'citizen' ? 'Keep the task state aligned with the mobile mission flow: assigned, in progress, proof pending, completed.' : 'Assign the best owner, shelter or mobile volunteer, and keep task status current.'}
+                    </div>
+                    <div className="mt-4 rounded-[18px] border border-[var(--border)] bg-[var(--paper)] p-4">
+                      <div className="text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">Mobile impact</div>
+                      <div className="mt-2 text-sm font-semibold leading-6 text-[var(--ink2)]">{selected.mobileImpact}</div>
+                    </div>
+                    {selected.duplicateMatches && selected.duplicateMatches.length > 0 && (
+                      <div className="mt-4 rounded-[18px] border border-[color-mix(in_srgb,var(--coral)_28%,transparent)] bg-[var(--coral-soft)] p-4">
+                        <div className="text-[11px] font-black tracking-widest uppercase text-[var(--coral-deep)]">Possible duplicate</div>
+                        <div className="mt-2 text-sm font-semibold leading-6 text-[var(--coral-deep)]">Similar reports: {selected.duplicateMatches.map((match) => match.external_id).join(', ')}.</div>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="rounded-[22px] border border-[var(--border)] bg-white/62 p-5">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <div className="text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">Inline Timeline</div>
-                        <div className="fredoka mt-1 text-[20px] font-semibold">Decision history</div>
+                        <div className="text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">History</div>
+                        <div className="fredoka mt-1 text-[20px] font-semibold">Decision trail</div>
                       </div>
                       <Clock3 size={18} className="text-[var(--muted)]" />
                     </div>
-                    <div className="mt-5 grid gap-4">
-                      {[
-                        ['Submitted', selected.caseRow?.created_at ?? selected.taskRow?.created_at ?? selected.proofRow?.submitted_at],
-                        ['Reviewed', selected.caseRow?.status && selected.caseRow.status !== 'submitted' ? selected.caseRow.updated_at : null],
-                        ['Assigned', selected.taskRow?.status === 'assigned' || selected.caseRow?.status === 'assigned' ? selected.taskRow?.updated_at ?? selected.caseRow?.updated_at : null],
-                        ['Evidence submitted', selected.proofRow?.submitted_at ?? null],
-                        ['Resolved', selected.caseRow?.status === 'resolved' ? selected.caseRow.updated_at : null],
-                      ].map(([label, date], index) => (
+                    <div className="mt-5 grid gap-3">
+                      {historySteps.map(([label, date], index) => (
                         <div key={label ?? index} className="flex items-center gap-3">
-                          <div className={`grid h-8 w-8 place-items-center rounded-[12px] ${date ? 'bg-[var(--jungle)] text-white' : 'bg-[var(--paper2)] text-[var(--muted)]'}`}>
-                            {date ? <Check size={15} /> : index + 1}
-                          </div>
+                          <div className={`grid h-8 w-8 place-items-center rounded-[12px] text-sm font-black ${date ? 'bg-[var(--jungle)] text-white' : 'bg-[var(--paper2)] text-[var(--muted)]'}`}>{date ? <Check size={15} /> : index + 1}</div>
                           <div>
                             <div className="text-sm font-extrabold text-[var(--ink)]">{label}</div>
                             <div className="text-xs font-semibold text-[var(--muted)]">{date ? new Date(date).toLocaleString() : 'Not yet'}</div>
@@ -601,39 +853,19 @@ export default function ActionQueuePage() {
                       ))}
                     </div>
                   </div>
-
-                  <div className="grid gap-4">
-                    <div className="rounded-[22px] border border-[var(--border)] bg-white/62 p-5">
-                      <div className="text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">Recommended action</div>
-                      <div className="mt-2 text-sm font-semibold leading-6 text-[var(--ink2)]">
-                        {selected.caseRow ? recommendationForCase(selected.caseRow) : selected.kind === 'proof' ? 'Verify proof quality, then complete the linked task and case if evidence is clear.' : 'Assign nearest available shelter and keep task status current.'}
-                      </div>
-                    </div>
-
-                    <div className="rounded-[22px] border border-[var(--border)] bg-white/62 p-5">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <div className="text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">Map-first context</div>
-                          <div className="mt-2 text-sm font-semibold text-[var(--ink2)]">{nearbySignals} open signal{nearbySignals === 1 ? '' : 's'} in this block</div>
-                        </div>
-                        <ArrowUpRight size={17} className="text-[var(--muted)]" />
-                      </div>
-                      <div className="mt-4 h-28 rounded-[18px] border border-[var(--border)] bg-[radial-gradient(circle_at_35%_45%,var(--jungle-soft),transparent_28%),radial-gradient(circle_at_68%_58%,var(--gold-soft),transparent_24%),white]" />
-                    </div>
-                  </div>
                 </div>
 
                 {selected.kind === 'task' && selected.taskRow && (
                   <div className="rounded-[22px] border border-[var(--border)] bg-white/62 p-5">
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <div className="text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">Dispatch Suggestions</div>
-                        <div className="fredoka mt-1 text-[20px] font-semibold">Assign by block and partner status</div>
+                        <div>
+                          <div className="text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">Assignment</div>
+                          <div className="fredoka mt-1 text-[20px] font-semibold">Best owner for this task</div>
+                        </div>
+                        <Pill tone="paper" variant="soft">{nearbySignals} nearby open</Pill>
                       </div>
-                      <Pill tone="paper" variant="soft">transparent score</Pill>
-                    </div>
-                    <div className="mt-4 grid gap-3 md:grid-cols-3">
-                      {selectedShelterSuggestions.slice(0, 3).map((suggestion, index) => (
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      {selectedShelterSuggestions.slice(0, 2).map((suggestion, index) => (
                         <div key={suggestion.shelter.id} className="rounded-[18px] border border-[var(--border)] bg-white/70 p-4">
                           <div className="flex items-start justify-between gap-3">
                             <div>
@@ -657,17 +889,52 @@ export default function ActionQueuePage() {
                         </div>
                       ))}
                     </div>
+                    <div className="mt-5 border-t border-[var(--hairline)] pt-5">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <div className="text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">Mobile volunteers</div>
+                          <div className="mt-1 text-sm font-semibold text-[var(--ink2)]">Assigning to a device makes the task visible in the mobile app under From shelter ops.</div>
+                        </div>
+                        <Pill tone="sky" variant="soft">device-bound</Pill>
+                      </div>
+                      <div className="mt-4 grid gap-3 md:grid-cols-2">
+                        {selectedCitizenSuggestions.slice(0, 2).map((suggestion, index) => (
+                          <div key={suggestion.citizen.id} className="rounded-[18px] border border-[var(--border)] bg-white/70 p-4">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="mono truncate text-xs font-black text-[var(--ink)]">{suggestion.citizen.device_id}</div>
+                                <div className="mt-1 text-xs font-bold text-[var(--muted)]">{suggestion.reasons.join(' · ') || 'manual review'}</div>
+                              </div>
+                              <Pill tone={index === 0 ? 'jungle' : 'paper'} variant="soft">{index === 0 ? 'Best' : 'Option'}</Pill>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant={index === 0 ? 'primary' : 'paper'}
+                              className="mt-4 w-full"
+                              disabled={busyItem === selected.key}
+                              onClick={() => assignTaskToCitizen(selected, suggestion.citizen)}
+                              type="button"
+                            >
+                              Assign to mobile
+                            </Button>
+                          </div>
+                        ))}
+                        {selectedCitizenSuggestions.length === 0 && (
+                          <div className="rounded-[18px] border border-dashed border-[var(--border)] bg-white/54 p-4 text-sm font-semibold text-[var(--muted)] md:col-span-2">No synced citizen devices are available for mobile assignment.</div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )}
 
                 <div className="grid gap-3 md:grid-cols-3">
-                  <Button disabled={busyItem === selected.key} onClick={() => runPrimaryAction(selected)} type="button">
+                  <Button disabled={busyItem === selected.key || !canRunPrimaryAction(selected)} onClick={() => runPrimaryAction(selected)} type="button">
                     <Check size={16} />
                     {busyItem === selected.key ? 'Working...' : selected.primaryAction}
                   </Button>
                   <Button variant="paper" disabled={busyItem === selected.key || selected.kind === 'task'} onClick={rejectSelected} type="button">
                     <X size={16} />
-                    Reject + notify
+                    Reject + update mobile
                   </Button>
                   <Button variant="paper" disabled={!supabase} type="button">
                     <AlertTriangle size={16} />

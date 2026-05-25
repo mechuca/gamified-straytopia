@@ -1,4 +1,4 @@
-import type { Block, CaseRow, ProofRow, Shelter, TaskRow, TaskTemplateRow } from '@/lib/types';
+import type { Block, CaseRow, CitizenRow, ProofRow, Shelter, TaskRow, TaskTemplateRow } from '@/lib/types';
 
 const now = Date.now();
 
@@ -9,13 +9,6 @@ function minutesAgo(minutes: number) {
 function minutesFromNow(minutes: number) {
   return new Date(now + minutes * 60_000).toISOString();
 }
-
-export type DemoCitizen = {
-  id: string;
-  device_id: string;
-  block_id: string | null;
-  created_at: string;
-};
 
 export const demoBlocks: Block[] = [
   { id: 'blk-indiranagar', name: 'Indiranagar', code: 'BLK-INDIR' },
@@ -31,7 +24,7 @@ export const demoShelters: Shelter[] = [
   { id: 'shelter-whitefield', name: 'Whitefield Foster Circle', block_id: 'blk-whitefield', status: 'inactive' },
 ];
 
-export const demoCitizens: DemoCitizen[] = [
+export const demoCitizens: CitizenRow[] = [
   { id: 'citizen-001', device_id: 'demo-device-7f29-indiranagar', block_id: 'blk-indiranagar', created_at: minutesAgo(8_900) },
   { id: 'citizen-002', device_id: 'demo-device-23ac-koramangala', block_id: 'blk-koramangala', created_at: minutesAgo(7_100) },
   { id: 'citizen-003', device_id: 'demo-device-44ba-jayanagar', block_id: 'blk-jayanagar', created_at: minutesAgo(6_450) },

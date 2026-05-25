@@ -19,6 +19,7 @@ import {
   Menu,
   Search,
   ShieldAlert,
+  ShieldCheck,
   Users,
   X,
 } from 'lucide-react';
@@ -63,6 +64,7 @@ const navGroups: Array<{ label: string; items: NavItem[] }> = [
     items: [
       { href: '/mel', label: 'Analytics', icon: FileBarChart },
       { href: '/audit', label: 'Audit Logs', icon: Clock3 },
+      { href: '/system-readiness', label: 'System Readiness', icon: ShieldCheck },
     ],
   },
 ];
@@ -76,6 +78,7 @@ const pageCopy: Record<string, string> = {
   'Map Intelligence': 'Monitor coverage and risk by neighborhood from block-level operational records.',
   Analytics: 'Translate operations into measurable impact and funding evidence.',
   'Audit Logs': 'Review operational mutations, status changes, and decision accountability.',
+  'System Readiness': 'Separate live backend capability from planned integrations before making operational claims.',
 };
 
 function findActive(pathname: string | null) {
@@ -84,6 +87,7 @@ function findActive(pathname: string | null) {
   if (pathname?.startsWith('/action-queue')) return items.find((item) => item.href === '/action-queue');
   if (pathname?.startsWith('/blocks')) return items.find((item) => item.label === 'Map Intelligence');
   if (pathname?.startsWith('/audit')) return items.find((item) => item.label === 'Audit Logs');
+  if (pathname?.startsWith('/system-readiness')) return items.find((item) => item.label === 'System Readiness');
   if (pathname?.startsWith('/mel')) return items.find((item) => item.label === 'Analytics');
   if (pathname?.startsWith('/cases')) return items.find((item) => item.label === 'Active Rescue Cases');
   if (pathname?.startsWith('/tasks')) return items.find((item) => item.label === 'Field Work');
