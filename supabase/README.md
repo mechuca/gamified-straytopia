@@ -13,7 +13,9 @@ This folder contains the database schema used by both:
 5. Then run `migrations/004_audit_location_metadata.sql`.
 6. Then run `migrations/005_operation_queue_foundations.sql`.
 7. Then run `migrations/006_system_alignment_foundations.sql`.
-8. Configure environment variables.
+8. Then run `migrations/007_media_and_transition_hardening.sql`.
+9. Then run `migrations/008_forecast_generation_job.sql`.
+10. Configure environment variables.
 
 ### Ops hub (`straytopia-hub`)
 
@@ -69,3 +71,13 @@ RLS policies are tightened in `003_security_and_rls.sql`:
 - `trust_scores` and `trust_events` for volunteer, partner, reviewer, and device trust infrastructure.
 - `volunteer_profiles`, `organization_profiles`, capabilities, and capacity snapshots for real coordination.
 - `area_forecasts`, `assignment_recommendations`, and `proof_quality_scores` as storage for future predictive outputs, without claiming predictions exist before rows are generated.
+
+`007_media_and_transition_hardening.sql` adds:
+- Private `straytopia-evidence` storage bucket policies for report/proof media.
+- Guarded `ops_update_proof_status` RPC for proof verification transitions.
+- Domain-event triggers for case, task, and proof status changes.
+- Media helper indexes for proof storage paths and case media references.
+
+`008_forecast_generation_job.sql` adds:
+- `generate_area_forecasts(p_window_hours)` for transparent rule-based rescue surge, feeding gap, water gap, volunteer shortage, and shelter overload forecasts.
+- The hub Forecasts screen can call this RPC manually after migrations are applied.

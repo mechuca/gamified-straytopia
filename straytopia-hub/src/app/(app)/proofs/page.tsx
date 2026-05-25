@@ -35,6 +35,7 @@ export default function ProofsPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | ProofVerificationStatus>('pending');
   const [q, setQ] = useState('');
+  const [signedMediaUrls, setSignedMediaUrls] = useState<Record<string, string>>({});
 
   const taskById = useMemo(() => new Map(tasks.map((t) => [t.id, t])), [tasks]);
   const templateById = useMemo(() => new Map(templates.map((t) => [t.id, t])), [templates]);
@@ -103,7 +104,8 @@ export default function ProofsPage() {
       return;
     }
     setBusyId(proof.id);
-    await supabase.from('proofs').update({ verification_status: next }).eq('id', proof.id);
+    const rpcResult = await supabase.rpc('ops_update_proof_status', { p_proof_id: proof.id, p_next_status: next, p_reason: next === 'rejected' ? 'Rejected from evidence review.' : null });
+    if (rpcResult.error) await supabase.from('proofs').update({ verification_status: next }).eq('id', proof.id);
     setBusyId(null);
   }
 
@@ -126,6 +128,20 @@ export default function ProofsPage() {
   const selectedCase = selectedTask?.case_id ? caseById.get(selectedTask.case_id) ?? null : null;
   const selectedBlock = selectedTask?.block_id ? blockById.get(selectedTask.block_id) ?? null : null;
   const selectedShelter = selectedTask?.shelter_id ? shelterById.get(selectedTask.shelter_id) ?? null : null;
+  const selectedMediaPath = selected?.media_storage_path ?? (selected?.photo_uri && !isLikelyHttpUrl(selected.photo_uri) && !selected.photo_uri.startsWith('local://') ? selected.photo_uri : null);
+  const selectedPhotoUrl = selected?.photo_uri && isLikelyHttpUrl(selected.photo_uri) ? selected.photo_uri : selected ? signedMediaUrls[selected.id] : null;
+
+  useEffect(() => {
+    if (!supabase || !selected?.id || !selectedMediaPath) return;
+    let mounted = true;
+    supabase.storage.from('straytopia-evidence').createSignedUrl(selectedMediaPath, 60 * 30).then(({ data }) => {
+      if (!mounted || !data?.signedUrl) return;
+      setSignedMediaUrls((prev) => ({ ...prev, [selected.id]: data.signedUrl }));
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [selected?.id, selectedMediaPath, supabase]);
 
   return (
     <div className="grid gap-6">
@@ -238,9 +254,9 @@ export default function ProofsPage() {
                 <div className="text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">Photo</div>
                 {selected.photo_uri ? (
                   <>
-                    {isLikelyHttpUrl(selected.photo_uri) ? (
+                    {selectedPhotoUrl ? (
                       <img
-                        src={selected.photo_uri}
+                        src={selectedPhotoUrl}
                         alt="Proof photo"
                         className="mt-3 aspect-[16/10] w-full rounded-[16px] border border-[var(--border)] object-cover"
                         referrerPolicy="no-referrer"
@@ -250,10 +266,10 @@ export default function ProofsPage() {
                         {selected.photo_uri}
                       </div>
                     )}
-                    {isLikelyHttpUrl(selected.photo_uri) && (
+                    {selectedPhotoUrl && (
                       <a
                         className="mt-3 inline-block text-xs font-semibold text-[var(--ink2)] underline"
-                        href={selected.photo_uri}
+                        href={selectedPhotoUrl}
                         target="_blank"
                         rel="noreferrer"
                       >

@@ -5,10 +5,8 @@ import { ScreenContainer } from '@/app/components/primitives/ScreenContainer';
 import { Text } from '@/app/components/primitives/Text';
 import { Card } from '@/app/components/primitives/Card';
 import { Pill } from '@/app/components/primitives/Pill';
+import { Button } from '@/app/components/primitives/Button';
 import { useMissions } from '@/app/store/missions';
-import { usePoints } from '@/app/store/points';
-import { useBadges } from '@/app/store/badges';
-import { useUser } from '@/app/store/user';
 import { COLOR } from '@/app/lib/theme';
 import { CheckCircle2, Loader2, Clock } from 'lucide-react-native';
 
@@ -16,18 +14,14 @@ const steps = [
   { label: 'Saving proof locally', icon: 'local' },
   { label: 'Preparing ops task update', icon: 'task' },
   { label: 'Queueing evidence for hub review', icon: 'queue' },
-  { label: 'Updating demo mission state', icon: 'state' },
-  { label: 'Syncing when backend is available', icon: 'sync' },
+  { label: 'Waiting for ops verification', icon: 'review' },
+  { label: 'Points unlock only after approval', icon: 'trust' },
 ];
 
 export default function ProofReviewPreviewScreen() {
   const router = useRouter();
   const activeMissionId = useMissions((s) => s.activeMissionId);
   const mission = useMissions((s) => s.missions.find((m) => m.id === activeMissionId));
-  const verifyMission = useMissions((s) => s.verifyMission);
-  const awardPoints = usePoints((s) => s.award);
-  const unlockBadge = useBadges((s) => s.unlockBadge);
-  const updateProgress = useBadges((s) => s.updateProgress);
   const [currentStep, setCurrentStep] = useState(0);
 
   useEffect(() => {
@@ -35,17 +29,6 @@ export default function ProofReviewPreviewScreen() {
       setCurrentStep((prev) => {
         if (prev >= steps.length - 1) {
           clearInterval(interval);
-          setTimeout(() => {
-            if (mission) {
-              verifyMission(mission.id, 'verified');
-              awardPoints(mission.impactPoints, 'Mission completed');
-              unlockBadge('b1');
-              updateProgress('b2', 1);
-              updateProgress('b11', 1);
-              updateProgress('b12', 1);
-              router.replace('/mission/success');
-            }
-          }, 800);
           return prev;
         }
         return prev + 1;
@@ -68,8 +51,8 @@ export default function ProofReviewPreviewScreen() {
             <Loader2 size={48} color={COLOR.jungle} />
           </View>
 
-          <Text variant="display-3" align="center">Preparing your proof</Text>
-          <Text variant="body-l" align="center">This prototype queues evidence for ops review and updates the local mission state.</Text>
+          <Text variant="display-3" align="center">Proof queued for review</Text>
+          <Text variant="body-l" align="center">Ops will verify the evidence before points, rankings, or impact are credited.</Text>
 
           <Card style={{ width: '100%', padding: 16 }}>
             {steps.map((step, i) => (
@@ -92,6 +75,10 @@ export default function ProofReviewPreviewScreen() {
               </View>
             ))}
           </Card>
+
+          <Button variant="jungle" size="lg" onPress={() => router.replace('/(tabs)')}>
+            Back home
+          </Button>
         </View>
       </ScrollView>
     </ScreenContainer>

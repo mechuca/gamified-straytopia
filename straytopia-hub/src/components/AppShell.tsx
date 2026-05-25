@@ -5,21 +5,24 @@ import { usePathname, useRouter } from 'next/navigation';
 import { clsx } from 'clsx';
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Building2,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
   Clock3,
   FileBarChart,
+  Handshake,
   Hospital,
   LayoutDashboard,
   ListChecks,
   LogOut,
   Map,
   Menu,
+  PawPrint,
   Search,
   ShieldAlert,
   ShieldCheck,
+  Sparkles,
+  TrendingUp,
   Users,
   X,
 } from 'lucide-react';
@@ -54,15 +57,18 @@ const navGroups: Array<{ label: string; items: NavItem[] }> = [
   {
     label: 'Network',
     items: [
+      { href: '/animals', label: 'Animal Lifecycles', icon: PawPrint },
       { href: '/blocks', label: 'Map Intelligence', icon: Map },
-      { href: '/citizens', label: 'Volunteers', icon: Users },
-      { href: '/shelters', label: 'NGOs & Partners', icon: Building2 },
+      { href: '/volunteers', label: 'Volunteer Intelligence', icon: Users },
+      { href: '/partners', label: 'NGO Intelligence', icon: Handshake },
     ],
   },
   {
     label: 'Intelligence',
     items: [
       { href: '/mel', label: 'Analytics', icon: FileBarChart },
+      { href: '/trust', label: 'Trust Systems', icon: Sparkles },
+      { href: '/forecasts', label: 'Forecasts', icon: TrendingUp },
       { href: '/audit', label: 'Audit Logs', icon: Clock3 },
       { href: '/system-readiness', label: 'System Readiness', icon: ShieldCheck },
     ],
@@ -75,8 +81,13 @@ const pageCopy: Record<string, string> = {
   'Active Rescue Cases': 'Triage incoming citizen reports and turn verified cases into work.',
   'Field Work': 'Assign, monitor, and close operational work across shelters and blocks.',
   'Evidence Review': 'Review field evidence before crediting citizen and shelter actions.',
+  'Animal Lifecycles': 'Follow each animal from sighting to rescue, treatment, adoption, release, or monitoring.',
   'Map Intelligence': 'Monitor coverage and risk by neighborhood from block-level operational records.',
+  'Volunteer Intelligence': 'Read volunteer readiness from assignments, skills, locality, and reliability signals.',
+  'NGO Intelligence': 'Coordinate partners by capacity, capability, intake status, and emergency readiness.',
   Analytics: 'Translate operations into measurable impact and funding evidence.',
+  'Trust Systems': 'Track trust, reliability, safety, evidence quality, and reviewer accountability.',
+  Forecasts: 'Generate and review block-level risk forecasts from operational rows.',
   'Audit Logs': 'Review operational mutations, status changes, and decision accountability.',
   'System Readiness': 'Separate live backend capability from planned integrations before making operational claims.',
 };
@@ -85,7 +96,12 @@ function findActive(pathname: string | null) {
   const items = navGroups.flatMap((group) => group.items);
   if (pathname?.startsWith('/overview')) return items.find((item) => item.label === 'Dashboard');
   if (pathname?.startsWith('/action-queue')) return items.find((item) => item.href === '/action-queue');
+  if (pathname?.startsWith('/animals')) return items.find((item) => item.label === 'Animal Lifecycles');
   if (pathname?.startsWith('/blocks')) return items.find((item) => item.label === 'Map Intelligence');
+  if (pathname?.startsWith('/volunteers')) return items.find((item) => item.label === 'Volunteer Intelligence');
+  if (pathname?.startsWith('/partners')) return items.find((item) => item.label === 'NGO Intelligence');
+  if (pathname?.startsWith('/trust')) return items.find((item) => item.label === 'Trust Systems');
+  if (pathname?.startsWith('/forecasts')) return items.find((item) => item.label === 'Forecasts');
   if (pathname?.startsWith('/audit')) return items.find((item) => item.label === 'Audit Logs');
   if (pathname?.startsWith('/system-readiness')) return items.find((item) => item.label === 'System Readiness');
   if (pathname?.startsWith('/mel')) return items.find((item) => item.label === 'Analytics');

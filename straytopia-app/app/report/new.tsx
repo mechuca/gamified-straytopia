@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, ScrollView, TextInput, Pressable } from 'react-native';
+import { Alert, View, ScrollView, TextInput, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import { ScreenContainer } from '@/app/components/primitives/ScreenContainer';
 import { Text } from '@/app/components/primitives/Text';
 import { Card } from '@/app/components/primitives/Card';
@@ -9,8 +10,9 @@ import { Button } from '@/app/components/primitives/Button';
 import { Biscuit } from '@/app/components/mascot/Biscuit';
 import { Bob } from '@/app/components/motion/Bob';
 import { useReports, ReportType, ReportSeverity } from '@/app/store/reports';
+import { getCareLocation, type CareLocationMetadata } from '@/app/lib/location';
 import { COLOR } from '@/app/lib/theme';
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft, Camera, MapPin } from 'lucide-react-native';
 
 const categories: { key: ReportType; emoji: string; title: string; sub: string; tone: string }[] = [
   { key: 'injured', emoji: '🤕', title: 'Injured', sub: 'Animal needs medical help', tone: 'coral' },
@@ -38,19 +40,52 @@ export default function ReportNewScreen() {
   const [severity, setSeverity] = useState<ReportSeverity>('today');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('12th Main, Indiranagar');
+  const [photo, setPhoto] = useState<ImagePicker.ImagePickerAsset | null>(null);
+  const [locationMetadata, setLocationMetadata] = useState<CareLocationMetadata | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const canSubmit = category !== null;
 
-  const handleSubmit = () => {
+  const addPhoto = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Photo permission needed', 'Add a photo when you can. The report can still be sent without one.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      quality: 0.82,
+    });
+    if (!result.canceled && result.assets[0]) setPhoto(result.assets[0]);
+  };
+
+  const captureLocation = async () => {
+    const metadata = await getCareLocation();
+    setLocationMetadata(metadata);
+    if (!metadata) Alert.alert('Location not added', 'You can still send the report with area text only.');
+  };
+
+  const handleSubmit = async () => {
     if (!canSubmit) return;
+    setSubmitting(true);
+    const metadata = locationMetadata ?? (await getCareLocation());
     startDraft();
-    patchDraft({ type: category, severity, description, location });
+    patchDraft({
+      type: category,
+      severity,
+      description,
+      location,
+      photoUri: photo?.uri ?? null,
+      media: photo ? { uri: photo.uri, fileName: photo.fileName, fileSize: photo.fileSize, mimeType: photo.mimeType } : null,
+      locationMetadata: metadata,
+    });
     router.push('/report/submitted');
   };
 
   return (
     <ScreenContainer bg="paper" statusBarStyle="dark">
-      <View style={{ paddingHorizontal: 20, paddingTop: 12 }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
           <Button variant="ghost" size="sm" onPress={() => router.back()} style={{ padding: 8 }}>
             <ArrowLeft size={22} color={COLOR.ink2} />
@@ -119,13 +154,30 @@ export default function ReportNewScreen() {
           />
         </Card>
 
+        <View style={{ flexDirection: 'row', gap: 10, marginBottom: 20 }}>
+          <Button variant="paper" size="md" onPress={addPhoto} leftIcon={<Camera size={18} color={COLOR.ink} />} style={{ flex: 1 }}>
+            {photo ? 'Photo added' : 'Add photo'}
+          </Button>
+          <Button variant="paper" size="md" onPress={captureLocation} leftIcon={<MapPin size={18} color={COLOR.ink} />} style={{ flex: 1 }}>
+            {locationMetadata ? 'Location added' : 'Add GPS'}
+          </Button>
+        </View>
+
+        <Card tone="paper-2" style={{ marginBottom: 20, padding: 14 }}>
+          <Text variant="body">
+            {locationMetadata
+              ? `Exact location saved for ops only. Accuracy about ${locationMetadata.location_accuracy_meters ?? 'unknown'}m.`
+              : 'Area text is enough. GPS is optional and only shown to ops.'}
+          </Text>
+        </Card>
+
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <Text variant="meta">OPS REVIEW QUEUE</Text>
-          <Button variant="coral" size="md" onPress={handleSubmit} disabled={!canSubmit}>
+          <Button variant="coral" size="md" onPress={handleSubmit} disabled={!canSubmit || submitting} loading={submitting}>
             Send for help
           </Button>
         </View>
-      </View>
+      </ScrollView>
     </ScreenContainer>
   );
 }

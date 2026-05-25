@@ -23,6 +23,21 @@
       },
       "package": "com.straytopia.app"
     },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Straytopia to save precise report and proof locations for operations review only."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Straytopia to attach report and proof photos for operations review.",
+          "cameraPermission": "Allow Straytopia to capture report and proof photos."
+        }
+      ]
+    ],
     "newArchEnabled": true
   }
 }

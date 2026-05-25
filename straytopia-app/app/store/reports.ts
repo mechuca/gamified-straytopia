@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { CareLocationMetadata } from '@/app/lib/location';
 
 const storage = createJSONStorage(() => AsyncStorage);
 
@@ -15,6 +16,13 @@ export interface Report {
   location: string;
   description: string;
   photoUri: string | null;
+  media?: {
+    uri: string;
+    fileName?: string | null;
+    fileSize?: number | null;
+    mimeType?: string | null;
+  } | null;
+  locationMetadata?: CareLocationMetadata | null;
   status: ReportStatus;
   createdAt: number;
   timeline: Array<{ step: string; at: number }>;
@@ -49,6 +57,8 @@ export const useReports = create<ReportState>()(
           location: draft.location || '',
           description: draft.description || '',
           photoUri: draft.photoUri || null,
+          media: draft.media ?? null,
+          locationMetadata: draft.locationMetadata ?? null,
           status: 'submitted',
           createdAt: draft.createdAt || Date.now(),
           timeline: [{ step: 'Report submitted', at: Date.now() }],

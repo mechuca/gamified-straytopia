@@ -8,19 +8,19 @@ import { Card } from '@/app/components/primitives/Card';
 import { Button } from '@/app/components/primitives/Button';
 import { Pill } from '@/app/components/primitives/Pill';
 import { useMissions } from '@/app/store/missions';
-import { usePoints } from '@/app/store/points';
-import { useBadges } from '@/app/store/badges';
 import { COLOR } from '@/app/lib/theme';
 import { insertMissionProof } from '@/app/lib/spineSync';
-import { Camera, Image, MapPin, Clock, ArrowLeft, Loader2 } from 'lucide-react-native';
+import { getCareLocation, type CareLocationMetadata } from '@/app/lib/location';
+import { Camera, MapPin, Clock, ArrowLeft } from 'lucide-react-native';
 
 export default function ProofSubmissionScreen() {
   const router = useRouter();
   const activeMissionId = useMissions((s) => s.activeMissionId);
   const mission = useMissions((s) => s.missions.find((m) => m.id === activeMissionId));
   const submitProof = useMissions((s) => s.submitProof);
-  const awardPoints = usePoints((s) => s.award);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [photoAsset, setPhotoAsset] = useState<ImagePicker.ImagePickerAsset | null>(null);
+  const [locationMetadata, setLocationMetadata] = useState<CareLocationMetadata | null>(null);
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -29,23 +29,42 @@ export default function ProofSubmissionScreen() {
   }
 
   const pickImage = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Photo permission needed', 'A photo is required so ops can verify the work.');
+      return;
+    }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       quality: 0.8,
     });
     if (!result.canceled && result.assets[0]) {
       setPhotoUri(result.assets[0].uri);
+      setPhotoAsset(result.assets[0]);
     }
   };
 
-  const handleSubmit = () => {
+  const captureLocation = async () => {
+    const metadata = await getCareLocation();
+    setLocationMetadata(metadata);
+    if (!metadata) Alert.alert('Location not added', 'You can still submit proof with area context only.');
+  };
+
+  const handleSubmit = async () => {
     if (!photoUri) {
       Alert.alert('Proof required', 'Please take or upload a photo to submit proof.');
       return;
     }
     setSubmitting(true);
-    void insertMissionProof({ missionId: mission.id, photoUri, note });
+    const metadata = locationMetadata ?? (await getCareLocation());
+    void insertMissionProof({
+      missionId: mission.id,
+      photoUri,
+      note,
+      media: photoAsset ? { uri: photoAsset.uri, fileName: photoAsset.fileName, fileSize: photoAsset.fileSize, mimeType: photoAsset.mimeType } : null,
+      locationMetadata: metadata,
+    });
     submitProof(mission.id);
     setTimeout(() => {
       router.push('/mission/verify');
@@ -85,13 +104,16 @@ export default function ProofSubmissionScreen() {
           <Button variant="paper" size="md" leftIcon={<Camera size={20} color={COLOR.ink} />} onPress={pickImage} style={{ flex: 1 }}>
             Upload Photo
           </Button>
+          <Button variant="paper" size="md" leftIcon={<MapPin size={20} color={COLOR.ink} />} onPress={captureLocation} style={{ flex: 1 }}>
+            {locationMetadata ? 'GPS Added' : 'Add GPS'}
+          </Button>
         </View>
 
         {/* Location + Time */}
         <Card tone="paper-2" style={{ marginBottom: 20, padding: 14 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
             <MapPin size={18} color={COLOR.gold} />
-            <Text variant="body">Area context only. GPS proof is not captured yet.</Text>
+              <Text variant="body">{locationMetadata ? `GPS saved for ops only. Accuracy about ${locationMetadata.location_accuracy_meters ?? 'unknown'}m.` : 'Area context only until GPS is added.'}</Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <Clock size={18} color={COLOR.gold} />

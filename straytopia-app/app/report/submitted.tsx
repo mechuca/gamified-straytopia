@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/app/components/primitives/ScreenContainer';
@@ -14,7 +14,8 @@ import { useUser } from '@/app/store/user';
 import { COLOR } from '@/app/lib/theme';
 import { AlertTriangle, CheckCircle2, Clock, MapPin, Shield, Home } from 'lucide-react-native';
 import { ensureAuthed, hasSupabase, supabase } from '@/app/lib/supabase';
-import { mapSpineStatusToMobileStatus, syncReportToSpine } from '@/app/lib/spineSync';
+import { mapSpineStatusToMobileStatus, processQueuedSpineSync, syncReportToSpine } from '@/app/lib/spineSync';
+import { getSyncOutboxCount } from '@/app/lib/syncOutbox';
 
 export default function ReportSubmittedScreen() {
   const router = useRouter();
@@ -23,13 +24,17 @@ export default function ReportSubmittedScreen() {
   const submitReport = useReports((s) => s.submitReport);
   const updateReport = useReports((s) => s.updateReport);
   const neighborhood = useUser((s) => s.neighborhood);
+  const [pendingSync, setPendingSync] = useState(0);
 
   useEffect(() => {
     // This screen is the “success” for the report form.
     // Commit the draft once, then sync to the shared backend (if configured).
     if (draft) {
       const created = submitReport();
-      void syncReportToSpine(created, { blockName: neighborhood?.name });
+      void syncReportToSpine(created, { blockName: neighborhood?.name }).then(async () => {
+        await processQueuedSpineSync();
+        setPendingSync(await getSyncOutboxCount());
+      });
     }
   }, []);
 
@@ -128,6 +133,12 @@ export default function ReportSubmittedScreen() {
               <Shield size={20} color={COLOR.jungle} />
               <Text variant="body" color="jungleInk">Your name stays private until you share.</Text>
             </View>
+          </Card>
+
+          <Card tone={pendingSync > 0 ? 'goldSoft' : 'paper-2'} style={{ width: '100%', padding: 14 }}>
+            <Text variant="body" color={pendingSync > 0 ? 'goldDeep' : 'ink2'}>
+              {pendingSync > 0 ? `${pendingSync} update${pendingSync === 1 ? '' : 's'} queued for sync.` : 'Report sync is up to date when the backend is reachable.'}
+            </Text>
           </Card>
 
           <View style={{ width: '100%', gap: 12 }}>

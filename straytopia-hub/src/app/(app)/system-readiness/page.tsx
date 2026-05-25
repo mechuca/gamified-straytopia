@@ -58,6 +58,8 @@ export default function SystemReadinessPage() {
         volunteerProfiles,
         organizationProfiles,
         areaForecasts,
+        storageMetadata,
+        proofQuality,
       ] = await Promise.all([
         supabase.from('cases').select('id', { count: 'exact', head: true }),
         supabase.from('tasks').select('id', { count: 'exact', head: true }),
@@ -75,6 +77,8 @@ export default function SystemReadinessPage() {
         supabase.from('volunteer_profiles').select('id', { count: 'exact', head: true }),
         supabase.from('organization_profiles').select('id', { count: 'exact', head: true }),
         supabase.from('area_forecasts').select('id', { count: 'exact', head: true }),
+        supabase.from('proofs').select('id,media_storage_path,media_mime_type,media_size_bytes').limit(1),
+        supabase.from('proof_quality_scores').select('id', { count: 'exact', head: true }),
       ]);
 
       setChecks([
@@ -157,6 +161,16 @@ export default function SystemReadinessPage() {
           label: 'Predictive intelligence outputs',
           status: areaForecasts.error ? 'missing' : 'ready',
           detail: areaForecasts.error ? 'Run migration 006_system_alignment_foundations.sql.' : `${areaForecasts.count ?? 0} forecast rows available. Predictions are not claimed until rows are generated.`,
+        },
+        {
+          label: 'Evidence media metadata',
+          status: storageMetadata.error ? 'missing' : 'ready',
+          detail: storageMetadata.error ? 'Run migrations 004 and 007. Storage bucket policy must also exist for uploads.' : 'Proof rows expose storage path, MIME type, and byte-size metadata.',
+        },
+        {
+          label: 'Proof quality scoring',
+          status: proofQuality.error ? 'missing' : 'ready',
+          detail: proofQuality.error ? 'Run migration 006_system_alignment_foundations.sql.' : `${proofQuality.count ?? 0} proof quality rows available for verification intelligence.`,
         },
       ]);
     }

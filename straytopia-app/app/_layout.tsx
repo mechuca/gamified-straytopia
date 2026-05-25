@@ -7,12 +7,14 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { View, Text, ActivityIndicator } from 'react-native';
 import { Toast } from '@/app/components/feedback/Toast';
+import { useMissionHubSync } from '@/app/lib/useMissionHubSync';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [fontsLoaded, setFontsLoaded] = useState(false);
   const [fontError, setFontError] = useState(false);
+  useMissionHubSync();
 
   useEffect(() => {
     async function loadFonts() {

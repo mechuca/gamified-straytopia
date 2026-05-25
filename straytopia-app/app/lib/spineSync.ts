@@ -1,8 +1,35 @@
 import { ensureAuthed, supabase } from '@/app/lib/supabase';
 import { getDeviceId } from '@/app/lib/deviceId';
 import type { Report } from '@/app/store/reports';
+import type { CareLocationMetadata } from '@/app/lib/location';
+import { drainSyncOutbox, enqueueSyncOperation, type SyncOperation } from '@/app/lib/syncOutbox';
 
 type MissionType = 'feeding' | 'water' | 'rescue' | 'medical' | 'urgent';
+
+type PickedMedia = {
+  uri: string;
+  fileName?: string | null;
+  fileSize?: number | null;
+  mimeType?: string | null;
+};
+
+type MissionTaskParams = {
+  missionId: string;
+  missionType: MissionType;
+  missionTitle: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  status: 'assigned' | 'in_progress' | 'proof_pending' | 'completed' | 'blocked';
+  blockName?: string | null;
+  locationMetadata?: CareLocationMetadata | null;
+};
+
+type MissionProofParams = {
+  missionId: string;
+  photoUri: string;
+  note?: string;
+  media?: PickedMedia | null;
+  locationMetadata?: CareLocationMetadata | null;
+};
 
 type SpineCaseStatus =
   | 'submitted'
@@ -23,7 +50,51 @@ export function mapSpineStatusToMobileStatus(status: SpineCaseStatus) {
   return 'failed' as const;
 }
 
-export async function syncReportToSpine(report: Report, opts?: { blockName?: string | null }) {
+function mimeFromUri(uri: string, fallback?: string | null) {
+  if (fallback) return fallback;
+  const lower = uri.toLowerCase();
+  if (lower.endsWith('.png')) return 'image/png';
+  if (lower.endsWith('.webp')) return 'image/webp';
+  if (lower.endsWith('.heic')) return 'image/heic';
+  return 'image/jpeg';
+}
+
+async function uploadEvidenceMedia(params: { uri: string; folder: 'reports' | 'proofs'; entityId: string; media?: PickedMedia | null }) {
+  if (!supabase) return null;
+  try {
+    const mimeType = mimeFromUri(params.uri, params.media?.mimeType);
+    const extension = mimeType.split('/')[1] || 'jpg';
+    const storagePath = `${params.folder}/${params.entityId}/${Date.now()}.${extension}`;
+    const response = await fetch(params.uri);
+    const body = await response.arrayBuffer();
+    const uploaded = await supabase.storage.from('straytopia-evidence').upload(storagePath, body, {
+      contentType: mimeType,
+      upsert: true,
+    });
+    if (uploaded.error) return null;
+    return {
+      storagePath,
+      mimeType,
+      sizeBytes: params.media?.fileSize ?? body.byteLength,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function resolveBlockId(blockName?: string | null) {
+  if (!supabase) return null;
+  const normalized = blockName?.trim();
+  if (!normalized) return null;
+  const { data } = await supabase
+    .from('blocks')
+    .select('id,name')
+    .ilike('name', normalized)
+    .limit(1);
+  return data?.[0]?.id ?? null;
+}
+
+async function syncReportDirect(report: Report, opts?: { blockName?: string | null }, enqueueOnFailure = true) {
   if (!supabase) return;
   try {
     await ensureAuthed();
@@ -41,19 +112,13 @@ export async function syncReportToSpine(report: Report, opts?: { blockName?: str
 
     const citizenId = citizenUpsert.data?.id ?? null;
 
-    // Resolve block by name when possible.
-    let blockId: string | null = null;
-    const blockName = opts?.blockName?.trim();
-    if (blockName) {
-      const { data: b } = await supabase
-        .from('blocks')
-        .select('id,name')
-        .ilike('name', blockName)
-        .limit(1);
-      blockId = b?.[0]?.id ?? null;
-    }
+    const blockId = await resolveBlockId(opts?.blockName);
+    const media = report.photoUri
+      ? await uploadEvidenceMedia({ uri: report.photoUri, folder: 'reports', entityId: report.id, media: report.media ?? null })
+      : null;
 
-    await supabase.from('cases').upsert(
+    const locationMetadata = report.locationMetadata ?? null;
+    const synced = await supabase.from('cases').upsert(
       {
         external_id: report.id,
         citizen_id: citizenId,
@@ -62,13 +127,24 @@ export async function syncReportToSpine(report: Report, opts?: { blockName?: str
         severity: report.severity,
         description: report.description || '',
         location_text: report.location || '',
+        media_uri: media?.storagePath ?? report.photoUri ?? null,
+        latitude: locationMetadata?.latitude ?? null,
+        longitude: locationMetadata?.longitude ?? null,
+        location_accuracy_meters: locationMetadata?.location_accuracy_meters ?? null,
+        location_captured_at: locationMetadata?.location_captured_at ?? null,
+        location_privacy: locationMetadata?.location_privacy ?? 'area',
         status: 'submitted',
       },
       { onConflict: 'external_id' }
     );
-  } catch {
-    // Prototype: never block the local flow.
+    if (synced.error) throw synced.error;
+  } catch (error) {
+    if (enqueueOnFailure) await enqueueSyncOperation('report', { id: report.id, report, blockName: opts?.blockName ?? null }, error);
   }
+}
+
+export async function syncReportToSpine(report: Report, opts?: { blockName?: string | null }) {
+  return syncReportDirect(report, opts, true);
 }
 
 function templateTypeForMission(type: MissionType) {
@@ -79,30 +155,14 @@ function templateTypeForMission(type: MissionType) {
   return 'emergency_escalation';
 }
 
-export async function upsertMissionTask(params: {
-  missionId: string;
-  missionType: MissionType;
-  missionTitle: string;
-  severity: 'low' | 'medium' | 'high' | 'critical';
-  status: 'assigned' | 'in_progress' | 'proof_pending' | 'completed' | 'blocked';
-  blockName?: string | null;
-}) {
+async function upsertMissionTaskDirect(params: MissionTaskParams, enqueueOnFailure = true) {
   if (!supabase) return;
   try {
     await ensureAuthed();
     const deviceId = await getDeviceId();
     const externalRef = `mission:${deviceId}:${params.missionId}`;
 
-    let blockId: string | null = null;
-    const blockName = params.blockName?.trim();
-    if (blockName) {
-      const { data: b } = await supabase
-        .from('blocks')
-        .select('id,name')
-        .ilike('name', blockName)
-        .limit(1);
-      blockId = b?.[0]?.id ?? null;
-    }
+    const blockId = await resolveBlockId(params.blockName);
 
     const tplType = templateTypeForMission(params.missionType);
     const { data: tpl } = await supabase
@@ -113,7 +173,8 @@ export async function upsertMissionTask(params: {
 
     const priority = params.severity === 'critical' ? 'critical' : params.severity === 'high' ? 'high' : params.severity === 'medium' ? 'medium' : 'low';
 
-    await supabase.from('tasks').upsert(
+    const locationMetadata = params.locationMetadata ?? null;
+    const synced = await supabase.from('tasks').upsert(
       {
         external_ref: externalRef,
         template_id: tpl?.id ?? null,
@@ -122,19 +183,25 @@ export async function upsertMissionTask(params: {
         priority,
         assigned_to_type: 'citizen',
         assigned_to_id: deviceId,
+        latitude: locationMetadata?.latitude ?? null,
+        longitude: locationMetadata?.longitude ?? null,
+        location_accuracy_meters: locationMetadata?.location_accuracy_meters ?? null,
+        location_captured_at: locationMetadata?.location_captured_at ?? null,
+        location_privacy: locationMetadata?.location_privacy ?? 'area',
       },
       { onConflict: 'external_ref' }
     );
-  } catch {
-    // Prototype: never block the local flow.
+    if (synced.error) throw synced.error;
+  } catch (error) {
+    if (enqueueOnFailure) await enqueueSyncOperation('mission_task', { ...params, id: params.missionId }, error);
   }
 }
 
-export async function insertMissionProof(params: {
-  missionId: string;
-  photoUri: string;
-  note?: string;
-}) {
+export async function upsertMissionTask(params: MissionTaskParams) {
+  return upsertMissionTaskDirect(params, true);
+}
+
+async function insertMissionProofDirect(params: MissionProofParams, enqueueOnFailure = true) {
   if (!supabase) return;
   try {
     await ensureAuthed();
@@ -146,17 +213,40 @@ export async function insertMissionProof(params: {
       .eq('external_ref', externalRef)
       .maybeSingle();
 
-    if (!task?.id) return;
-    await supabase.from('proofs').insert({
+    if (!task?.id) throw new Error('Mission task not found for proof upload');
+
+    const media = await uploadEvidenceMedia({ uri: params.photoUri, folder: 'proofs', entityId: params.missionId, media: params.media ?? null });
+    const locationMetadata = params.locationMetadata ?? null;
+    const existing = await supabase
+      .from('proofs')
+      .select('id')
+      .eq('task_id', task.id)
+      .eq('photo_uri', media?.storagePath ?? params.photoUri)
+      .maybeSingle();
+    if (existing.data?.id) return;
+
+    const inserted = await supabase.from('proofs').insert({
       task_id: task.id,
-      photo_uri: params.photoUri,
+      photo_uri: media?.storagePath ?? params.photoUri,
       note: params.note ?? null,
       captured_at: new Date().toISOString(),
       verification_status: 'pending',
+      latitude: locationMetadata?.latitude ?? null,
+      longitude: locationMetadata?.longitude ?? null,
+      location_accuracy_meters: locationMetadata?.location_accuracy_meters ?? null,
+      location_captured_at: locationMetadata?.location_captured_at ?? null,
+      media_storage_path: media?.storagePath ?? null,
+      media_mime_type: media?.mimeType ?? params.media?.mimeType ?? null,
+      media_size_bytes: media?.sizeBytes ?? params.media?.fileSize ?? null,
     });
-  } catch {
-    // ignore
+    if (inserted.error) throw inserted.error;
+  } catch (error) {
+    if (enqueueOnFailure) await enqueueSyncOperation('mission_proof', { ...params, id: params.missionId }, error);
   }
+}
+
+export async function insertMissionProof(params: MissionProofParams) {
+  return insertMissionProofDirect(params, true);
 }
 
 export async function updateMissionProofStatus(params: {
@@ -183,4 +273,24 @@ export async function updateMissionProofStatus(params: {
   } catch {
     // ignore
   }
+}
+
+export async function processQueuedSpineSync() {
+  return drainSyncOutbox(async (operation: SyncOperation) => {
+    if (operation.type === 'report') {
+      const report = operation.payload.report as Report | undefined;
+      if (!report) return;
+      await syncReportDirect(report, { blockName: (operation.payload.blockName as string | null | undefined) ?? null }, false);
+      return;
+    }
+
+    if (operation.type === 'mission_task') {
+      await upsertMissionTaskDirect(operation.payload as unknown as MissionTaskParams, false);
+      return;
+    }
+
+    if (operation.type === 'mission_proof') {
+      await insertMissionProofDirect(operation.payload as unknown as MissionProofParams, false);
+    }
+  });
 }

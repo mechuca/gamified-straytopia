@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUser } from '@/app/store/user';
+import { usePoints } from '@/app/store/points';
 import { insertMissionProof, updateMissionProofStatus, upsertMissionTask } from '@/app/lib/spineSync';
 
 const storage = createJSONStorage(() => AsyncStorage);
@@ -37,6 +38,8 @@ export interface MissionState {
   startProof: (id: string) => void;
   submitProof: (id: string) => void;
   verifyMission: (id: string, result: 'verified' | 'review' | 'rejected') => void;
+  verifyMissionFromHub: (id: string, result: 'verified' | 'review' | 'rejected') => void;
+  markMissionReviewFromHub: (id: string) => void;
   completeMission: (id: string) => void;
   setActiveMission: (id: string | null) => void;
   reset: () => void;
@@ -191,6 +194,33 @@ export const useMissions = create<MissionState>()(
           });
         }
       },
+      verifyMissionFromHub: (id, result) => set((state) => ({
+        missions: state.missions.map((m) => {
+          if (m.id !== id) return m;
+          if (result === 'verified' && m.status !== 'completed') {
+            usePoints.getState().award(m.impactPoints, 'Ops-verified mission');
+          }
+          return {
+                ...m,
+                status:
+                  result === 'verified'
+                    ? ('completed' as const)
+                    : result === 'review'
+                      ? ('review' as const)
+                      : ('rejected' as const),
+                verificationResult: result,
+                completedAt: result === 'verified' ? (m.completedAt ?? Date.now()) : null,
+              };
+        }),
+        completedCount: result === 'verified' && !state.missions.find((m) => m.id === id && m.status === 'completed')
+          ? state.completedCount + 1
+          : state.completedCount,
+      })),
+      markMissionReviewFromHub: (id) => set((state) => ({
+        missions: state.missions.map((m) =>
+          m.id === id && m.status !== 'completed' ? { ...m, status: 'verifying' as const } : m
+        ),
+      })),
       completeMission: (id) => set((state) => ({
         missions: state.missions.map((m) =>
           m.id === id ? { ...m, status: 'completed' as const, completedAt: Date.now(), verificationResult: 'verified' } : m

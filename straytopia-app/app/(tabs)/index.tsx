@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, ScrollView, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/app/components/primitives/ScreenContainer';
@@ -15,6 +15,8 @@ import { usePoints } from '@/app/store/points';
 import { useReports } from '@/app/store/reports';
 import { useUser } from '@/app/store/user';
 import { useOpsTasks } from '@/app/lib/useOpsTasks';
+import { processQueuedSpineSync } from '@/app/lib/spineSync';
+import { getSyncOutboxCount } from '@/app/lib/syncOutbox';
 import { COLOR } from '@/app/lib/theme';
 import { Flame, Zap, Heart, BookOpen, MapPin, ChevronRight, AlertTriangle } from 'lucide-react-native';
 
@@ -26,15 +28,22 @@ export default function HomeScreen() {
   const reports = useReports((s) => s.reports);
   const opsTasks = useOpsTasks();
   const [refreshing, setRefreshing] = useState(false);
+  const [pendingSync, setPendingSync] = useState(0);
 
   const availableMissions = missions.filter((m) => m.status === 'available');
   const urgentMissions = availableMissions.filter((m) => m.urgency === 'critical' || m.urgency === 'high');
   const completedCount = useMissions((s) => s.completedCount);
   const localStreak = completedCount > 0 ? 1 : 0;
 
-  const onRefresh = () => {
+  useEffect(() => {
+    void getSyncOutboxCount().then(setPendingSync);
+  }, []);
+
+  const onRefresh = async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
+    await processQueuedSpineSync();
+    setPendingSync(await getSyncOutboxCount());
+    setRefreshing(false);
   };
 
   return (
@@ -89,6 +98,12 @@ export default function HomeScreen() {
             </View>
           </Card>
         </RiseIn>
+
+        {pendingSync > 0 && (
+          <Card tone="goldSoft" style={{ marginBottom: 16, padding: 14 }}>
+            <Text variant="body" color="goldDeep">{pendingSync} update{pendingSync === 1 ? '' : 's'} waiting to sync. Pull down to retry.</Text>
+          </Card>
+        )}
 
         {/* Urgent Missions */}
         {urgentMissions.length > 0 && (

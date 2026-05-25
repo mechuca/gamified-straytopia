@@ -258,3 +258,94 @@ export interface TaskAssignmentRow {
   created_at: string;
   updated_at: string;
 }
+
+export interface TrustEventRow {
+  id: string;
+  subject_type: TrustScoreRow['subject_type'];
+  subject_id: string;
+  event_type: string;
+  score_delta: number;
+  case_id: string | null;
+  task_id: string | null;
+  proof_id: string | null;
+  reason: string;
+  metadata: Record<string, unknown>;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface VolunteerProfileRow {
+  id: string;
+  citizen_id: string | null;
+  user_id: string | null;
+  home_block_id: string | null;
+  status: 'pending' | 'active' | 'paused' | 'suspended';
+  service_radius_km: number | null;
+  skills: string[];
+  transport_modes: string[];
+  availability_note: string;
+  last_active_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrganizationProfileRow {
+  id: string;
+  shelter_id: string | null;
+  name: string;
+  organization_type: 'ngo' | 'shelter' | 'clinic' | 'foster_network' | 'city_partner';
+  status: 'pending' | 'active' | 'limited' | 'inactive' | 'suspended';
+  primary_block_id: string | null;
+  service_blocks: string[];
+  emergency_ready: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrganizationCapabilityRow {
+  id: string;
+  organization_id: string;
+  capability: 'rescue' | 'medical' | 'surgery' | 'isolation' | 'foster' | 'adoption' | 'ambulance' | 'feeding' | 'water';
+  level: 'basic' | 'standard' | 'advanced' | 'unavailable';
+  capacity_note: string;
+  updated_at: string;
+}
+
+export interface OrganizationCapacitySnapshotRow {
+  id: string;
+  organization_id: string;
+  species: string;
+  capacity_total: number | null;
+  capacity_available: number | null;
+  emergency_slots_available: number | null;
+  intake_status: 'open' | 'limited' | 'closed' | 'unknown';
+  note: string;
+  captured_at: string;
+  created_by: string | null;
+}
+
+export interface AreaForecastRow {
+  id: string;
+  block_id: string | null;
+  forecast_type: 'rescue_surge' | 'feeding_gap' | 'water_gap' | 'volunteer_shortage' | 'shelter_overload';
+  window_start: string;
+  window_end: string;
+  risk_score: number;
+  confidence: 'low' | 'medium' | 'high';
+  drivers: Record<string, unknown>;
+  recommended_action: string;
+  model_version: string;
+  created_at: string;
+}
+
+export interface ProofQualityScoreRow {
+  id: string;
+  proof_id: string;
+  quality_score: number;
+  fraud_risk_score: number;
+  location_match: 'match' | 'nearby' | 'mismatch' | 'unknown';
+  time_match: 'match' | 'stale' | 'future' | 'unknown';
+  reviewer_user_id: string | null;
+  notes: string;
+  created_at: string;
+}
