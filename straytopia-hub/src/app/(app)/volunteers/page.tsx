@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useEffect, useMemo, useState } from 'react';
 import { BatteryMedium, MapPinned, ShieldCheck, Users } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
 import { getSupabase } from '@/lib/supabase/client';
@@ -25,6 +26,8 @@ export default function VolunteersPage() {
   const [trustScores, setTrustScores] = useState<TrustScoreRow[]>([]);
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [onboarding, setOnboarding] = useState(false);
 
   async function load() {
     if (!supabase) {
@@ -72,6 +75,21 @@ export default function VolunteersPage() {
   const declinedAssignments = assignments.filter((row) => row.status === 'declined' || row.status === 'expired').length;
   const reliability = assignments.length ? Math.round((completedAssignments / Math.max(1, completedAssignments + declinedAssignments)) * 100) : 0;
 
+  async function onboardVolunteers() {
+    if (!supabase) return;
+    setOnboarding(true);
+    setActionMessage(null);
+    const result = await supabase.rpc('onboard_citizen_volunteers');
+    setOnboarding(false);
+    if (result.error) {
+      setError(result.error.message);
+      return;
+    }
+    setError(null);
+    setActionMessage(`${result.data ?? 0} volunteer profiles created from citizen devices.`);
+    await load();
+  }
+
   return (
     <div className="grid gap-6">
       <div className="grid gap-4 md:grid-cols-4">
@@ -82,6 +100,18 @@ export default function VolunteersPage() {
       </div>
 
       {error && <Card className="p-4 text-sm font-bold text-[var(--coral-deep)]">Run migration 006 to enable volunteer intelligence tables. {error}</Card>}
+      {actionMessage && <Card className="p-4 text-sm font-bold text-[var(--jungle-deep)]">{actionMessage}</Card>}
+
+      <Card className="p-5">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <div className="text-[11px] font-black uppercase tracking-widest text-[var(--muted)]">Activation</div>
+            <div className="fredoka mt-2 text-2xl font-semibold">Create volunteer profiles from synced citizen devices</div>
+            <p className="mt-1 max-w-2xl text-sm font-semibold leading-6 text-[var(--muted)]">Profiles start pending so ops can review locality, availability, and safety before assigning higher-trust work.</p>
+          </div>
+          <Button type="button" onClick={onboardVolunteers} disabled={!supabase || onboarding}>{onboarding ? 'Onboarding...' : 'Onboard volunteers'}</Button>
+        </div>
+      </Card>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_0.95fr]">
         <Card className="p-5">

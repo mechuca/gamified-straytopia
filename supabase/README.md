@@ -15,7 +15,8 @@ This folder contains the database schema used by both:
 7. Then run `migrations/006_system_alignment_foundations.sql`.
 8. Then run `migrations/007_media_and_transition_hardening.sql`.
 9. Then run `migrations/008_forecast_generation_job.sql`.
-10. Configure environment variables.
+10. Then run `migrations/009_activation_workflows.sql`.
+11. Configure environment variables.
 
 ### Ops hub (`straytopia-hub`)
 
@@ -81,3 +82,12 @@ RLS policies are tightened in `003_security_and_rls.sql`:
 `008_forecast_generation_job.sql` adds:
 - `generate_area_forecasts(p_window_hours)` for transparent rule-based rescue surge, feeding gap, water gap, volunteer shortage, and shelter overload forecasts.
 - The hub Forecasts screen can call this RPC manually after migrations are applied.
+
+`009_activation_workflows.sql` adds guarded ops RPCs for:
+- Creating and linking animal lifecycle records from cases.
+- Recording animal lifecycle events and status changes.
+- Onboarding volunteer profiles from citizen devices.
+- Onboarding organization profiles from shelters.
+- Recording organization capacity snapshots.
+- Recalculating private operational trust snapshots.
+- Optionally installing an hourly area forecast schedule when `pg_cron` is available.

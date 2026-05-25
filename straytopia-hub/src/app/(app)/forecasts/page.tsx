@@ -26,6 +26,7 @@ export default function ForecastsPage() {
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [scheduling, setScheduling] = useState(false);
   const [lastGenerated, setLastGenerated] = useState<string | null>(null);
 
   async function load() {
@@ -64,6 +65,19 @@ export default function ForecastsPage() {
     await load();
   }
 
+  async function installSchedule() {
+    if (!supabase) return;
+    setScheduling(true);
+    const result = await supabase.rpc('install_area_forecast_schedule');
+    setScheduling(false);
+    if (result.error) {
+      setError(result.error.message);
+      return;
+    }
+    setError(null);
+    setLastGenerated(String(result.data ?? 'Forecast schedule checked.'));
+  }
+
   const blockById = useMemo(() => new Map(blocks.map((block) => [block.id, block])), [blocks]);
   const highRisk = forecasts.filter((forecast) => forecast.risk_score >= 70).length;
   const topForecast = forecasts[0] ?? null;
@@ -77,10 +91,15 @@ export default function ForecastsPage() {
             <div className="fredoka mt-2 text-[32px] font-semibold leading-tight">Transparent risk forecasts, not black-box city surveillance.</div>
             <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[var(--muted)]">Forecasts are generated from current operational rows by block. They should trigger human review, not automated punishment or public scoring.</p>
           </div>
-          <Button onClick={generateForecasts} disabled={!supabase || generating} type="button">
-            <WandSparkles size={16} />
-            {generating ? 'Generating...' : 'Generate forecasts'}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={generateForecasts} disabled={!supabase || generating} type="button">
+              <WandSparkles size={16} />
+              {generating ? 'Generating...' : 'Generate forecasts'}
+            </Button>
+            <Button onClick={installSchedule} disabled={!supabase || scheduling} type="button" variant="paper">
+              {scheduling ? 'Checking...' : 'Install schedule'}
+            </Button>
+          </div>
         </div>
         {lastGenerated && <div className="mt-4"><Pill tone="jungle" variant="soft">{lastGenerated}</Pill></div>}
         {error && <div className="mt-4 rounded-[16px] border border-[color-mix(in_srgb,var(--coral)_28%,transparent)] bg-[var(--coral-soft)] px-4 py-3 text-sm font-bold text-[var(--coral-deep)]">Run migrations 006 and 008 to enable forecast generation. {error}</div>}

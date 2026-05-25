@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useEffect, useMemo, useState } from 'react';
 import { Ambulance, Handshake, Hospital, Stethoscope } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
 import { getSupabase } from '@/lib/supabase/client';
@@ -25,6 +26,14 @@ export default function PartnersPage() {
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [trustScores, setTrustScores] = useState<TrustScoreRow[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [busyAction, setBusyAction] = useState<string | null>(null);
+  const [capacityOrgId, setCapacityOrgId] = useState('');
+  const [capacityTotal, setCapacityTotal] = useState('');
+  const [capacityAvailable, setCapacityAvailable] = useState('');
+  const [emergencySlots, setEmergencySlots] = useState('');
+  const [intakeStatus, setIntakeStatus] = useState<OrganizationCapacitySnapshotRow['intake_status']>('unknown');
+  const [capacityNote, setCapacityNote] = useState('');
 
   async function load() {
     if (!supabase) {
@@ -75,6 +84,47 @@ export default function PartnersPage() {
   const emergencyReady = organizations.filter((org) => org.emergency_ready).length;
   const openIntake = capacity.filter((row) => row.intake_status === 'open').length;
 
+  async function onboardOrganizations() {
+    if (!supabase) return;
+    setBusyAction('onboard-orgs');
+    setActionMessage(null);
+    const result = await supabase.rpc('onboard_shelter_organizations');
+    setBusyAction(null);
+    if (result.error) {
+      setError(result.error.message);
+      return;
+    }
+    setError(null);
+    setActionMessage(`${result.data ?? 0} organization profiles created from shelters.`);
+    await load();
+  }
+
+  async function recordCapacity() {
+    if (!supabase || !capacityOrgId) return;
+    setBusyAction('capacity');
+    setActionMessage(null);
+    const result = await supabase.rpc('record_organization_capacity_snapshot', {
+      p_organization_id: capacityOrgId,
+      p_capacity_total: capacityTotal ? Number(capacityTotal) : null,
+      p_capacity_available: capacityAvailable ? Number(capacityAvailable) : null,
+      p_emergency_slots_available: emergencySlots ? Number(emergencySlots) : null,
+      p_intake_status: intakeStatus,
+      p_note: capacityNote,
+    });
+    setBusyAction(null);
+    if (result.error) {
+      setError(result.error.message);
+      return;
+    }
+    setError(null);
+    setActionMessage('Capacity snapshot recorded.');
+    setCapacityTotal('');
+    setCapacityAvailable('');
+    setEmergencySlots('');
+    setCapacityNote('');
+    await load();
+  }
+
   return (
     <div className="grid gap-6">
       <div className="grid gap-4 md:grid-cols-4">
@@ -85,6 +135,37 @@ export default function PartnersPage() {
       </div>
 
       {error && <Card className="p-4 text-sm font-bold text-[var(--coral-deep)]">Run migration 006 to enable NGO intelligence tables. {error}</Card>}
+      {actionMessage && <Card className="p-4 text-sm font-bold text-[var(--jungle-deep)]">{actionMessage}</Card>}
+
+      <Card className="p-5">
+        <div className="grid gap-5 xl:grid-cols-[0.8fr_1.2fr]">
+          <div className="flex flex-col items-start justify-between gap-4">
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-widest text-[var(--muted)]">Activation</div>
+              <div className="fredoka mt-2 text-2xl font-semibold">Onboard partners and update live capacity</div>
+              <p className="mt-1 text-sm font-semibold leading-6 text-[var(--muted)]">Shelters become organization profiles first, then capacity snapshots keep dispatch decisions grounded in current reality.</p>
+            </div>
+            <Button type="button" onClick={onboardOrganizations} disabled={!supabase || busyAction === 'onboard-orgs'}>{busyAction === 'onboard-orgs' ? 'Onboarding...' : 'Onboard shelters'}</Button>
+          </div>
+          <div className="grid gap-2 md:grid-cols-3">
+            <select value={capacityOrgId} onChange={(event) => setCapacityOrgId(event.target.value)} className="h-11 rounded-[14px] border border-[var(--hairline2)] bg-white/75 px-3 text-sm font-bold outline-none focus:border-[var(--jungle)] md:col-span-3">
+              <option value="">Select organization</option>
+              {organizations.map((org) => <option key={org.id} value={org.id}>{org.name}</option>)}
+            </select>
+            <input value={capacityTotal} onChange={(event) => setCapacityTotal(event.target.value)} inputMode="numeric" placeholder="Total slots" className="h-11 rounded-[14px] border border-[var(--hairline2)] bg-white/75 px-3 text-sm font-bold outline-none focus:border-[var(--jungle)]" />
+            <input value={capacityAvailable} onChange={(event) => setCapacityAvailable(event.target.value)} inputMode="numeric" placeholder="Available" className="h-11 rounded-[14px] border border-[var(--hairline2)] bg-white/75 px-3 text-sm font-bold outline-none focus:border-[var(--jungle)]" />
+            <input value={emergencySlots} onChange={(event) => setEmergencySlots(event.target.value)} inputMode="numeric" placeholder="Emergency" className="h-11 rounded-[14px] border border-[var(--hairline2)] bg-white/75 px-3 text-sm font-bold outline-none focus:border-[var(--jungle)]" />
+            <select value={intakeStatus} onChange={(event) => setIntakeStatus(event.target.value as OrganizationCapacitySnapshotRow['intake_status'])} className="h-11 rounded-[14px] border border-[var(--hairline2)] bg-white/75 px-3 text-sm font-bold outline-none focus:border-[var(--jungle)]">
+              <option value="unknown">Unknown</option>
+              <option value="open">Open</option>
+              <option value="limited">Limited</option>
+              <option value="closed">Closed</option>
+            </select>
+            <input value={capacityNote} onChange={(event) => setCapacityNote(event.target.value)} placeholder="Capacity note" className="h-11 rounded-[14px] border border-[var(--hairline2)] bg-white/75 px-3 text-sm font-bold outline-none focus:border-[var(--jungle)] md:col-span-2" />
+            <Button type="button" variant="paper" onClick={recordCapacity} disabled={!supabase || !capacityOrgId || busyAction === 'capacity'} className="md:col-span-3">{busyAction === 'capacity' ? 'Recording...' : 'Record capacity snapshot'}</Button>
+          </div>
+        </div>
+      </Card>
 
       <Card className="p-5">
         <div className="flex items-center justify-between gap-4">

@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useEffect, useMemo, useState } from 'react';
 import { ShieldCheck, Sparkles, TriangleAlert } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
 import { getSupabase } from '@/lib/supabase/client';
@@ -22,6 +23,8 @@ export default function TrustPage() {
   const [events, setEvents] = useState<TrustEventRow[]>([]);
   const [proofScores, setProofScores] = useState<ProofQualityScoreRow[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [recalculating, setRecalculating] = useState(false);
 
   async function load() {
     if (!supabase) return;
@@ -55,6 +58,21 @@ export default function TrustPage() {
   const watchCount = scores.filter((row) => row.risk_level === 'watch' || row.risk_level === 'high').length;
   const fraudWatch = proofScores.filter((row) => row.fraud_risk_score >= 60).length;
 
+  async function recalculateTrust() {
+    if (!supabase) return;
+    setRecalculating(true);
+    setActionMessage(null);
+    const result = await supabase.rpc('recalculate_trust_scores');
+    setRecalculating(false);
+    if (result.error) {
+      setError(result.error.message);
+      return;
+    }
+    setError(null);
+    setActionMessage(`${result.data ?? 0} trust snapshots recalculated.`);
+    await load();
+  }
+
   return (
     <div className="grid gap-6">
       <div className="grid gap-4 md:grid-cols-4">
@@ -65,6 +83,18 @@ export default function TrustPage() {
       </div>
 
       {error && <Card className="p-4 text-sm font-bold text-[var(--coral-deep)]">Run migration 006 to enable trust tables. {error}</Card>}
+      {actionMessage && <Card className="p-4 text-sm font-bold text-[var(--jungle-deep)]">{actionMessage}</Card>}
+
+      <Card className="p-5">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <div className="text-[11px] font-black uppercase tracking-widest text-[var(--muted)]">Activation</div>
+            <div className="fredoka mt-2 text-2xl font-semibold">Recalculate private operational trust</div>
+            <p className="mt-1 max-w-2xl text-sm font-semibold leading-6 text-[var(--muted)]">The first scoring pass uses completed tasks, blocked or cancelled work, and proof verification outcomes. Scores remain ops-only.</p>
+          </div>
+          <Button type="button" onClick={recalculateTrust} disabled={!supabase || recalculating}>{recalculating ? 'Recalculating...' : 'Recalculate trust'}</Button>
+        </div>
+      </Card>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
         <Card className="p-5">
