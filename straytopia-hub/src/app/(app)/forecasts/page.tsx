@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useEffect, useMemo, useState } from 'react';
 import { BrainCircuit, TrendingUp, WandSparkles } from 'lucide-react';
+import { ActionStatus } from '@/components/ui/ActionStatus';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
@@ -55,27 +56,40 @@ export default function ForecastsPage() {
   async function generateForecasts() {
     if (!supabase) return;
     setGenerating(true);
-    const result = await supabase.rpc('generate_area_forecasts', { p_window_hours: 72 });
-    setGenerating(false);
-    if (result.error) {
-      setError(result.error.message);
-      return;
+    setLastGenerated(null);
+    try {
+      const result = await supabase.rpc('generate_area_forecasts', { p_window_hours: 72 });
+      if (result.error) {
+        setError(result.error.message);
+        return;
+      }
+      setError(null);
+      setLastGenerated(`${result.data ?? 0} forecasts generated`);
+      await load();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Forecast generation failed. Try again.');
+    } finally {
+      setGenerating(false);
     }
-    setLastGenerated(`${result.data ?? 0} forecasts generated`);
-    await load();
   }
 
   async function installSchedule() {
     if (!supabase) return;
     setScheduling(true);
-    const result = await supabase.rpc('install_area_forecast_schedule');
-    setScheduling(false);
-    if (result.error) {
-      setError(result.error.message);
-      return;
+    setLastGenerated(null);
+    try {
+      const result = await supabase.rpc('install_area_forecast_schedule');
+      if (result.error) {
+        setError(result.error.message);
+        return;
+      }
+      setError(null);
+      setLastGenerated(String(result.data ?? 'Forecast schedule checked.'));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Forecast schedule install failed. Try again.');
+    } finally {
+      setScheduling(false);
     }
-    setError(null);
-    setLastGenerated(String(result.data ?? 'Forecast schedule checked.'));
   }
 
   const blockById = useMemo(() => new Map(blocks.map((block) => [block.id, block])), [blocks]);
@@ -101,8 +115,8 @@ export default function ForecastsPage() {
             </Button>
           </div>
         </div>
-        {lastGenerated && <div className="mt-4"><Pill tone="jungle" variant="soft">{lastGenerated}</Pill></div>}
-        {error && <div className="mt-4 rounded-[16px] border border-[color-mix(in_srgb,var(--coral)_28%,transparent)] bg-[var(--coral-soft)] px-4 py-3 text-sm font-bold text-[var(--coral-deep)]">Run migrations 006 and 008 to enable forecast generation. {error}</div>}
+        {lastGenerated && <div className="mt-4"><ActionStatus type="success">{lastGenerated}</ActionStatus></div>}
+        {error && <div className="mt-4"><ActionStatus type="error">Run migrations 006, 008, and 009 to enable forecast activation workflows. {error}</ActionStatus></div>}
       </Card>
 
       <div className="grid gap-4 md:grid-cols-3">

@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 import { useEffect, useMemo, useState } from 'react';
 import { getSupabase } from '@/lib/supabase/client';
 import type { Block, CaseRow, CitizenRow, ProofRow, ProofVerificationStatus, Shelter, TaskRow, TaskTemplateRow } from '@/lib/types';
+import { ActionStatus } from '@/components/ui/ActionStatus';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
@@ -283,6 +284,8 @@ export default function ActionQueuePage() {
   const [q, setQ] = useState('');
   const [busyItem, setBusyItem] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const [cases, setCases] = useState<CaseRow[]>([]);
@@ -472,7 +475,7 @@ export default function ActionQueuePage() {
 
   async function recordDomainEvent(item: WorkItem, eventType: string, summary: string, payload: Record<string, unknown> = {}) {
     if (!supabase) return;
-    await supabase.from('domain_events').insert({
+    const result = await supabase.from('domain_events').insert({
       event_type: eventType,
       actor_role: 'ops',
       case_id: item.caseRow?.id ?? item.taskRow?.case_id ?? null,
@@ -484,17 +487,19 @@ export default function ActionQueuePage() {
       summary,
       payload,
     });
+    if (result.error) throw result.error;
   }
 
   async function recordAssignment(item: WorkItem, assignedToType: 'shelter' | 'citizen', assignedToId: string, reason: string) {
     if (!supabase || !item.taskRow) return;
-    await supabase.from('task_assignments').insert({
+    const result = await supabase.from('task_assignments').insert({
       task_id: item.taskRow.id,
       assigned_to_type: assignedToType,
       assigned_to_id: assignedToId,
       assignment_reason: reason,
       status: 'offered',
     });
+    if (result.error) throw result.error;
     await recordDomainEvent(item, 'task.assigned', `Assigned ${item.title} to ${assignedToType}.`, { assigned_to_type: assignedToType, assigned_to_id: assignedToId, reason });
   }
 
@@ -502,25 +507,30 @@ export default function ActionQueuePage() {
     if (!supabase) return;
     const rpcResult = await supabase.rpc('ops_update_case_status', { p_case_id: caseId, p_next_status: nextStatus, p_reason: reason ?? null });
     if (!rpcResult.error) return;
-    await supabase.from('cases').update({ status: nextStatus, ...fallbackPatch }).eq('id', caseId);
+    const fallbackResult = await supabase.from('cases').update({ status: nextStatus, ...fallbackPatch }).eq('id', caseId);
+    if (fallbackResult.error) throw fallbackResult.error;
   }
 
   async function updateTaskStatus(taskId: string, nextStatus: TaskRow['status'], reason?: string, fallbackPatch: Partial<TaskRow> = {}) {
     if (!supabase) return;
     const rpcResult = await supabase.rpc('ops_update_task_status', { p_task_id: taskId, p_next_status: nextStatus, p_reason: reason ?? null });
     if (!rpcResult.error) return;
-    await supabase.from('tasks').update({ status: nextStatus, ...fallbackPatch }).eq('id', taskId);
+    const fallbackResult = await supabase.from('tasks').update({ status: nextStatus, ...fallbackPatch }).eq('id', taskId);
+    if (fallbackResult.error) throw fallbackResult.error;
   }
 
   async function updateProofStatus(proofId: string, nextStatus: ProofVerificationStatus, reason?: string) {
     if (!supabase) return;
     const rpcResult = await supabase.rpc('ops_update_proof_status', { p_proof_id: proofId, p_next_status: nextStatus, p_reason: reason ?? null });
     if (!rpcResult.error) return;
-    await supabase.from('proofs').update({ verification_status: nextStatus }).eq('id', proofId);
+    const fallbackResult = await supabase.from('proofs').update({ verification_status: nextStatus }).eq('id', proofId);
+    if (fallbackResult.error) throw fallbackResult.error;
   }
 
   async function assignTask(item: WorkItem, shelterId: string | null) {
     if (!item.taskRow || !shelterId) return;
+    setActionError(null);
+    setActionMessage(null);
     if (!supabase) {
       setTasks((prev) => prev.map((t) => t.id === item.taskRow?.id ? {
         ...t,
@@ -533,23 +543,34 @@ export default function ActionQueuePage() {
       if (item.taskRow.case_id) {
         setCases((prev) => prev.map((c) => c.id === item.taskRow?.case_id ? { ...c, status: 'assigned', updated_at: new Date().toISOString() } : c));
       }
+      setActionMessage('Task assigned in demo data.');
       return;
     }
 
     setBusyItem(item.key);
-    await supabase.from('tasks').update({
-      shelter_id: shelterId,
-      assigned_to_type: 'shelter',
-      assigned_to_id: shelterId,
-    }).eq('id', item.taskRow.id);
-    if (item.taskRow.status === 'queued') await updateTaskStatus(item.taskRow.id, 'assigned');
-    if (item.taskRow.case_id) await updateCaseStatus(item.taskRow.case_id, 'assigned');
-    await recordAssignment(item, 'shelter', shelterId, 'Assigned from action queue recommendation.');
-    setBusyItem(null);
+    try {
+      const taskResult = await supabase.from('tasks').update({
+        shelter_id: shelterId,
+        assigned_to_type: 'shelter',
+        assigned_to_id: shelterId,
+      }).eq('id', item.taskRow.id);
+      if (taskResult.error) throw taskResult.error;
+      if (item.taskRow.status === 'queued') await updateTaskStatus(item.taskRow.id, 'assigned');
+      if (item.taskRow.case_id) await updateCaseStatus(item.taskRow.case_id, 'assigned');
+      await recordAssignment(item, 'shelter', shelterId, 'Assigned from action queue recommendation.');
+      setActionMessage(`${item.title} assigned to shelter.`);
+      await load();
+    } catch (caught) {
+      setActionError(caught instanceof Error ? caught.message : 'Task assignment failed. Try again.');
+    } finally {
+      setBusyItem(null);
+    }
   }
 
   async function assignTaskToCitizen(item: WorkItem, citizen: CitizenRow | null) {
     if (!item.taskRow || !citizen) return;
+    setActionError(null);
+    setActionMessage(null);
     if (!supabase) {
       setTasks((prev) => prev.map((t) => t.id === item.taskRow?.id ? {
         ...t,
@@ -561,22 +582,33 @@ export default function ActionQueuePage() {
       if (item.taskRow.case_id) {
         setCases((prev) => prev.map((c) => c.id === item.taskRow?.case_id ? { ...c, status: 'assigned', updated_at: new Date().toISOString() } : c));
       }
+      setActionMessage('Task assigned to mobile volunteer in demo data.');
       return;
     }
 
     setBusyItem(item.key);
-    await supabase.from('tasks').update({
-      assigned_to_type: 'citizen',
-      assigned_to_id: citizen.device_id,
-    }).eq('id', item.taskRow.id);
-    if (item.taskRow.status === 'queued') await updateTaskStatus(item.taskRow.id, 'assigned');
-    if (item.taskRow.case_id) await updateCaseStatus(item.taskRow.case_id, 'assigned');
-    await recordAssignment(item, 'citizen', citizen.device_id, 'Assigned to mobile volunteer from action queue.');
-    setBusyItem(null);
+    try {
+      const taskResult = await supabase.from('tasks').update({
+        assigned_to_type: 'citizen',
+        assigned_to_id: citizen.device_id,
+      }).eq('id', item.taskRow.id);
+      if (taskResult.error) throw taskResult.error;
+      if (item.taskRow.status === 'queued') await updateTaskStatus(item.taskRow.id, 'assigned');
+      if (item.taskRow.case_id) await updateCaseStatus(item.taskRow.case_id, 'assigned');
+      await recordAssignment(item, 'citizen', citizen.device_id, 'Assigned to mobile volunteer from action queue.');
+      setActionMessage(`${item.title} assigned to mobile volunteer.`);
+      await load();
+    } catch (caught) {
+      setActionError(caught instanceof Error ? caught.message : 'Mobile assignment failed. Try again.');
+    } finally {
+      setBusyItem(null);
+    }
   }
 
   async function runPrimaryAction(item: WorkItem) {
     if (!canRunPrimaryAction(item)) return;
+    setActionError(null);
+    setActionMessage(null);
     if (!supabase) {
       if (item.kind === 'case' && item.caseRow) {
         setCases((prev) => prev.map((c) => c.id === item.caseRow?.id ? { ...c, status: 'task_created', updated_at: new Date().toISOString() } : c));
@@ -594,40 +626,53 @@ export default function ActionQueuePage() {
         if (item.taskRow) setTasks((prev) => prev.map((t) => t.id === item.taskRow?.id ? { ...t, status: 'completed', updated_at: new Date().toISOString() } : t));
         if (item.caseRow) setCases((prev) => prev.map((c) => c.id === item.caseRow?.id ? { ...c, status: 'resolved', updated_at: new Date().toISOString() } : c));
       }
+      setActionMessage(`${item.primaryAction} completed in demo data.`);
       return;
     }
     if (!supabase) return;
     setBusyItem(item.key);
-    if (item.kind === 'case' && item.caseRow) {
-      const { data: userData } = await supabase.auth.getUser();
-      if (item.caseRow.status === 'submitted') {
-        await updateCaseStatus(item.caseRow.id, 'under_review');
+    try {
+      if (item.kind === 'case' && item.caseRow) {
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        if (userError) throw userError;
+        if (item.caseRow.status === 'submitted') {
+          await updateCaseStatus(item.caseRow.id, 'under_review');
+        }
+        const reviewResult = await supabase.from('case_reviews').insert({
+          case_id: item.caseRow.id,
+          reviewer_user_id: userData.user?.id ?? null,
+          decision: 'accepted',
+        });
+        if (reviewResult.error) throw reviewResult.error;
+        await recordDomainEvent(item, 'case.accepted', `Accepted ${item.meta} for operational follow-up.`, { source: item.source });
       }
-      await supabase.from('case_reviews').insert({
-        case_id: item.caseRow.id,
-        reviewer_user_id: userData.user?.id ?? null,
-        decision: 'accepted',
-      });
-      await recordDomainEvent(item, 'case.accepted', `Accepted ${item.meta} for operational follow-up.`, { source: item.source });
+      if (item.kind === 'task' && item.taskRow?.status === 'queued' && recommendedShelterId) {
+        await assignTask(item, recommendedShelterId);
+        return;
+      }
+      if (item.kind === 'task' && item.taskRow?.status === 'assigned') {
+        await updateTaskStatus(item.taskRow.id, 'in_progress');
+        if (item.taskRow.case_id) await updateCaseStatus(item.taskRow.case_id, 'in_progress');
+        await recordDomainEvent(item, 'task.started', `Started ${item.title}.`, { previous_status: item.taskRow.status });
+      }
+      if (item.kind === 'proof' && item.proofRow) {
+        await updateProofStatus(item.proofRow.id, 'verified');
+        if (item.taskRow) await updateTaskStatus(item.taskRow.id, 'completed');
+        if (item.caseRow) await updateCaseStatus(item.caseRow.id, 'resolved');
+        await recordDomainEvent(item, 'proof.verified', `Verified evidence for ${item.meta}.`, { verification_status: 'verified' });
+      }
+      setActionMessage(`${item.primaryAction} completed.`);
+      await load();
+    } catch (caught) {
+      setActionError(caught instanceof Error ? caught.message : 'Action failed. Try again.');
+    } finally {
+      setBusyItem(null);
     }
-    if (item.kind === 'task' && item.taskRow?.status === 'queued' && recommendedShelterId) {
-      await assignTask(item, recommendedShelterId);
-    }
-    if (item.kind === 'task' && item.taskRow?.status === 'assigned') {
-      await updateTaskStatus(item.taskRow.id, 'in_progress');
-      if (item.taskRow.case_id) await updateCaseStatus(item.taskRow.case_id, 'in_progress');
-      await recordDomainEvent(item, 'task.started', `Started ${item.title}.`, { previous_status: item.taskRow.status });
-    }
-    if (item.kind === 'proof' && item.proofRow) {
-      await updateProofStatus(item.proofRow.id, 'verified');
-      if (item.taskRow) await updateTaskStatus(item.taskRow.id, 'completed');
-      if (item.caseRow) await updateCaseStatus(item.caseRow.id, 'resolved');
-      await recordDomainEvent(item, 'proof.verified', `Verified evidence for ${item.meta}.`, { verification_status: 'verified' });
-    }
-    setBusyItem(null);
   }
 
   async function rejectSelected() {
+    setActionError(null);
+    setActionMessage(null);
     if (!supabase && selected) {
       if (selected.kind === 'case' && selected.caseRow) {
         setCases((prev) => prev.map((c) => c.id === selected.caseRow?.id ? {
@@ -641,21 +686,58 @@ export default function ActionQueuePage() {
       if (selected.kind === 'proof' && selected.proofRow) {
         setProofs((prev) => prev.map((p) => p.id === selected.proofRow?.id ? { ...p, verification_status: 'rejected' } : p));
       }
+      setActionMessage('Selected item rejected in demo data.');
       return;
     }
     if (!supabase || !selected) return;
     setBusyItem(selected.key);
-    if (selected.kind === 'case' && selected.caseRow) {
-      const { data: userData } = await supabase.auth.getUser();
-      await updateCaseStatus(selected.caseRow.id, 'rejected', 'Rejected from action queue.', { reject_reason_code: 'not_actionable', reject_reason_text: 'Rejected from action queue.' });
-      await supabase.from('case_reviews').insert({ case_id: selected.caseRow.id, reviewer_user_id: userData.user?.id ?? null, decision: 'rejected', fixed_reason_code: 'not_actionable', free_text_reason: 'Rejected from action queue.' });
-      await recordDomainEvent(selected, 'case.rejected', `Rejected ${selected.meta}.`, { reason: 'not_actionable' });
+    try {
+      if (selected.kind === 'case' && selected.caseRow) {
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        if (userError) throw userError;
+        await updateCaseStatus(selected.caseRow.id, 'rejected', 'Rejected from action queue.', { reject_reason_code: 'not_actionable', reject_reason_text: 'Rejected from action queue.' });
+        const reviewResult = await supabase.from('case_reviews').insert({ case_id: selected.caseRow.id, reviewer_user_id: userData.user?.id ?? null, decision: 'rejected', fixed_reason_code: 'not_actionable', free_text_reason: 'Rejected from action queue.' });
+        if (reviewResult.error) throw reviewResult.error;
+        await recordDomainEvent(selected, 'case.rejected', `Rejected ${selected.meta}.`, { reason: 'not_actionable' });
+      }
+      if (selected.kind === 'proof' && selected.proofRow) {
+        await updateProofStatus(selected.proofRow.id, 'rejected', 'Rejected from action queue.');
+        await recordDomainEvent(selected, 'proof.rejected', `Rejected evidence for ${selected.meta}.`, { reason: 'not_actionable' });
+      }
+      setActionMessage(`${selected.title} rejected and mobile state updated.`);
+      await load();
+    } catch (caught) {
+      setActionError(caught instanceof Error ? caught.message : 'Rejection failed. Try again.');
+    } finally {
+      setBusyItem(null);
     }
-    if (selected.kind === 'proof' && selected.proofRow) {
-      await updateProofStatus(selected.proofRow.id, 'rejected', 'Rejected from action queue.');
-      await recordDomainEvent(selected, 'proof.rejected', `Rejected evidence for ${selected.meta}.`, { reason: 'not_actionable' });
+  }
+
+  async function escalateSelected() {
+    if (!selected) return;
+    setActionError(null);
+    setActionMessage(null);
+    if (!supabase) {
+      if (selected.taskRow) setTasks((prev) => prev.map((task) => task.id === selected.taskRow?.id ? { ...task, status: 'escalated', priority: 'critical', updated_at: new Date().toISOString() } : task));
+      setActionMessage('Selected item escalated in demo data.');
+      return;
     }
-    setBusyItem(null);
+    setBusyItem(selected.key);
+    try {
+      if (selected.taskRow) {
+        await updateTaskStatus(selected.taskRow.id, 'escalated', 'Escalated urgent case from action queue.', { priority: 'critical' });
+      }
+      if (selected.caseRow && selected.caseRow.status === 'submitted') {
+        await updateCaseStatus(selected.caseRow.id, 'under_review', 'Escalated urgent case from action queue.');
+      }
+      await recordDomainEvent(selected, selected.taskRow ? 'task.escalated' : 'case.escalated', `Escalated ${selected.meta} for urgent ops review.`, { source: 'action_queue' });
+      setActionMessage(`${selected.title} escalated for urgent review.`);
+      await load();
+    } catch (caught) {
+      setActionError(caught instanceof Error ? caught.message : 'Escalation failed. Try again.');
+    } finally {
+      setBusyItem(null);
+    }
   }
 
   const filterCounts: Record<QueueFilter, number> = {
@@ -732,7 +814,9 @@ export default function ActionQueuePage() {
             />
           </div>
         </div>
-        {loadError && <div className="mt-4 rounded-[16px] border border-[color-mix(in_srgb,var(--coral)_28%,transparent)] bg-[var(--coral-soft)] px-4 py-3 text-sm font-bold text-[var(--coral-deep)]">Load issue: {loadError}</div>}
+        {loadError && <div className="mt-4"><ActionStatus type="error">Load issue: {loadError}</ActionStatus></div>}
+        {actionError && <div className="mt-4"><ActionStatus type="error">{actionError}</ActionStatus></div>}
+        {actionMessage && <div className="mt-4"><ActionStatus type="success">{actionMessage}</ActionStatus></div>}
       </Card>
 
       <Card className="overflow-hidden p-0">
@@ -957,9 +1041,9 @@ export default function ActionQueuePage() {
                     <X size={16} />
                     Reject + update mobile
                   </Button>
-                  <Button variant="paper" disabled={!supabase} type="button">
+                  <Button variant="paper" disabled={busyItem === selected.key || !selected} onClick={escalateSelected} type="button">
                     <AlertTriangle size={16} />
-                    Escalate urgent case
+                    {busyItem === selected.key ? 'Escalating...' : 'Escalate urgent case'}
                   </Button>
                 </div>
               </div>

@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useEffect, useMemo, useState } from 'react';
 import { Activity, HeartPulse, PawPrint, ShieldCheck } from 'lucide-react';
+import { ActionStatus } from '@/components/ui/ActionStatus';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
@@ -101,37 +102,49 @@ export default function AnimalsPage() {
   ];
 
   async function runRpc(actionName: string, call: () => PromiseLike<{ error: { message: string } | null; data: unknown }>, success: string) {
-    if (!supabase) return;
+    if (!supabase) return false;
     setBusyAction(actionName);
     setActionMessage(null);
-    const result = await call();
-    setBusyAction(null);
-    if (result.error) {
-      setError(result.error.message);
-      return;
+    try {
+      const result = await call();
+      if (result.error) {
+        setError(result.error.message);
+        return false;
+      }
+      setError(null);
+      setActionMessage(success);
+      await load();
+      return true;
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Action failed. Try again.');
+      return false;
+    } finally {
+      setBusyAction(null);
     }
-    setError(null);
-    setActionMessage(success);
-    await load();
   }
 
   async function createAnimalFromCase() {
     if (!newAnimalCaseId) return;
-    await runRpc('create-animal', () => supabase!.rpc('create_animal_from_case', { p_case_id: newAnimalCaseId, p_name: newAnimalName || null, p_species: newAnimalSpecies }), 'Animal lifecycle record created and linked.');
-    setNewAnimalName('');
+    const ok = await runRpc('create-animal', () => supabase!.rpc('create_animal_from_case', { p_case_id: newAnimalCaseId, p_name: newAnimalName || null, p_species: newAnimalSpecies }), 'Animal lifecycle record created and linked.');
+    if (ok) {
+      setNewAnimalCaseId('');
+      setNewAnimalName('');
+    }
   }
 
   async function linkCaseToSelectedAnimal() {
     if (!selected || !linkCaseId) return;
-    await runRpc('link-case', () => supabase!.rpc('link_case_to_animal', { p_case_id: linkCaseId, p_animal_id: selected.id }), 'Case linked to the selected animal.');
-    setLinkCaseId('');
+    const ok = await runRpc('link-case', () => supabase!.rpc('link_case_to_animal', { p_case_id: linkCaseId, p_animal_id: selected.id }), 'Case linked to the selected animal.');
+    if (ok) setLinkCaseId('');
   }
 
   async function addLifecycleEvent() {
     if (!selected) return;
-    await runRpc('add-event', () => supabase!.rpc('add_animal_lifecycle_event', { p_animal_id: selected.id, p_event_type: eventType, p_next_status: nextStatus || null, p_note: eventNote }), 'Lifecycle event recorded.');
-    setEventNote('');
-    setNextStatus('');
+    const ok = await runRpc('add-event', () => supabase!.rpc('add_animal_lifecycle_event', { p_animal_id: selected.id, p_event_type: eventType, p_next_status: nextStatus || null, p_note: eventNote }), 'Lifecycle event recorded.');
+    if (ok) {
+      setEventNote('');
+      setNextStatus('');
+    }
   }
 
   return (
@@ -146,8 +159,8 @@ export default function AnimalsPage() {
         ))}
       </div>
 
-      {error && <Card className="p-4 text-sm font-bold text-[var(--coral-deep)]">Run migration 006 to enable animal lifecycle tables. {error}</Card>}
-      {actionMessage && <Card className="p-4 text-sm font-bold text-[var(--jungle-deep)]">{actionMessage}</Card>}
+      {error && <ActionStatus type="error">Run migrations 006 and 009 to enable animal activation workflows. {error}</ActionStatus>}
+      {actionMessage && <ActionStatus type="success">{actionMessage}</ActionStatus>}
 
       <Card className="p-5">
         <div className="flex flex-wrap items-end justify-between gap-4">

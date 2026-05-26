@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 import { useEffect, useMemo, useState } from 'react';
 import { getSupabase } from '@/lib/supabase/client';
 import type { Block, CaseRow, ProofRow, ProofVerificationStatus, Shelter, TaskRow, TaskTemplateRow } from '@/lib/types';
+import { ActionStatus } from '@/components/ui/ActionStatus';
 import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
 import { Button } from '@/components/ui/Button';
@@ -36,6 +37,8 @@ export default function ProofsPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | ProofVerificationStatus>('pending');
   const [q, setQ] = useState('');
   const [signedMediaUrls, setSignedMediaUrls] = useState<Record<string, string>>({});
+  const [error, setError] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
 
   const taskById = useMemo(() => new Map(tasks.map((t) => [t.id, t])), [tasks]);
   const templateById = useMemo(() => new Map(templates.map((t) => [t.id, t])), [templates]);
@@ -101,12 +104,26 @@ export default function ProofsPage() {
   async function setStatus(proof: ProofRow, next: ProofVerificationStatus) {
     if (!supabase) {
       setProofs((prev) => prev.map((p) => (p.id === proof.id ? { ...p, verification_status: next } : p)));
+      setError(null);
+      setActionMessage(`Proof marked ${next.replace('_', ' ')} in demo data.`);
       return;
     }
     setBusyId(proof.id);
-    const rpcResult = await supabase.rpc('ops_update_proof_status', { p_proof_id: proof.id, p_next_status: next, p_reason: next === 'rejected' ? 'Rejected from evidence review.' : null });
-    if (rpcResult.error) await supabase.from('proofs').update({ verification_status: next }).eq('id', proof.id);
-    setBusyId(null);
+    setActionMessage(null);
+    try {
+      const rpcResult = await supabase.rpc('ops_update_proof_status', { p_proof_id: proof.id, p_next_status: next, p_reason: next === 'rejected' ? 'Rejected from evidence review.' : null });
+      if (rpcResult.error) {
+        const fallbackResult = await supabase.from('proofs').update({ verification_status: next }).eq('id', proof.id);
+        if (fallbackResult.error) throw fallbackResult.error;
+      }
+      setError(null);
+      setActionMessage(`Proof marked ${next.replace('_', ' ')}.`);
+      await load();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Proof status update failed. Try again.');
+    } finally {
+      setBusyId(null);
+    }
   }
 
   useEffect(() => {
@@ -145,6 +162,9 @@ export default function ProofsPage() {
 
   return (
     <div className="grid gap-6">
+      {error && <ActionStatus type="error">{error}</ActionStatus>}
+      {actionMessage && <ActionStatus type="success">{actionMessage}</ActionStatus>}
+
       <div className="grid gap-6 lg:grid-cols-[440px_1fr]">
         <Card className="overflow-hidden p-0">
           <div className="border-b border-[var(--hairline)] bg-[var(--paper)] p-4">

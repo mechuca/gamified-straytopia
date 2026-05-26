@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useEffect, useMemo, useState } from 'react';
 import { BatteryMedium, MapPinned, ShieldCheck, Users } from 'lucide-react';
+import { ActionStatus } from '@/components/ui/ActionStatus';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
@@ -79,15 +80,20 @@ export default function VolunteersPage() {
     if (!supabase) return;
     setOnboarding(true);
     setActionMessage(null);
-    const result = await supabase.rpc('onboard_citizen_volunteers');
-    setOnboarding(false);
-    if (result.error) {
-      setError(result.error.message);
-      return;
+    try {
+      const result = await supabase.rpc('onboard_citizen_volunteers');
+      if (result.error) {
+        setError(result.error.message);
+        return;
+      }
+      setError(null);
+      setActionMessage(`${result.data ?? 0} volunteer profiles created from citizen devices.`);
+      await load();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Volunteer onboarding failed. Try again.');
+    } finally {
+      setOnboarding(false);
     }
-    setError(null);
-    setActionMessage(`${result.data ?? 0} volunteer profiles created from citizen devices.`);
-    await load();
   }
 
   return (
@@ -99,8 +105,8 @@ export default function VolunteersPage() {
         <Metric label="Assignment reliability" value={reliability} tone={reliability >= 70 ? 'jungle' : reliability > 0 ? 'gold' : 'paper'} suffix="%" />
       </div>
 
-      {error && <Card className="p-4 text-sm font-bold text-[var(--coral-deep)]">Run migration 006 to enable volunteer intelligence tables. {error}</Card>}
-      {actionMessage && <Card className="p-4 text-sm font-bold text-[var(--jungle-deep)]">{actionMessage}</Card>}
+      {error && <ActionStatus type="error">Run migrations 006 and 009 to enable volunteer activation workflows. {error}</ActionStatus>}
+      {actionMessage && <ActionStatus type="success">{actionMessage}</ActionStatus>}
 
       <Card className="p-5">
         <div className="flex flex-wrap items-end justify-between gap-4">

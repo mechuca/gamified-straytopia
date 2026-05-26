@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 import { useEffect, useMemo, useState } from 'react';
 import { getSupabase } from '@/lib/supabase/client';
 import type { Block, CaseRow, Shelter } from '@/lib/types';
+import { ActionStatus } from '@/components/ui/ActionStatus';
 import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
 import { Button } from '@/components/ui/Button';
@@ -46,6 +47,8 @@ export default function CasesPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | CaseRow['status']>('all');
   const [q, setQ] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
 
   const selected = useMemo(() => cases.find((c) => c.id === selectedId) ?? null, [cases, selectedId]);
   const blockById = useMemo(() => new Map(blocks.map((b) => [b.id, b])), [blocks]);
@@ -107,20 +110,33 @@ export default function CasesPage() {
   async function acceptCase(c: CaseRow) {
     if (!supabase) {
       setCases((prev) => prev.map((row) => row.id === c.id ? { ...row, status: 'task_created', updated_at: new Date().toISOString() } : row));
+      setActionMessage(`${c.external_id} accepted.`);
+      setError(null);
       return;
     }
     setBusyId(c.id);
-    const { data: userData } = await supabase.auth.getUser();
-    // Mark under_review immediately for clarity.
-    if (c.status === 'submitted') {
-      await supabase.from('cases').update({ status: 'under_review' }).eq('id', c.id);
+    setActionMessage(null);
+    try {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (c.status === 'submitted') {
+        const reviewResult = await supabase.from('cases').update({ status: 'under_review' }).eq('id', c.id);
+        if (reviewResult.error) throw reviewResult.error;
+      }
+      const insertResult = await supabase.from('case_reviews').insert({
+        case_id: c.id,
+        reviewer_user_id: userData.user?.id ?? null,
+        decision: 'accepted',
+      });
+      if (insertResult.error) throw insertResult.error;
+      setError(null);
+      setActionMessage(`${c.external_id} accepted and task creation triggered.`);
+      await load();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Case acceptance failed. Try again.');
+    } finally {
+      setBusyId(null);
     }
-    await supabase.from('case_reviews').insert({
-      case_id: c.id,
-      reviewer_user_id: userData.user?.id ?? null,
-      decision: 'accepted',
-    });
-    setBusyId(null);
   }
 
   async function rejectCase(c: CaseRow, payload: { fixed_reason_code: string; free_text_reason: string }) {
@@ -132,23 +148,39 @@ export default function CasesPage() {
         reject_reason_text: payload.free_text_reason,
         updated_at: new Date().toISOString(),
       } : row));
-      return;
+      setActionMessage(`${c.external_id} rejected.`);
+      setError(null);
+      return true;
     }
     setBusyId(c.id);
-    const { data: userData } = await supabase.auth.getUser();
-    await supabase.from('cases').update({
-      status: 'rejected',
-      reject_reason_code: payload.fixed_reason_code,
-      reject_reason_text: payload.free_text_reason,
-    }).eq('id', c.id);
-    await supabase.from('case_reviews').insert({
-      case_id: c.id,
-      reviewer_user_id: userData.user?.id ?? null,
-      decision: 'rejected',
-      fixed_reason_code: payload.fixed_reason_code,
-      free_text_reason: payload.free_text_reason,
-    });
-    setBusyId(null);
+    setActionMessage(null);
+    try {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      const updateResult = await supabase.from('cases').update({
+        status: 'rejected',
+        reject_reason_code: payload.fixed_reason_code,
+        reject_reason_text: payload.free_text_reason,
+      }).eq('id', c.id);
+      if (updateResult.error) throw updateResult.error;
+      const insertResult = await supabase.from('case_reviews').insert({
+        case_id: c.id,
+        reviewer_user_id: userData.user?.id ?? null,
+        decision: 'rejected',
+        fixed_reason_code: payload.fixed_reason_code,
+        free_text_reason: payload.free_text_reason,
+      });
+      if (insertResult.error) throw insertResult.error;
+      setError(null);
+      setActionMessage(`${c.external_id} rejected with reason ${payload.fixed_reason_code.replace(/_/g, ' ')}.`);
+      await load();
+      return true;
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Case rejection failed. Try again.');
+      return false;
+    } finally {
+      setBusyId(null);
+    }
   }
 
   const [rejectOpen, setRejectOpen] = useState(false);
@@ -157,6 +189,9 @@ export default function CasesPage() {
 
   return (
     <div className="grid gap-6">
+      {error && <ActionStatus type="error">{error}</ActionStatus>}
+      {actionMessage && <ActionStatus type="success">{actionMessage}</ActionStatus>}
+
       <div className="grid gap-6 lg:grid-cols-[420px_1fr]">
         <Card className="overflow-hidden p-0">
           <div className="border-b border-[var(--hairline)] bg-[var(--paper)] p-4">
@@ -339,12 +374,12 @@ export default function CasesPage() {
                       variant="danger"
                       disabled={!rejectText.trim() || busyId === selected.id}
                       onClick={async () => {
-                        await rejectCase(selected, { fixed_reason_code: rejectReason, free_text_reason: rejectText.trim() });
-                        setRejectOpen(false);
+                        const ok = await rejectCase(selected, { fixed_reason_code: rejectReason, free_text_reason: rejectText.trim() });
+                        if (ok) setRejectOpen(false);
                       }}
                       type="button"
                     >
-                      Reject case
+                      {busyId === selected.id ? 'Rejecting...' : 'Reject case'}
                     </Button>
                   </div>
                 </Card>

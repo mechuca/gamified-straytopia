@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useEffect, useMemo, useState } from 'react';
 import { Ambulance, Handshake, Hospital, Stethoscope } from 'lucide-react';
+import { ActionStatus } from '@/components/ui/ActionStatus';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
@@ -88,41 +89,51 @@ export default function PartnersPage() {
     if (!supabase) return;
     setBusyAction('onboard-orgs');
     setActionMessage(null);
-    const result = await supabase.rpc('onboard_shelter_organizations');
-    setBusyAction(null);
-    if (result.error) {
-      setError(result.error.message);
-      return;
+    try {
+      const result = await supabase.rpc('onboard_shelter_organizations');
+      if (result.error) {
+        setError(result.error.message);
+        return;
+      }
+      setError(null);
+      setActionMessage(`${result.data ?? 0} organization profiles created from shelters.`);
+      await load();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Organization onboarding failed. Try again.');
+    } finally {
+      setBusyAction(null);
     }
-    setError(null);
-    setActionMessage(`${result.data ?? 0} organization profiles created from shelters.`);
-    await load();
   }
 
   async function recordCapacity() {
     if (!supabase || !capacityOrgId) return;
     setBusyAction('capacity');
     setActionMessage(null);
-    const result = await supabase.rpc('record_organization_capacity_snapshot', {
-      p_organization_id: capacityOrgId,
-      p_capacity_total: capacityTotal ? Number(capacityTotal) : null,
-      p_capacity_available: capacityAvailable ? Number(capacityAvailable) : null,
-      p_emergency_slots_available: emergencySlots ? Number(emergencySlots) : null,
-      p_intake_status: intakeStatus,
-      p_note: capacityNote,
-    });
-    setBusyAction(null);
-    if (result.error) {
-      setError(result.error.message);
-      return;
+    try {
+      const result = await supabase.rpc('record_organization_capacity_snapshot', {
+        p_organization_id: capacityOrgId,
+        p_capacity_total: capacityTotal ? Number(capacityTotal) : null,
+        p_capacity_available: capacityAvailable ? Number(capacityAvailable) : null,
+        p_emergency_slots_available: emergencySlots ? Number(emergencySlots) : null,
+        p_intake_status: intakeStatus,
+        p_note: capacityNote,
+      });
+      if (result.error) {
+        setError(result.error.message);
+        return;
+      }
+      setError(null);
+      setActionMessage('Capacity snapshot recorded.');
+      setCapacityTotal('');
+      setCapacityAvailable('');
+      setEmergencySlots('');
+      setCapacityNote('');
+      await load();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Capacity update failed. Try again.');
+    } finally {
+      setBusyAction(null);
     }
-    setError(null);
-    setActionMessage('Capacity snapshot recorded.');
-    setCapacityTotal('');
-    setCapacityAvailable('');
-    setEmergencySlots('');
-    setCapacityNote('');
-    await load();
   }
 
   return (
@@ -134,8 +145,8 @@ export default function PartnersPage() {
         <Metric label="Open intake snapshots" value={openIntake} tone={openIntake > 0 ? 'sky' : 'gold'} />
       </div>
 
-      {error && <Card className="p-4 text-sm font-bold text-[var(--coral-deep)]">Run migration 006 to enable NGO intelligence tables. {error}</Card>}
-      {actionMessage && <Card className="p-4 text-sm font-bold text-[var(--jungle-deep)]">{actionMessage}</Card>}
+      {error && <ActionStatus type="error">Run migrations 006 and 009 to enable partner activation workflows. {error}</ActionStatus>}
+      {actionMessage && <ActionStatus type="success">{actionMessage}</ActionStatus>}
 
       <Card className="p-5">
         <div className="grid gap-5 xl:grid-cols-[0.8fr_1.2fr]">

@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 import { useEffect, useMemo, useState } from 'react';
 import { getSupabase } from '@/lib/supabase/client';
 import type { Block, CaseRow, Shelter, TaskRow, TaskTemplateRow } from '@/lib/types';
+import { ActionStatus } from '@/components/ui/ActionStatus';
 import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
 import { Button } from '@/components/ui/Button';
@@ -33,6 +34,8 @@ export default function TasksPage() {
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [shelters, setShelters] = useState<Shelter[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [createTemplateId, setCreateTemplateId] = useState<string>('');
@@ -87,6 +90,9 @@ export default function TasksPage() {
 
   return (
     <div className="grid gap-6">
+      {error && <ActionStatus type="error">{error}</ActionStatus>}
+      {actionMessage && <ActionStatus type="success">{actionMessage}</ActionStatus>}
+
       <div className="grid gap-4 md:grid-cols-3">
         {[
           { label: 'Queued', value: queuedCount, tone: queuedCount > 0 ? 'gold' as const : 'paper' as const },
@@ -160,6 +166,7 @@ export default function TasksPage() {
                     disabled={!defaultShelterId || busyId === t.id || t.status === 'completed'}
                     onClick={async () => {
                       if (!defaultShelterId) return;
+                      setActionMessage(null);
                       if (!supabase) {
                         setTasks((prev) => prev.map((row) => row.id === t.id ? {
                           ...row,
@@ -170,20 +177,31 @@ export default function TasksPage() {
                           updated_at: new Date().toISOString(),
                         } : row));
                         if (t.case_id) setCases((prev) => prev.map((c) => c.id === t.case_id ? { ...c, status: 'assigned', updated_at: new Date().toISOString() } : c));
+                        setError(null);
+                        setActionMessage('Task assigned in demo data.');
                         return;
                       }
                       setBusyId(t.id);
-                      await supabase.from('tasks').update({
-                        shelter_id: defaultShelterId,
-                        assigned_to_type: 'shelter',
-                        assigned_to_id: defaultShelterId,
-                        status: t.status === 'queued' ? 'assigned' : t.status,
-                      }).eq('id', t.id);
-                      // Also mark case assigned for mobile timeline.
-                      if (t.case_id) {
-                        await supabase.from('cases').update({ status: 'assigned' }).eq('id', t.case_id);
+                      try {
+                        const taskResult = await supabase.from('tasks').update({
+                          shelter_id: defaultShelterId,
+                          assigned_to_type: 'shelter',
+                          assigned_to_id: defaultShelterId,
+                          status: t.status === 'queued' ? 'assigned' : t.status,
+                        }).eq('id', t.id);
+                        if (taskResult.error) throw taskResult.error;
+                        if (t.case_id) {
+                          const caseResult = await supabase.from('cases').update({ status: 'assigned' }).eq('id', t.case_id);
+                          if (caseResult.error) throw caseResult.error;
+                        }
+                        setError(null);
+                        setActionMessage('Task assigned to shelter.');
+                        await load();
+                      } catch (caught) {
+                        setError(caught instanceof Error ? caught.message : 'Task assignment failed. Try again.');
+                      } finally {
+                        setBusyId(null);
                       }
-                      setBusyId(null);
                     }}
                   >
                     <CheckCircle2 size={14} />
@@ -253,14 +271,24 @@ export default function TasksPage() {
                   if (!supabase) return;
                   if (!createTemplateId || !createBlockId) return;
                   setBusyId('create');
-                  await supabase.from('tasks').insert({
-                    template_id: createTemplateId,
-                    block_id: createBlockId,
-                    status: 'queued',
-                    priority: createPriority,
-                  });
-                  setBusyId(null);
-                  setCreateOpen(false);
+                  setActionMessage(null);
+                  try {
+                    const result = await supabase.from('tasks').insert({
+                      template_id: createTemplateId,
+                      block_id: createBlockId,
+                      status: 'queued',
+                      priority: createPriority,
+                    });
+                    if (result.error) throw result.error;
+                    setError(null);
+                    setActionMessage('Task created and queued.');
+                    setCreateOpen(false);
+                    await load();
+                  } catch (caught) {
+                    setError(caught instanceof Error ? caught.message : 'Task creation failed. Try again.');
+                  } finally {
+                    setBusyId(null);
+                  }
                 }}
                 disabled={!createTemplateId || !createBlockId || busyId === 'create'}
                 type="button"
