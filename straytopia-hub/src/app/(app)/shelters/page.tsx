@@ -2,9 +2,9 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { getSupabase } from '@/lib/supabase/client';
-import type { Shelter } from '@/lib/types';
+import type { Block, Shelter } from '@/lib/types';
 import { Card } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
 import { demoBlocks, demoShelters } from '@/lib/demoData';
@@ -12,14 +12,20 @@ import { demoBlocks, demoShelters } from '@/lib/demoData';
 export default function SheltersPage() {
   const supabase = getSupabase();
   const [shelters, setShelters] = useState<Shelter[]>([]);
+  const [blocks, setBlocks] = useState<Block[]>([]);
 
   async function load() {
     if (!supabase) {
       setShelters(demoShelters);
+      setBlocks(demoBlocks);
       return;
     }
-    const { data } = await supabase.from('shelters').select('id,name,block_id,status').order('name', { ascending: true });
-    setShelters(((data ?? []) as unknown) as Shelter[]);
+    const [shelterRows, blockRows] = await Promise.all([
+      supabase.from('shelters').select('id,name,block_id,status').order('name', { ascending: true }),
+      supabase.from('blocks').select('id,name,code').order('name', { ascending: true }),
+    ]);
+    setShelters(((shelterRows.data ?? []) as unknown) as Shelter[]);
+    setBlocks(((blockRows.data ?? []) as unknown) as Block[]);
   }
 
   useEffect(() => {
@@ -28,11 +34,14 @@ export default function SheltersPage() {
     const channel = supabase
       .channel('hub_shelters')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'shelters' }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'blocks' }, () => load())
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  const blockById = useMemo(() => new Map(blocks.map((block) => [block.id, block])), [blocks]);
 
   return (
     <Card className="p-4 md:p-5">
@@ -44,7 +53,7 @@ export default function SheltersPage() {
         </div>
         <div className="divide-y divide-[var(--hairline)] bg-[var(--surface)]">
           {shelters.map((s) => {
-            const block = demoBlocks.find((b) => b.id === s.block_id);
+            const block = s.block_id ? blockById.get(s.block_id) : null;
             return (
               <div key={s.id} className="grid grid-cols-[1fr_180px_140px] gap-3 px-4 py-3">
                 <div className="text-sm font-extrabold text-[var(--ink)]">{s.name}</div>

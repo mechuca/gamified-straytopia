@@ -177,7 +177,7 @@ export default function OverviewPage() {
 
             <div className="mt-7 grid gap-3 md:grid-cols-3">
               <StatusRow label="Pending escalations" value={analytics.pendingEscalations} tone={analytics.pendingEscalations > 0 ? 'coral' : 'jungle'} />
-              <StatusRow label="Avg response age" value={`${analytics.responseMinutes}m`} tone={analytics.responseMinutes > 90 ? 'coral' : 'gold'} />
+              <StatusRow label="Avg open age" value={`${analytics.responseMinutes}m`} tone={analytics.responseMinutes > 90 ? 'coral' : 'gold'} />
               <StatusRow label="Active alerts" value={analytics.notifications.length} tone="sky" />
             </div>
           </div>
@@ -308,7 +308,7 @@ export default function OverviewPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
-        <MetricCard href="/shelters" label="Active NGOs" value={analytics.activeNgos} caption="Partner network currently able to support operations." icon={Hospital} tone="jungle" />
+        <MetricCard href="/partners" label="Active partners" value={analytics.activeNgos} caption="Shelter/partner rows currently marked active or limited. Capacity intelligence lives in Partners." icon={Hospital} tone="jungle" />
         <MetricCard href="/blocks" label="Block activity signals" value={analytics.openCases + analytics.openFeedingMissions} caption="Open cases and feeding tasks contributing to block-level map intelligence." icon={MapPinned} tone="sky" />
         <MetricCard href="/action-queue" label="Failed missions" value={analytics.failedMissions} caption="Blocked, cancelled, or rejected proof paths needing QA review." icon={AlertTriangle} tone={analytics.failedMissions > 0 ? 'coral' : 'jungle'} />
         <MetricCard href="/proofs" label="Pending evidence" value={analytics.pendingProofs} caption="Proofs waiting for review before impact is credited." icon={Clock3} tone={analytics.pendingProofs > 0 ? 'plum' : 'jungle'} />

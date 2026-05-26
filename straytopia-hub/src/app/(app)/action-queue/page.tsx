@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useEffect, useMemo, useState } from 'react';
 import { getSupabase } from '@/lib/supabase/client';
-import type { Block, CaseRow, CitizenRow, ProofRow, ProofVerificationStatus, Shelter, TaskRow, TaskTemplateRow } from '@/lib/types';
+import type { AreaForecastRow, Block, CaseRow, CitizenRow, ProofRow, ProofVerificationStatus, Shelter, TaskRow, TaskTemplateRow } from '@/lib/types';
 import { ActionStatus } from '@/components/ui/ActionStatus';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -12,10 +12,10 @@ import { Pill } from '@/components/ui/Pill';
 import { AlertTriangle, Check, Clock3, Compass, FileText, Image as ImageIcon, Layers3, Map as MapIcon, Search, ShieldCheck, Users, X } from 'lucide-react';
 import { demoBlocks, demoCases, demoCitizens, demoProofs, demoShelters, demoTaskTemplates, demoTasks } from '@/lib/demoData';
 
-type WorkItemKind = 'case' | 'task' | 'proof';
+type WorkItemKind = 'case' | 'task' | 'proof' | 'forecast';
 type QueueStage = 'intake' | 'dispatch' | 'field' | 'proof' | 'exception' | 'done';
 type QueueFilter = 'all' | 'urgent' | 'review' | 'assign' | 'verify' | 'blocked';
-type WorkSource = 'mobile_report' | 'mobile_mission' | 'hub_dispatch' | 'field_proof';
+type WorkSource = 'mobile_report' | 'mobile_mission' | 'hub_dispatch' | 'field_proof' | 'forecast';
 
 type WorkItem = {
   key: string;
@@ -37,6 +37,7 @@ type WorkItem = {
   caseRow?: CaseRow;
   taskRow?: TaskRow;
   proofRow?: ProofRow;
+  forecastRow?: AreaForecastRow;
 };
 
 const queueFilters: Array<{ key: QueueFilter; label: string }> = [
@@ -121,7 +122,12 @@ function sourceLabel(source: WorkSource) {
   if (source === 'mobile_report') return 'Citizen report';
   if (source === 'mobile_mission') return 'Mobile mission';
   if (source === 'field_proof') return 'Field proof';
+  if (source === 'forecast') return 'Forecast signal';
   return 'Hub dispatch';
+}
+
+function forecastLabel(value: string) {
+  return value.replace(/_/g, ' ');
 }
 
 function stageForCase(c: CaseRow): QueueStage {
@@ -275,6 +281,7 @@ function proofTone(status: ProofVerificationStatus): WorkItem['tone'] {
 function canRunPrimaryAction(item: WorkItem) {
   if (item.kind === 'case') return Boolean(item.caseRow && (item.caseRow.status === 'submitted' || item.caseRow.status === 'under_review'));
   if (item.kind === 'task') return Boolean(item.taskRow && (item.taskRow.status === 'queued' || item.taskRow.status === 'assigned'));
+  if (item.kind === 'forecast') return Boolean(item.forecastRow);
   return Boolean(item.proofRow && (item.proofRow.verification_status === 'pending' || item.proofRow.verification_status === 'needs_review'));
 }
 
@@ -295,6 +302,7 @@ export default function ActionQueuePage() {
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [shelters, setShelters] = useState<Shelter[]>([]);
   const [citizens, setCitizens] = useState<CitizenRow[]>([]);
+  const [forecasts, setForecasts] = useState<AreaForecastRow[]>([]);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
   const caseById = useMemo(() => new Map(cases.map((c) => [c.id, c])), [cases]);
@@ -316,11 +324,12 @@ export default function ActionQueuePage() {
       setBlocks(demoBlocks);
       setShelters(demoShelters);
       setCitizens(demoCitizens);
+      setForecasts([]);
       setLastUpdated(new Date());
       return;
     }
 
-    const [c, t, p, tt, b, s, cz] = await Promise.all([
+    const [c, t, p, tt, b, s, cz, f] = await Promise.all([
       supabase.from('cases').select('*').order('created_at', { ascending: false }).limit(300),
       supabase.from('tasks').select('*').order('created_at', { ascending: false }).limit(300),
       supabase.from('proofs').select('*').order('submitted_at', { ascending: false }).limit(300),
@@ -328,6 +337,7 @@ export default function ActionQueuePage() {
       supabase.from('blocks').select('id,name,code').order('name', { ascending: true }),
       supabase.from('shelters').select('id,name,block_id,status').order('name', { ascending: true }),
       supabase.from('citizens').select('id,device_id,block_id,created_at,user_id').order('created_at', { ascending: false }).limit(300),
+      supabase.from('area_forecasts').select('*').gte('risk_score', 35).order('risk_score', { ascending: false }).order('created_at', { ascending: false }).limit(50),
     ]);
 
     const failure = [c.error, t.error, p.error, tt.error, b.error, s.error, cz.error].find(Boolean);
@@ -342,6 +352,7 @@ export default function ActionQueuePage() {
     setBlocks(((b.data ?? []) as unknown) as Block[]);
     setShelters(((s.data ?? []) as unknown) as Shelter[]);
     setCitizens(((cz.data ?? []) as unknown) as CitizenRow[]);
+    setForecasts((((f.error ? [] : f.data) ?? []) as unknown) as AreaForecastRow[]);
     setLastUpdated(new Date());
   }
 
@@ -354,6 +365,7 @@ export default function ActionQueuePage() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => load())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'proofs' }, () => load())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'citizens' }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'area_forecasts' }, () => load())
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
@@ -443,8 +455,30 @@ export default function ActionQueuePage() {
       });
     }
 
+    for (const forecast of forecasts) {
+      const block = forecast.block_id ? blockById.get(forecast.block_id) : null;
+      rows.push({
+        key: `forecast:${forecast.id}`,
+        kind: 'forecast',
+        title: `${forecastLabel(forecast.forecast_type)} risk`,
+        subtitle: forecast.recommended_action || 'Review forecast drivers before routing work.',
+        meta: block?.name ?? 'Unknown block',
+        status: `${forecast.risk_score} risk`,
+        stage: forecast.risk_score >= 70 ? 'exception' : 'dispatch',
+        source: 'forecast',
+        sourceLabel: sourceLabel('forecast'),
+        mobileStatus: 'Not shown to citizens until ops creates or assigns work.',
+        mobileImpact: 'Ops review can pre-position partners or volunteers before citizens experience a care gap.',
+        tone: forecast.risk_score >= 70 ? 'coral' : forecast.risk_score >= 50 ? 'gold' : 'sky',
+        priority: Math.min(96, forecast.risk_score + 8),
+        dueLabel: forecast.risk_score >= 70 ? 'Review now' : 'Plan coverage',
+        primaryAction: 'Acknowledge forecast',
+        forecastRow: forecast,
+      });
+    }
+
     return rows.sort((a, b) => b.priority - a.priority);
-  }, [blockById, caseById, cases, proofs, taskById, tasks, templateById]);
+  }, [blockById, caseById, cases, forecasts, proofs, taskById, tasks, templateById]);
 
   const workItems = useMemo(() => {
     const qq = q.trim().toLowerCase();
@@ -464,12 +498,12 @@ export default function ActionQueuePage() {
   }, [workItems]);
 
   const selected = workItems.find((item) => item.key === selectedKey) ?? workItems[0] ?? null;
-  const selectedBlock = selected?.caseRow?.block_id ? blockById.get(selected.caseRow.block_id) : selected?.taskRow?.block_id ? blockById.get(selected.taskRow.block_id) : null;
+  const selectedBlock = selected?.caseRow?.block_id ? blockById.get(selected.caseRow.block_id) : selected?.taskRow?.block_id ? blockById.get(selected.taskRow.block_id) : selected?.forecastRow?.block_id ? blockById.get(selected.forecastRow.block_id) : null;
   const selectedShelter = selected?.taskRow?.shelter_id ? shelterById.get(selected.taskRow.shelter_id) : selected?.caseRow?.shelter_id ? shelterById.get(selected.caseRow.shelter_id) : null;
   const selectedCitizen = selected?.taskRow?.assigned_to_type === 'citizen' && selected.taskRow.assigned_to_id ? citizenByDevice.get(selected.taskRow.assigned_to_id) : selected?.caseRow?.citizen_id ? citizenById.get(selected.caseRow.citizen_id) : null;
   const selectedTemplate = selected?.taskRow?.template_id ? templateById.get(selected.taskRow.template_id) : null;
-  const selectedShelterSuggestions = useMemo(() => rankedShelterSuggestions(shelters, tasks, selected?.taskRow?.block_id ?? selected?.caseRow?.block_id), [selected?.caseRow?.block_id, selected?.taskRow?.block_id, shelters, tasks]);
-  const selectedCitizenSuggestions = useMemo(() => rankedCitizenSuggestions(citizens, tasks, selected?.taskRow?.block_id ?? selected?.caseRow?.block_id), [citizens, selected?.caseRow?.block_id, selected?.taskRow?.block_id, tasks]);
+  const selectedShelterSuggestions = useMemo(() => rankedShelterSuggestions(shelters, tasks, selectedBlock?.id), [selectedBlock?.id, shelters, tasks]);
+  const selectedCitizenSuggestions = useMemo(() => rankedCitizenSuggestions(citizens, tasks, selectedBlock?.id), [citizens, selectedBlock?.id, tasks]);
   const recommendedShelterId = selectedShelterSuggestions.find((suggestion) => suggestion.shelter.status !== 'inactive')?.shelter.id ?? defaultShelterId;
   const nearbySignals = selectedBlock ? cases.filter((c) => c.block_id === selectedBlock.id && !['rejected', 'resolved', 'closed'].includes(c.status)).length : 0;
 
@@ -482,8 +516,10 @@ export default function ActionQueuePage() {
       task_id: item.taskRow?.id ?? null,
       proof_id: item.proofRow?.id ?? null,
       animal_id: item.caseRow?.animal_id ?? item.taskRow?.animal_id ?? item.proofRow?.animal_id ?? null,
-      block_id: item.caseRow?.block_id ?? item.taskRow?.block_id ?? null,
+      block_id: item.caseRow?.block_id ?? item.taskRow?.block_id ?? item.forecastRow?.block_id ?? null,
       shelter_id: item.caseRow?.shelter_id ?? item.taskRow?.shelter_id ?? null,
+      subject_type: item.forecastRow ? 'forecast' : null,
+      subject_id: item.forecastRow?.id ?? null,
       summary,
       payload,
     });
@@ -661,6 +697,13 @@ export default function ActionQueuePage() {
         if (item.caseRow) await updateCaseStatus(item.caseRow.id, 'resolved');
         await recordDomainEvent(item, 'proof.verified', `Verified evidence for ${item.meta}.`, { verification_status: 'verified' });
       }
+      if (item.kind === 'forecast' && item.forecastRow) {
+        await recordDomainEvent(item, 'forecast.reviewed', `Reviewed ${forecastLabel(item.forecastRow.forecast_type)} forecast for ${item.meta}.`, {
+          forecast_id: item.forecastRow.id,
+          risk_score: item.forecastRow.risk_score,
+          confidence: item.forecastRow.confidence,
+        });
+      }
       setActionMessage(`${item.primaryAction} completed.`);
       await load();
     } catch (caught) {
@@ -757,7 +800,7 @@ export default function ActionQueuePage() {
   ];
 
   const historySteps = selected ? [
-    ['Submitted', selected.caseRow?.created_at ?? selected.taskRow?.created_at ?? selected.proofRow?.submitted_at],
+    ['Submitted', selected.caseRow?.created_at ?? selected.taskRow?.created_at ?? selected.proofRow?.submitted_at ?? selected.forecastRow?.created_at],
     ['Reviewed', selected.caseRow?.status && selected.caseRow.status !== 'submitted' ? selected.caseRow.updated_at : null],
     ['Assigned', selected.taskRow?.status === 'assigned' || selected.caseRow?.status === 'assigned' ? selected.taskRow?.updated_at ?? selected.caseRow?.updated_at : null],
     ['Evidence submitted', selected.proofRow?.submitted_at ?? null],
@@ -846,6 +889,7 @@ export default function ActionQueuePage() {
                         {item.kind === 'case' && <FileText size={15} className="text-[var(--muted)]" />}
                         {item.kind === 'task' && <Compass size={15} className="text-[var(--muted)]" />}
                         {item.kind === 'proof' && <ImageIcon size={15} className="text-[var(--muted)]" />}
+                        {item.kind === 'forecast' && <AlertTriangle size={15} className="text-[var(--muted)]" />}
                         <div className="truncate text-sm font-extrabold text-[var(--ink)]">{item.title}</div>
                       </div>
                       <div className="mt-1 truncate text-xs font-semibold text-[var(--muted)]">{item.meta} · {item.subtitle}</div>
@@ -910,7 +954,7 @@ export default function ActionQueuePage() {
                   <div className="rounded-[18px] border border-[var(--border)] bg-white/60 p-4">
                     <ShieldCheck size={17} className="text-[var(--muted)]" />
                     <div className="mt-3 text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">Confidence</div>
-                    <div className="mt-1 text-sm font-bold text-[var(--ink2)]">{selected.priority > 85 ? 'Likely urgent' : selected.kind === 'proof' ? 'Needs proof check' : 'Human review'}</div>
+                    <div className="mt-1 text-sm font-bold text-[var(--ink2)]">{selected.forecastRow ? selected.forecastRow.confidence : selected.priority > 85 ? 'Likely urgent' : selected.kind === 'proof' ? 'Needs proof check' : 'Human review'}</div>
                   </div>
                 </div>
 
@@ -924,7 +968,7 @@ export default function ActionQueuePage() {
                       <Pill tone={stageCopy[selected.stage].tone} variant="soft">{selected.mobileStatus}</Pill>
                     </div>
                     <div className="mt-3 text-sm font-semibold leading-6 text-[var(--ink2)]">
-                      {selected.caseRow ? recommendationForCase(selected.caseRow) : selected.kind === 'proof' ? 'Verify proof quality, then complete the linked task and case if evidence is clear.' : selected.taskRow?.assigned_to_type === 'citizen' ? 'Keep the task state aligned with the mobile mission flow: assigned, in progress, proof pending, completed.' : 'Assign the best owner, shelter or mobile volunteer, and keep task status current.'}
+                      {selected.forecastRow ? 'Review the forecast drivers, then pre-position shelter or volunteer coverage before the care gap becomes a citizen-facing emergency.' : selected.caseRow ? recommendationForCase(selected.caseRow) : selected.kind === 'proof' ? 'Verify proof quality, then complete the linked task and case if evidence is clear.' : selected.taskRow?.assigned_to_type === 'citizen' ? 'Keep the task state aligned with the mobile mission flow: assigned, in progress, proof pending, completed.' : 'Assign the best owner, shelter or mobile volunteer, and keep task status current.'}
                     </div>
                     <div className="mt-4 rounded-[18px] border border-[var(--border)] bg-[var(--paper)] p-4">
                       <div className="text-[11px] font-black tracking-widest uppercase text-[var(--muted)]">Mobile impact</div>
@@ -1037,7 +1081,7 @@ export default function ActionQueuePage() {
                     <Check size={16} />
                     {busyItem === selected.key ? 'Working...' : selected.primaryAction}
                   </Button>
-                  <Button variant="paper" disabled={busyItem === selected.key || selected.kind === 'task'} onClick={rejectSelected} type="button">
+                  <Button variant="paper" disabled={busyItem === selected.key || selected.kind === 'task' || selected.kind === 'forecast'} onClick={rejectSelected} type="button">
                     <X size={16} />
                     Reject + update mobile
                   </Button>

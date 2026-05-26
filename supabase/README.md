@@ -16,7 +16,8 @@ This folder contains the database schema used by both:
 8. Then run `migrations/007_media_and_transition_hardening.sql`.
 9. Then run `migrations/008_forecast_generation_job.sql`.
 10. Then run `migrations/009_activation_workflows.sql`.
-11. Configure environment variables.
+11. Then run `migrations/010_system_coherence_automation.sql`.
+12. Configure environment variables.
 
 ### Ops hub (`straytopia-hub`)
 
@@ -91,3 +92,9 @@ RLS policies are tightened in `003_security_and_rls.sql`:
 - Recording organization capacity snapshots.
 - Recalculating private operational trust snapshots.
 - Optionally installing an hourly area forecast schedule when `pg_cron` is available.
+
+`010_system_coherence_automation.sql` adds:
+- Proof decision automation that writes proof quality scores.
+- Incremental trust events and trust score updates for device, shelter, and reviewer subjects.
+- Verified-proof animal lifecycle events when proof rows are linked to animal records.
+- A shared trust bump helper for future orchestration workflows.
