@@ -259,6 +259,17 @@ export interface TaskAssignmentRow {
   updated_at: string;
 }
 
+export interface AssignmentRecommendationRow {
+  id: string;
+  task_id: string;
+  assignee_type: 'shelter' | 'staff' | 'volunteer' | 'citizen';
+  assignee_id: string;
+  score: number;
+  reasons: string[];
+  status: 'suggested' | 'accepted' | 'overridden' | 'expired';
+  created_at: string;
+}
+
 export interface TrustEventRow {
   id: string;
   subject_type: TrustScoreRow['subject_type'];
@@ -287,6 +298,21 @@ export interface VolunteerProfileRow {
   last_active_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface VolunteerAvailabilityRow {
+  id: string;
+  citizen_id: string | null;
+  device_id: string;
+  block_id: string | null;
+  status: 'available' | 'busy' | 'offline' | 'paused';
+  skills: string[];
+  transport_modes: string[];
+  open_task_limit: number;
+  available_until: string | null;
+  note: string;
+  updated_at: string;
+  created_at: string;
 }
 
 export interface OrganizationProfileRow {

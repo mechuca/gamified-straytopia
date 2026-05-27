@@ -66,15 +66,17 @@ export default function ReportNewScreen() {
     if (!metadata) Alert.alert('Location not added', 'You can still send the report with area text only.');
   };
 
-  const handleSubmit = async () => {
-    if (!canSubmit) return;
+  const handleSubmit = async (override?: { category: ReportType; severity: ReportSeverity; descriptionPrefix?: string }) => {
+    const nextCategory = override?.category ?? category;
+    const nextSeverity = override?.severity ?? severity;
+    if (!nextCategory) return;
     setSubmitting(true);
     const metadata = locationMetadata ?? (await getCareLocation());
     startDraft();
     patchDraft({
-      type: category,
-      severity,
-      description,
+      type: nextCategory,
+      severity: nextSeverity,
+      description: `${override?.descriptionPrefix ?? ''}${description}`.trim(),
       location,
       photoUri: photo?.uri ?? null,
       media: photo ? { uri: photo.uri, fileName: photo.fileName, fileSize: photo.fileSize, mimeType: photo.mimeType } : null,
@@ -102,6 +104,21 @@ export default function ReportNewScreen() {
           </Bob>
           <Text variant="body-l">What did you find? I'll get help on the way.</Text>
         </View>
+
+        <Card tone="coralSoft" style={{ marginBottom: 20, padding: 16 }}>
+          <Text variant="eyebrow" color="coralInk">SOS TO OPS</Text>
+          <Text variant="h" color="coralInk" style={{ marginTop: 4 }}>Animal in immediate danger?</Text>
+          <Text variant="body" color="coralInk" style={{ marginTop: 4 }}>Send an urgent rescue report into the ops queue. This is not a public emergency hotline.</Text>
+          <Button
+            variant="coral"
+            size="md"
+            onPress={() => handleSubmit({ category: 'rescue', severity: 'urgent', descriptionPrefix: 'SOS: ' })}
+            loading={submitting}
+            style={{ marginTop: 12 }}
+          >
+            Send SOS report
+          </Button>
+        </Card>
 
         <Text variant="h" style={{ marginBottom: 10 }}>What's wrong?</Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 }}>
@@ -173,7 +190,7 @@ export default function ReportNewScreen() {
 
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <Text variant="meta">OPS REVIEW QUEUE</Text>
-          <Button variant="coral" size="md" onPress={handleSubmit} disabled={!canSubmit || submitting} loading={submitting}>
+          <Button variant="coral" size="md" onPress={() => handleSubmit()} disabled={!canSubmit || submitting} loading={submitting}>
             Send for help
           </Button>
         </View>

@@ -10,6 +10,17 @@ import {
 } from '@/lib/mock';
 import { ThemeModeSelector } from '@/components/ui';
 import {
+  acceptWebOpsTask,
+  createWebReport,
+  createWebSosReport,
+  hasWebSpine,
+  setWebVolunteerAvailability,
+  submitWebOpsProof,
+  useWebOpsMissions,
+  useWebReportTracking,
+  useWebVerifiedImpact,
+} from '@/lib/webSpine';
+import {
   MapPin, Flame, Zap, Heart, BookOpen, Trophy, User, Plus, Camera, AlertTriangle,
   Clock, Shield, ChevronRight, ArrowLeft, Droplets, Eye,
   X, Check, CheckCircle2, Loader2, Bell, RotateCcw, Settings,
@@ -591,7 +602,7 @@ function OnboardingIntroScreen() {
       features: [
         { icon: PawPrint, label: 'Feed a stray', desc: 'Leave safe food where animals gather', color: 'jungle' as const },
         { icon: Droplets, label: 'Leave water', desc: 'A small bowl saves lives in summer heat', color: 'sky' as const },
-        { icon: AlertTriangle, label: 'Report danger', desc: 'Alert rescuers about injured animals', color: 'coral' as const },
+        { icon: AlertTriangle, label: 'Report danger', desc: 'File a case for ops review', color: 'coral' as const },
       ],
     },
     {
@@ -599,9 +610,9 @@ function OnboardingIntroScreen() {
       title: 'You are not alone',
       subtitle: 'Join a community that shows up, every day.',
       features: [
-        { icon: Heart, label: '12,400+ animals saved', desc: 'By regular people like you', color: 'coral' as const },
-        { icon: MapPin, label: '340+ neighborhoods', desc: 'Active care zones across India', color: 'sky' as const },
-        { icon: Users, label: '8,200+ helpers', desc: 'Feeding, watering, and reporting daily', color: 'jungle' as const },
+        { icon: Heart, label: 'Verified care', desc: 'Impact unlocks after review', color: 'coral' as const },
+        { icon: MapPin, label: 'Local zones', desc: 'Work starts near your area', color: 'sky' as const },
+        { icon: Users, label: 'Care buddies', desc: 'Invite people you trust', color: 'jungle' as const },
       ],
     },
   ];
@@ -1309,8 +1320,8 @@ function MissionDetailScreen({ mission, onBack, onStart, status }: { mission: ty
       <Card tone="surface" style={{ marginBottom: 24, padding: 16 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {[
-          { icon: Shield, label: 'Verified by AI' },
-          { icon: Camera, label: 'Upload a photo to claim rewards' },
+          { icon: Shield, label: mission.id.startsWith('ops:') ? 'Reviewed by shelter ops' : 'Offline practice mission' },
+          { icon: Camera, label: mission.id.startsWith('ops:') ? 'Submit proof for ops review' : 'Upload a photo to finish practice' },
         ].map((item, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', backgroundColor: C.cardMuted, borderRadius: 16, border: `1px solid ${C.border}` }}>
             <item.icon size={20} color={C.ink2} />
@@ -1341,7 +1352,11 @@ function ActiveMissionScreen({ mission, onComplete, onBack, checklistItems, togg
   mission: typeof mockMissions[0]; onComplete: () => void; onBack: () => void;
   checklistItems: Record<string, boolean>; toggleChecklistItem: (item: string) => void;
 }) {
-  const checklist = missionChecklists[mission.id] || [];
+  const checklist = missionChecklists[mission.id] || [
+    { key: `${mission.id}:safe`, label: 'Confirm the area is safe before acting' },
+    { key: `${mission.id}:care`, label: 'Complete the assigned care task' },
+    { key: `${mission.id}:proof`, label: 'Prepare proof for ops review' },
+  ];
   const allChecked = checklist.length > 0 && checklist.every((c) => checklistItems[c.key]);
   const completedSteps = checklist.filter((c) => checklistItems[c.key]).length;
   const checklistProgress = checklist.length ? Math.round((completedSteps / checklist.length) * 100) : 0;
@@ -1403,17 +1418,40 @@ function ActiveMissionScreen({ mission, onComplete, onBack, checklistItems, togg
   );
 }
 
-function ProofUploadScreen({ mission, onBack, onSuccess }: { mission: typeof mockMissions[0]; onBack: () => void; onSuccess: () => void }) {
+function ProofUploadScreen({ mission, onBack, onSuccess }: { mission: typeof mockMissions[0]; onBack: () => void; onSuccess: (photo: string | null) => void }) {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [proofPhoto, setProofPhoto] = useState<string | null>(null);
+  const [proofError, setProofError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleProofFile = (file: File | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setProofError('Choose an image file for proof.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setProofPhoto(typeof reader.result === 'string' ? reader.result : null);
+      setProofError(null);
+    };
+    reader.onerror = () => setProofError('Could not read that image. Try another photo.');
+    reader.readAsDataURL(file);
+  };
+
   const handleUpload = () => {
+    if (!proofPhoto) {
+      setProofError('Add one clear proof photo before submitting.');
+      return;
+    }
     setUploading(true);
     setProgress(0);
     const interval = setInterval(() => {
       setProgress((p) => {
         if (p >= 100) {
           clearInterval(interval);
-          setTimeout(onSuccess, 500);
+          setTimeout(() => onSuccess(proofPhoto), 500);
           return 100;
         }
         return p + 10;
@@ -1437,16 +1475,28 @@ function ProofUploadScreen({ mission, onBack, onSuccess }: { mission: typeof moc
           </div>
         </Card>
         <div style={{ width: 100, height: 100, borderRadius: 28, backgroundColor: C.paper2, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `3px dashed ${C.hairline2}` }}>
-          <Camera size={40} color={C.muted} />
+          {proofPhoto ? <img src={proofPhoto} alt="Selected proof" style={{ width: '100%', height: '100%', borderRadius: 24, objectFit: 'cover' }} /> : <Camera size={40} color={C.muted} />}
         </div>
         <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 20, color: C.ink, textAlign: 'center' }}>Take a photo of your care action</div>
-        <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 15, color: C.ink2, textAlign: 'center', maxWidth: 280, lineHeight: 1.6 }}>AI will verify your proof and award points</div>
+        <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 15, color: C.ink2, textAlign: 'center', maxWidth: 280, lineHeight: 1.6 }}>{mission.id.startsWith('ops:') ? 'Proof goes to shelter ops. Points unlock only after review.' : 'Practice proof stays local unless you are assigned live ops work.'}</div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          style={{ display: 'none' }}
+          onChange={(event) => handleProofFile(event.target.files?.[0])}
+        />
+        <Btn variant="ghost" size="md" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+          {proofPhoto ? 'Change Photo' : 'Choose Photo'}
+        </Btn>
+        {proofError && <div style={{ fontFamily: 'Nunito', fontWeight: 700, fontSize: 13, color: C.coralDeep, textAlign: 'center', maxWidth: 280 }}>{proofError}</div>}
         {uploading && (
           <div style={{ width: '100%', maxWidth: 280 }}>
             <div style={{ height: 8, borderRadius: 4, backgroundColor: C.paper2, overflow: 'hidden', marginBottom: 8 }}>
               <div style={{ width: `${progress}%`, height: '100%', borderRadius: 4, backgroundColor: C.jungle, transition: 'width 0.2s ease' }} />
             </div>
-            <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 13, color: C.muted, textAlign: 'center' }}>AI Verification: {progress}%</div>
+            <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 13, color: C.muted, textAlign: 'center' }}>{mission.id.startsWith('ops:') ? 'Submitting to ops' : 'Saving practice proof'}: {progress}%</div>
           </div>
         )}
         <Btn variant="jungle" size="lg" onClick={handleUpload} disabled={uploading}>
@@ -1552,9 +1602,9 @@ function SuccessScreen({ mission, onHome, onViewImpact, newlyEarnedBadge }: { mi
           <div style={{ marginBottom: 14 }}>
             <MascotView scene="mission_success" size="lg" showBubble={false} />
           </div>
-          <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, color: withOpacity('#FFFFFF', 0.7), textTransform: 'uppercase', letterSpacing: 0.1, marginBottom: 8 }}>Care mission verified</div>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, color: withOpacity('#FFFFFF', 0.7), textTransform: 'uppercase', letterSpacing: 0.1, marginBottom: 8 }}>Practice mission complete</div>
           <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 32, color: '#fff', textAlign: 'center', lineHeight: 1.05, marginBottom: 10 }}>You made this neighborhood kinder today.</div>
-          <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 15, color: withOpacity('#FFFFFF', 0.84), textAlign: 'center', maxWidth: 300, lineHeight: 1.65, margin: '0 auto 18px' }}>Your action has been counted, your rewards have been added, and the next act of care is ready when you are.</div>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 15, color: withOpacity('#FFFFFF', 0.84), textAlign: 'center', maxWidth: 300, lineHeight: 1.65, margin: '0 auto 18px' }}>Your local demo action has been counted. Live ops points unlock only after review.</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
             {[
               { value: `+${mission.rewardPoints}`, label: 'Points', background: C.goldSoft, color: C.goldInk },
@@ -1620,18 +1670,25 @@ function SuccessScreen({ mission, onHome, onViewImpact, newlyEarnedBadge }: { mi
 
 function ImpactScreen({ setScreen, impactEvents, profile }: { setScreen: (s: Screen) => void; impactEvents: string[]; profile: any }) {
   const { likedStories, bookmarkedStories, toggleLikeStory, toggleBookmarkStory, skeletonLoading } = useApp();
+  const verifiedImpact = useWebVerifiedImpact();
   const [filter, setFilter] = useState<'zone' | 'city' | 'state'>('zone');
   const [selectedStory, setSelectedStory] = useState<typeof careStories[0] | null>(null);
   const data = communityImpact[filter === 'state' ? 'national' : filter];
+  const liveStories = verifiedImpact.stories;
+  const spineEnabled = hasWebSpine();
+  const impactMetricValue = (liveValue: number, fallbackValue: string | number) => {
+    if (spineEnabled) return liveValue.toLocaleString();
+    return typeof fallbackValue === 'number' ? fallbackValue.toLocaleString() : fallbackValue;
+  };
   const fallbackImage = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=600&h=400&fit=crop';
 
   if (selectedStory) {
     const isLiked = likedStories.includes(selectedStory.id);
     const isBookmarked = bookmarkedStories.includes(selectedStory.id);
     const verifiedCaseMetrics = [
-      { label: 'Verification', value: 'AI + local helper' },
-      { label: 'Response time', value: selectedStory.respondent ? '14 min' : 'Pending' },
-      { label: 'Helpers', value: `${Math.max(selectedStory.helpers.length, 1)}` },
+      { label: 'Verification', value: 'Ops review' },
+      { label: 'Follow-up', value: selectedStory.respondent ? 'Recorded' : 'Pending' },
+      { label: 'Helpers', value: selectedStory.helpers.length > 0 ? `${selectedStory.helpers.length}` : 'Pending' },
     ];
     return (
       <div style={{ padding: '0 16px 100px' }}>
@@ -1703,7 +1760,7 @@ function ImpactScreen({ setScreen, impactEvents, profile }: { setScreen: (s: Scr
     );
   }
 
-  if (impactEvents.length === 0 && !skeletonLoading) {
+  if (impactEvents.length === 0 && liveStories.length === 0 && !skeletonLoading) {
     return (
       <div style={{ padding: '0 16px 100px' }}>
         <ScreenHeader title="Impact" />
@@ -1743,9 +1800,9 @@ function ImpactScreen({ setScreen, impactEvents, profile }: { setScreen: (s: Scr
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-                <div style={{ textAlign: 'center', padding: '12px 8px', borderRadius: 18, backgroundColor: C.cardMuted, border: `1px solid ${C.border}` }}><div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 22, color: C.jungleDeep }}>{typeof data.helpers === 'number' ? data.helpers.toLocaleString() : data.helpers}</div><div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: C.muted }}>Helpers</div></div>
-                <div style={{ textAlign: 'center', padding: '12px 8px', borderRadius: 18, backgroundColor: C.cardMuted, border: `1px solid ${C.border}` }}><div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 22, color: C.skyDeep }}>{typeof data.animalsHelped === 'number' ? data.animalsHelped.toLocaleString() : data.animalsHelped}</div><div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: C.muted }}>Animals</div></div>
-                <div style={{ textAlign: 'center', padding: '12px 8px', borderRadius: 18, backgroundColor: C.cardMuted, border: `1px solid ${C.border}` }}><div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 22, color: C.goldDeep }}>{typeof data.missionsCompleted === 'number' ? data.missionsCompleted.toLocaleString() : data.missionsCompleted}</div><div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: C.muted }}>Missions</div></div>
+                <div style={{ textAlign: 'center', padding: '12px 8px', borderRadius: 18, backgroundColor: C.cardMuted, border: `1px solid ${C.border}` }}><div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 22, color: C.jungleDeep }}>{impactMetricValue(verifiedImpact.stats.reports_filed, data.helpers)}</div><div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: C.muted }}>Reports</div></div>
+                <div style={{ textAlign: 'center', padding: '12px 8px', borderRadius: 18, backgroundColor: C.cardMuted, border: `1px solid ${C.border}` }}><div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 22, color: C.skyDeep }}>{impactMetricValue(verifiedImpact.stats.resolved_reports, data.animalsHelped)}</div><div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: C.muted }}>Resolved</div></div>
+                <div style={{ textAlign: 'center', padding: '12px 8px', borderRadius: 18, backgroundColor: C.cardMuted, border: `1px solid ${C.border}` }}><div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 22, color: C.goldDeep }}>{impactMetricValue(verifiedImpact.stats.completed_missions, data.missionsCompleted)}</div><div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: C.muted }}>Verified tasks</div></div>
               </div>
             </Card>
 
@@ -1754,7 +1811,15 @@ function ImpactScreen({ setScreen, impactEvents, profile }: { setScreen: (s: Scr
               <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: C.ink2 }}>Verified stories, rescue moments, and community follow-up from your area.</div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
-              {careStories.map((s) => {
+              {liveStories.length > 0 && liveStories.map((s) => (
+                <Card key={s.id} tone="surface" style={{ padding: 16 }}>
+                  <Pill tone="jungle" variant="soft">{s.badge}</Pill>
+                  <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 16, color: C.ink, marginTop: 10 }}>{s.title}</div>
+                  <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: C.ink2, lineHeight: 1.5, marginTop: 6 }}>{s.body}</div>
+                  <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 11, color: C.muted, marginTop: 10 }}>Verified {new Date(s.occurred_at).toLocaleDateString()}</div>
+                </Card>
+              ))}
+              {liveStories.length === 0 && careStories.map((s) => {
                 const isLiked = likedStories.includes(s.id);
                 const isBookmarked = bookmarkedStories.includes(s.id);
                 const imageSrc = s.imageUrl || fallbackImage;
@@ -1804,7 +1869,7 @@ function ImpactScreen({ setScreen, impactEvents, profile }: { setScreen: (s: Scr
 
         <Card tone="paper" style={{ marginTop: 8, padding: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
           <Heart size={18} color={C.coral} />
-          <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 13, color: C.ink2 }}>Every mission you complete adds to your community's impact. Check your personal stats on the Ranks tab.</div>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 13, color: C.ink2 }}>Verified impact updates after ops reviews reports, tasks, and proofs.</div>
         </Card>
       </div>
     </div>
@@ -1820,6 +1885,20 @@ function LeaderboardScreen({ setScreen, users, profile, onJoin, onCancel, name, 
   neighborhood: string;
 }) {
   const { leaderboardPhoneVerified, setLeaderboardPhoneVerified } = useApp();
+  const verifiedImpact = useWebVerifiedImpact();
+  const displayUsers = verifiedImpact.leaderboard.length > 0
+    ? verifiedImpact.leaderboard.map((entry) => ({
+        id: `verified-${entry.rank}`,
+        name: entry.name,
+        zone: neighborhood || 'Verified care zone',
+        rank: entry.rank,
+        points: entry.points,
+        tone: entry.is_me ? 'jungle' : 'sky',
+        change: 'same',
+      }))
+    : hasWebSpine()
+      ? []
+      : users;
   const [showRegister, setShowRegister] = useState(!profile.leaderboardOptIn);
   const [step, setStep] = useState<'form' | 'otp'>('form');
   const [localName, setLocalName] = useState(name);
@@ -1877,14 +1956,14 @@ function LeaderboardScreen({ setScreen, users, profile, onJoin, onCancel, name, 
             <div style={{ flex: 1 }}>
               <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, color: C.skyDeep, textTransform: 'uppercase', letterSpacing: 0.08, marginBottom: 8 }}>Community leaderboard</div>
               <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 22, color: C.ink, marginBottom: 6 }}>{profile.name}</div>
-              <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: C.ink2, lineHeight: 1.55 }}>Rank #{users.length + 1} in your care zone with {profile.points} points earned through verified action.</div>
+              <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: C.ink2, lineHeight: 1.55 }}>Rank and points are based on ops-verified care work only.</div>
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
             {[
-              { value: users.length + 1, label: 'Your rank', tone: C.skyDeep },
-              { value: users.length, label: 'Helpers', tone: C.jungleDeep },
-              { value: users.reduce((sum, u) => sum + u.points, 0) + profile.points, label: 'Zone pts', tone: C.goldDeep },
+              { value: displayUsers.find((u) => u.name === 'You')?.rank ?? 'n/a', label: 'Your rank', tone: C.skyDeep },
+              { value: displayUsers.length, label: 'Helpers', tone: C.jungleDeep },
+              { value: verifiedImpact.stats.verified_points, label: 'Your pts', tone: C.goldDeep },
             ].map((item) => (
               <div key={item.label} style={{ textAlign: 'center', padding: '12px 8px', borderRadius: 18, backgroundColor: C.cardMuted, border: `1px solid ${C.border}` }}>
                 <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 20, color: item.tone }}>{item.value}</div>
@@ -1898,7 +1977,7 @@ function LeaderboardScreen({ setScreen, users, profile, onJoin, onCancel, name, 
           {profile.neighborhood || 'Indiranagar'} Care Zone
         </div>
         <div style={{ display: 'grid', gap: 10, marginBottom: 16 }}>
-          {users.slice(0, 3).map((u, index) => (
+          {displayUsers.slice(0, 3).map((u, index) => (
             <div key={u.id} style={{ padding: '14px 14px', borderRadius: 22, background: index === 0 ? `linear-gradient(135deg, ${C.goldSoft} 0%, ${C.surface} 100%)` : C.surface, border: `1px solid ${index === 0 ? C.gold : C.hairline}`, boxShadow: index === 0 ? `0 8px 16px ${withOpacity(C.gold, 0.14)}` : 'none' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 34, textAlign: 'center', fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: index === 0 ? C.goldDeep : C.muted }}>{['🥇', '🥈', '🥉'][u.rank - 1]}</div>
@@ -1915,7 +1994,13 @@ function LeaderboardScreen({ setScreen, users, profile, onJoin, onCancel, name, 
           ))}
         </div>
         <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 14, color: C.ink, marginBottom: 8 }}>All Helpers</div>
-        {users.slice(3).map((u) => (
+        {displayUsers.length === 0 && (
+          <Card tone="surface" style={{ padding: 18 }}>
+            <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 16, color: C.ink }}>No verified standings yet</div>
+            <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: C.ink2, marginTop: 6 }}>Complete assigned work and wait for ops proof review.</div>
+          </Card>
+        )}
+        {displayUsers.slice(3).map((u) => (
           <Card tone="surface" key={u.id} style={{ marginBottom: 8, padding: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 16, color: C.muted, width: 28, textAlign: 'center' }}>
@@ -2035,9 +2120,17 @@ function LeaderboardScreen({ setScreen, users, profile, onJoin, onCancel, name, 
 
 function ProfileScreen({ profile, badges, onReset, onStartMission }: { profile: any; badges: any[]; onReset: () => void; onStartMission: () => void }) {
   const { themeMode, setThemeMode, hapticEnabled, toggleHapticEnabled, buddyMode, toggleBuddyMode, pushNotifications, togglePushNotifications, streakFreeze, toggleStreakFreeze, locationHistory, rescueCases } = useApp();
+  const verifiedImpact = useWebVerifiedImpact();
+  const trackedReports = useWebReportTracking();
   const [showReset, setShowReset] = useState(false);
   const [openCaseId, setOpenCaseId] = useState<string | null>(null);
+  const [availability, setAvailability] = useState<'available' | 'paused'>('paused');
   const openCase = openCaseId ? rescueCases.find((c) => c.id === openCaseId) || null : null;
+  const liveProfile = {
+    ...profile,
+    missionsCompleted: verifiedImpact.stats.completed_missions || profile.missionsCompleted,
+    points: verifiedImpact.stats.verified_points || profile.points,
+  };
   return (
     <div style={{ padding: '0 16px 100px' }}>
       <ScreenHeader title="Profile" />
@@ -2047,8 +2140,8 @@ function ProfileScreen({ profile, badges, onReset, onStartMission }: { profile: 
         <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 14, color: C.muted }}>Indiranagar Care Zone</div>
         <Pill tone="jungle">{profile.careLevel}</Pill>
       </div>
-      <MascotView scene={profile.missionsCompleted === 0 ? 'profile_beginner' : 'profile_progress'} compact />
-      {profile.missionsCompleted === 0 ? (
+      <MascotView scene={liveProfile.missionsCompleted === 0 ? 'profile_beginner' : 'profile_progress'} compact />
+      {liveProfile.missionsCompleted === 0 ? (
         <EmptyState icon={MapPin} title="Your journey starts here" subtitle="Complete your first mission to see your progress, badges, and impact grow." actionLabel="Start Mission" onAction={onStartMission} />
       ) : (
         <>
@@ -2056,8 +2149,8 @@ function ProfileScreen({ profile, badges, onReset, onStartMission }: { profile: 
             <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, color: C.jungleDeep, textTransform: 'uppercase', letterSpacing: 0.08, marginBottom: 10 }}>Care snapshot</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
               {[
-                { value: profile.missionsCompleted, label: 'Missions', tone: C.jungleDeep },
-                { value: profile.points, label: 'Points', tone: C.goldDeep },
+                { value: liveProfile.missionsCompleted, label: 'Verified tasks', tone: C.jungleDeep },
+                { value: liveProfile.points, label: 'Verified points', tone: C.goldDeep },
                 { value: profile.streak, label: 'Streak', tone: C.coralDeep },
                 { value: profile.badgesEarned, label: 'Badges', tone: C.skyDeep },
               ].map((item) => (
@@ -2086,7 +2179,27 @@ function ProfileScreen({ profile, badges, onReset, onStartMission }: { profile: 
         </>
       )}
 
-      {rescueCases.length > 0 && (
+      {trackedReports.length > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: C.ink, marginBottom: 6 }}>Live Report Tracking</div>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: C.ink2, marginBottom: 12 }}>Synced from hub case status and notification outbox.</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {trackedReports.slice(0, 5).map((report) => (
+              <Card key={report.external_id} tone="surface" style={{ padding: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                  <div>
+                    <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 16, color: C.ink }}>{report.external_id}</div>
+                    <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 13, color: C.ink2, marginTop: 4 }}>{report.latest_notification_body || report.location_text || 'Ops tracking active'}</div>
+                  </div>
+                  <Pill tone={report.mobileStatus === 'resolved' ? 'jungle' : report.mobileStatus === 'failed' ? 'coral' : 'gold'}>{report.mobileStatus}</Pill>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {rescueCases.length > 0 && trackedReports.length === 0 && (
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: C.ink, marginBottom: 6 }}>My Cases</div>
           <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: C.ink2, marginBottom: 12 }}>Track your rescue reports and revisit case history anytime.</div>
@@ -2133,13 +2246,21 @@ function ProfileScreen({ profile, badges, onReset, onStartMission }: { profile: 
         <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 18, color: C.ink, marginBottom: 6 }}>Preferences</div>
         <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: C.ink2, marginBottom: 12 }}>Control how Straytopia feels and reminds you.</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 12, borderRadius: 22, backgroundColor: C.cardMuted, border: `1px solid ${C.border}` }}>
+          <Card tone="surface" style={{ padding: 14 }}>
+            <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 15, color: C.ink, marginBottom: 4 }}>Volunteer availability</div>
+            <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: C.ink2, marginBottom: 12 }}>When available, hub dispatch can offer nearby ops tasks to this browser device.</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Btn variant={availability === 'available' ? 'jungle' : 'ghost'} size="sm" onClick={() => { setAvailability('available'); void setWebVolunteerAvailability('available'); }} style={{ marginBottom: 0 }}>Available</Btn>
+              <Btn variant={availability === 'paused' ? 'coral' : 'ghost'} size="sm" onClick={() => { setAvailability('paused'); void setWebVolunteerAvailability('paused'); }} style={{ marginBottom: 0 }}>Paused</Btn>
+            </div>
+          </Card>
           <div style={{ padding: '4px 4px 10px' }}>
             <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 15, color: C.ink, marginBottom: 4 }}>Theme</div>
             <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: C.ink2, marginBottom: 12 }}>Choose Light, Dark, or follow your device setting.</div>
             <ThemeModeSelector mode={themeMode} onChange={setThemeMode} />
           </div>
           <SettingToggle icon={Smartphone} label="Haptic Feedback" description="Vibrate on interactions" checked={hapticEnabled} onChange={toggleHapticEnabled} />
-          <SettingToggle icon={Bell} label="Push Notifications" description="Get mission reminders" checked={pushNotifications} onChange={togglePushNotifications} />
+          <SettingToggle icon={Bell} label="In-app updates" description="Hub status updates appear here when Supabase is configured" checked={pushNotifications} onChange={togglePushNotifications} />
           <SettingToggle icon={Users} label="Buddy Mode" description="Show nearby helpers" checked={buddyMode} onChange={toggleBuddyMode} />
           <SettingToggle icon={Shield} label="Streak Protection" description="Freeze streak for a day" checked={streakFreeze} onChange={toggleStreakFreeze} />
         </div>
@@ -2156,7 +2277,7 @@ function ProfileScreen({ profile, badges, onReset, onStartMission }: { profile: 
       )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 16, borderRadius: 22, backgroundColor: C.coralSoft }}>
         <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 17, color: C.coralDeep }}>Danger Zone</div>
-        <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: C.coralInk, lineHeight: 1.55 }}>Clear your demo progress, badges, and journey data if you want to restart from the beginning.</div>
+        <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 13, color: C.coralInk, lineHeight: 1.55 }}>Clear local demo progress only. Synced hub records stay in the operations spine.</div>
         <Btn variant="coral" size="md" leftIcon={<RotateCcw size={18} />} onClick={() => setShowReset(true)}>Reset Demo Journey</Btn>
       </div>
       <ConfirmationDialog open={showReset} title="Reset Demo Journey?" body="This will clear all progress, missions, and badges. You'll start fresh." confirmLabel="Reset" cancelLabel="Cancel" confirmVariant="coral" onConfirm={() => { onReset(); setShowReset(false); }} onCancel={() => setShowReset(false)} />
@@ -2231,7 +2352,7 @@ function ActionSheet({ open, onClose, onAction }: { open: boolean; onClose: () =
   if (!open) return null;
   const actions = [
     { icon: AlertTriangle, label: 'Report Animal', desc: 'File a rescue report', tone: 'coral' as const, action: 'report' },
-    { icon: Siren, label: 'SOS Emergency', desc: 'Alert nearby authorities', tone: 'coral' as const, action: 'sos' },
+    { icon: Siren, label: 'SOS Emergency', desc: 'Open urgent ops case', tone: 'coral' as const, action: 'sos' },
     { icon: Users, label: 'Invite Care Buddy', desc: 'Share Straytopia', tone: 'gold' as const, action: 'invite' },
   ];
   return (
@@ -2340,9 +2461,9 @@ function InviteBuddyScreen({ onBack }: { onBack: () => void }) {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
             {[
-              { value: '8.2k+', label: 'Helpers', tone: C.plumDeep },
-              { value: '340+', label: 'Zones', tone: C.skyDeep },
-              { value: '12.4k+', label: 'Saved', tone: C.jungleDeep },
+              { value: 'Local', label: 'Scope', tone: C.plumDeep },
+              { value: 'Private', label: 'Invite', tone: C.skyDeep },
+              { value: 'Review', label: 'Impact', tone: C.jungleDeep },
             ].map((item) => (
               <div key={item.label} style={{ padding: '12px 8px', borderRadius: 18, backgroundColor: C.cardMuted, border: `1px solid ${C.border}` }}>
                 <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 20, color: item.tone }}>{item.value}</div>
@@ -2396,7 +2517,16 @@ function SOSScreen({ onBack }: { onBack: () => void }) {
   const [alerted, setAlerted] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const animRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const caseIdRef = useRef(`SOS-${Math.floor(Math.random() * 9000 + 1000)}`);
+  const [caseId] = useState(() => `SOS-${Math.floor(Math.random() * 9000 + 1000)}`);
+  const sosSyncedRef = useRef(false);
+
+  const syncSos = () => {
+    if (sosSyncedRef.current) return;
+    sosSyncedRef.current = true;
+    void createWebSosReport(caseId).catch((error) => {
+      console.error('Failed to sync SOS report', error);
+    });
+  };
 
   useEffect(() => {
     return () => {
@@ -2418,6 +2548,7 @@ function SOSScreen({ onBack }: { onBack: () => void }) {
       if (p >= 1) {
         if (animRef.current) clearInterval(animRef.current);
         haptic('error');
+        syncSos();
         setAlerted(true);
         setPressing(false);
       }
@@ -2425,6 +2556,7 @@ function SOSScreen({ onBack }: { onBack: () => void }) {
     timerRef.current = setTimeout(() => {
       if (animRef.current) clearInterval(animRef.current);
       haptic('error');
+      syncSos();
       setAlerted(true);
       setPressing(false);
     }, 3000);
@@ -2454,8 +2586,8 @@ function SOSScreen({ onBack }: { onBack: () => void }) {
           </motion.div>
           <Card tone="coral" style={{ width: '100%', maxWidth: 320, padding: 20, textAlign: 'center', background: `radial-gradient(circle at top right, ${withOpacity('#FFFFFF', 0.16)} 0%, transparent 32%), linear-gradient(135deg, ${C.coral} 0%, ${C.coralDeep} 100%)` }}>
             <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, color: withOpacity('#FFFFFF', 0.72), textTransform: 'uppercase', letterSpacing: 0.08, marginBottom: 10 }}>Emergency case active</div>
-            <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 24, color: '#fff', marginBottom: 8 }}>Authorities Alerted</div>
-            <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 15, color: withOpacity('#FFFFFF', 0.86), lineHeight: 1.6 }}>Emergency services and nearby rescue coordinators have been notified. Help is on the way.</div>
+            <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 24, color: '#fff', marginBottom: 8 }}>Urgent Case Opened</div>
+            <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 15, color: withOpacity('#FFFFFF', 0.86), lineHeight: 1.6 }}>This SOS was sent to the ops queue as an urgent rescue report. Stay safe and wait for status updates.</div>
           </Card>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -2465,9 +2597,9 @@ function SOSScreen({ onBack }: { onBack: () => void }) {
           >
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
               {[
-                { label: 'Case', value: caseIdRef.current },
-                { label: 'ETA', value: '8 min' },
-                { label: 'Helpers', value: '3 en route' },
+                { label: 'Case', value: caseId },
+                { label: 'Queue', value: 'Urgent' },
+                { label: 'Status', value: 'Review' },
               ].map((item) => (
                 <Card key={item.label} tone="surface" style={{ padding: '12px 10px', textAlign: 'center' }}>
                   <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 14, color: C.ink, lineHeight: 1.25 }}>{item.value}</div>
@@ -2483,7 +2615,7 @@ function SOSScreen({ onBack }: { onBack: () => void }) {
           >
             <Card tone="surface" style={{ maxWidth: 320, padding: 16, textAlign: 'left' }}>
               <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, color: C.coralDeep, textTransform: 'uppercase', letterSpacing: 0.08, marginBottom: 8 }}>Shared safely</div>
-              <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 14, color: C.ink2, lineHeight: 1.6 }}>Your live location and a high-priority alert were shared with the nearest animal rescue team. Stay safe and keep distance from the animal.</div>
+              <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 14, color: C.ink2, lineHeight: 1.6 }}>Your urgent report is now visible to ops. Exact emergency service dispatch is not claimed inside the app.</div>
             </Card>
           </motion.div>
           <motion.div
@@ -2507,7 +2639,7 @@ function SOSScreen({ onBack }: { onBack: () => void }) {
         <Card tone="coral" style={{ width: '100%', maxWidth: 320, padding: 20, textAlign: 'center', background: `radial-gradient(circle at top right, ${withOpacity('#FFFFFF', 0.16)} 0%, transparent 32%), linear-gradient(135deg, ${C.coral} 0%, ${C.coralDeep} 100%)` }}>
           <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, color: withOpacity('#FFFFFF', 0.72), textTransform: 'uppercase', letterSpacing: 0.08, marginBottom: 10 }}>Only for immediate danger</div>
           <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 24, color: '#fff', marginBottom: 8 }}>Emergency Alert</div>
-          <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 15, color: withOpacity('#FFFFFF', 0.86), lineHeight: 1.65 }}>Press and hold for 3 seconds to alert nearby authorities and rescue teams right away.</div>
+          <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 15, color: withOpacity('#FFFFFF', 0.86), lineHeight: 1.65 }}>Press and hold for 3 seconds to send an urgent rescue case to ops.</div>
         </Card>
 
         <div style={{ position: 'relative', width: 220, height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -2568,7 +2700,7 @@ function SOSScreen({ onBack }: { onBack: () => void }) {
             </div>
             <div>
               <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, color: C.coralDeep, textTransform: 'uppercase', letterSpacing: 0.08, marginBottom: 4 }}>What gets shared</div>
-              <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 13, color: C.ink2, lineHeight: 1.6 }}>Your live location, emergency priority, and the nearest rescue context for faster response.</div>
+              <div style={{ fontFamily: 'Nunito', fontWeight: 600, fontSize: 13, color: C.ink2, lineHeight: 1.6 }}>Emergency priority and report context for ops review. Add more details after you are safe.</div>
             </div>
           </div>
         </Card>
@@ -2589,10 +2721,10 @@ function ReportSuccessScreen({ reportId, condition, urgency, photo, onBack, onSu
   const [dispatchStep, setDispatchStep] = useState(0);
 
   const dispatchSteps = [
-    { icon: MapPin, label: 'Locating nearby shelters...', color: C.sky },
-    { icon: Siren, label: 'Alerting rescue operators...', color: C.coral },
-    { icon: Users, label: 'Notifying nearby helpers...', color: C.jungle },
-    { icon: CheckCircle2, label: 'Report dispatched!', color: C.gold },
+    { icon: MapPin, label: 'Saving report to ops spine...', color: C.sky },
+    { icon: Siren, label: 'Prioritizing in Action Queue...', color: C.coral },
+    { icon: Users, label: 'Preparing assignment context...', color: C.jungle },
+    { icon: CheckCircle2, label: 'Report queued for review', color: C.gold },
   ];
 
   useEffect(() => {
@@ -2608,11 +2740,9 @@ function ReportSuccessScreen({ reportId, condition, urgency, photo, onBack, onSu
 
   const caseJourney = [
     { status: 'reported', label: 'Reported', time: 'Just now', done: true, icon: AlertTriangle },
-    { status: 'dispatched', label: 'Alert Sent', time: 'Just now', done: true, icon: Siren },
-    { status: 'rescued', label: 'Rescued', time: 'Pending', done: false, icon: Heart },
-    { status: 'treated', label: 'Medical Care', time: 'Pending', done: false, icon: Droplets },
-    { status: 'healed', label: 'Healed', time: 'Pending', done: false, icon: Star },
-    { status: 'rehabilitated', label: 'Rehabilitated', time: 'Pending', done: false, icon: CheckCircle2 },
+    { status: 'review', label: 'Ops review', time: 'Pending', done: false, icon: Siren },
+    { status: 'assigned', label: 'Assigned', time: 'Pending', done: false, icon: Heart },
+    { status: 'resolved', label: 'Resolved', time: 'Pending', done: false, icon: CheckCircle2 },
   ];
 
   if (phase === 'dispatching') {
@@ -2628,7 +2758,7 @@ function ReportSuccessScreen({ reportId, condition, urgency, photo, onBack, onSu
           </motion.div>
 
           <div style={{ textAlign: 'center', maxWidth: 320 }}>
-            <Pill tone="coral">Rescue dispatch in progress</Pill>
+            <Pill tone="coral">Ops intake in progress</Pill>
             <motion.div
               key={dispatchStep}
               initial={{ opacity: 0, y: 12 }}
@@ -2637,7 +2767,7 @@ function ReportSuccessScreen({ reportId, condition, urgency, photo, onBack, onSu
             >
               {dispatchSteps[dispatchStep].label}
             </motion.div>
-            <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 15, color: C.ink2, lineHeight: 1.6 }}>Connecting you with the nearest rescue teams and helpers in your care zone.</div>
+            <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 15, color: C.ink2, lineHeight: 1.6 }}>Sending this into the shared operations queue. Dispatch happens after ops review.</div>
           </div>
 
           <Card tone="surface" style={{ width: '100%', maxWidth: 320, padding: 16 }}>
@@ -2677,8 +2807,8 @@ function ReportSuccessScreen({ reportId, condition, urgency, photo, onBack, onSu
           <CheckCircle2 size={40} color={C.coralDeep} />
         </motion.div>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 24, color: C.ink, marginBottom: 4 }}>Rescue report verified and shared</div>
-            <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 14, color: C.muted }}>Case #{reportId} is now active in the local care network</div>
+            <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 24, color: C.ink, marginBottom: 4 }}>Rescue report queued for review</div>
+            <div style={{ fontFamily: 'Nunito', fontWeight: 500, fontSize: 14, color: C.muted }}>Case #{reportId} is now available for hub tracking when Supabase is configured</div>
           </div>
 
         <Card tone="paper" style={{ width: '100%', maxWidth: 300, padding: 16 }}>
@@ -2700,9 +2830,9 @@ function ReportSuccessScreen({ reportId, condition, urgency, photo, onBack, onSu
           <div style={{ fontFamily: 'Nunito', fontWeight: 800, fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.08, marginBottom: 10 }}>Verified case metrics</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
             {[
-              { label: 'Status', value: 'Verified' },
-              { label: 'ETA', value: '14 min' },
-              { label: 'Helpers', value: '4' },
+              { label: 'Status', value: 'Review' },
+              { label: 'ETA', value: 'Pending' },
+              { label: 'Helpers', value: 'Ops' },
             ].map((metric) => (
               <div key={metric.label} style={{ padding: '12px 8px', borderRadius: 16, background: `linear-gradient(180deg, ${C.surface} 0%, ${C.paper2} 100%)`, border: `1px solid ${C.hairline}`, textAlign: 'center' }}>
                 <div style={{ fontFamily: 'Fredoka', fontWeight: 600, fontSize: 15, color: C.ink }}>{metric.value}</div>
@@ -2763,7 +2893,7 @@ function ReportSuccessScreen({ reportId, condition, urgency, photo, onBack, onSu
 }
 
 function ReportAnimalScreen({ onBack, onSuccess }: { onBack: () => void; onSuccess: () => void }) {
-  const { addRescueCase } = useApp();
+  const { addRescueCase, neighborhood } = useApp();
   const [step, setStep] = useState(0);
   const [condition, setCondition] = useState('');
   const [urgency, setUrgency] = useState<'low' | 'medium' | 'high' | 'critical'>('medium');
@@ -2771,7 +2901,7 @@ function ReportAnimalScreen({ onBack, onSuccess }: { onBack: () => void; onSucce
   const [photo, setPhoto] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const reducedMotion = useReducedMotion();
-  const reportIdRef = useRef<string>(`${Math.floor(Math.random() * 90000 + 10000)}`);
+  const [reportId] = useState(() => `${Math.floor(Math.random() * 90000 + 10000)}`);
 
   const conditions = ['Injured', 'Sick', 'Trapped', 'Aggressive', 'Pregnant', 'Abandoned', 'In Danger'];
   const urgencies = [
@@ -2802,7 +2932,7 @@ function ReportAnimalScreen({ onBack, onSuccess }: { onBack: () => void; onSucce
 
     // Persist the case so it appears in Profile > My Cases.
     const newCase: RescueCase = {
-      id: reportIdRef.current,
+      id: reportId,
       createdAt: Date.now(),
       condition,
       urgency: urgency as RescueUrgency,
@@ -2811,6 +2941,16 @@ function ReportAnimalScreen({ onBack, onSuccess }: { onBack: () => void; onSucce
       stage: 'dispatched',
     };
     addRescueCase(newCase);
+    void createWebReport({
+      externalId: `WEB-${reportId}`,
+      condition,
+      urgency,
+      notes,
+      photo,
+      locationText: neighborhood || 'Web report area',
+    }).catch((error) => {
+      console.error('Failed to sync web report', error);
+    });
 
     setTimeout(() => {
       setSubmitting(false);
@@ -2821,7 +2961,7 @@ function ReportAnimalScreen({ onBack, onSuccess }: { onBack: () => void; onSucce
   if (step === 4) {
     return (
       <ReportSuccessScreen
-        reportId={reportIdRef.current}
+        reportId={reportId}
         condition={condition}
         urgency={urgency}
         photo={photo}
@@ -3023,6 +3163,10 @@ export default function App() {
   const [showLockedModal, setShowLockedModal] = useState(false);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const reducedMotion = useReducedMotion();
+  const opsFeed = useWebOpsMissions();
+  const verifiedImpact = useWebVerifiedImpact();
+  const missionFeed = opsFeed.missions.length > 0 ? opsFeed.missions : mockMissions;
+  const missionStatusView = opsFeed.missions.length > 0 ? opsFeed.statusById : missionStatus;
 
   useEffect(() => {
     initializeTheme();
@@ -3075,6 +3219,12 @@ export default function App() {
 
   const handleStartMission = useCallback((id: string) => {
     logAnalytics('mission_started', { missionId: id });
+    if (id.startsWith('ops:')) {
+      void acceptWebOpsTask(id).catch((error) => {
+        console.error('Failed to accept ops task', error);
+        setToast({ message: 'Assignment not synced', sub: 'Try again when the backend is reachable.' });
+      });
+    }
     startMission(id);
     navigate('task');
   }, [logAnalytics, startMission, navigate]);
@@ -3084,8 +3234,19 @@ export default function App() {
     navigate('proof');
   }, [activeMission, logAnalytics, navigate]);
 
-  const handleProofSuccess = useCallback(() => {
+  const handleProofSuccess = useCallback((proofPhoto: string | null) => {
     logAnalytics('proof_submitted', { missionId: activeMission });
+    if (activeMission?.startsWith('ops:')) {
+      void submitWebOpsProof(activeMission, { photo: proofPhoto })
+        .then(() => setToast({ message: 'Proof sent to ops', sub: 'Rewards unlock after review.' }))
+        .catch((error) => {
+          console.error('Failed to submit ops proof', error);
+          setToast({ message: 'Proof not synced', sub: 'Try again when the backend is reachable.' });
+        });
+      setActiveMission(null);
+      navigate('home');
+      return;
+    }
     if (activeMission) {
       completeMission(activeMission);
       logAnalytics('mission_completed', { missionId: activeMission });
@@ -3093,7 +3254,7 @@ export default function App() {
       logAnalytics('second_mission_unlocked', { missionId: 'm2' });
     }
     navigate('success');
-  }, [activeMission, completeMission, logAnalytics, navigate]);
+  }, [activeMission, completeMission, logAnalytics, navigate, setActiveMission]);
 
   const handleReset = useCallback(() => {
     logAnalytics('demo_reset');
@@ -3116,12 +3277,16 @@ export default function App() {
     logAnalytics('mascot_scene_viewed', { scene: mascotScene });
   }, [mascotScene, logAnalytics]);
 
-  const activeMissionData = mockMissions.find((m) => m.id === activeMission);
-  const successMissionData = mockMissions.find((m) => m.id === (activeMission || lastCompletedMission));
+  const activeMissionData = missionFeed.find((m) => m.id === activeMission);
+  const successMissionData = missionFeed.find((m) => m.id === (activeMission || lastCompletedMission));
   const profile = {
-    points, streak, hearts, missionsCompleted, animalsHelped,
+    points: verifiedImpact.stats.verified_points || points,
+    streak: verifiedImpact.stats.completed_missions > 0 ? 1 : streak,
+    hearts,
+    missionsCompleted: verifiedImpact.stats.completed_missions || missionsCompleted,
+    animalsHelped: verifiedImpact.stats.resolved_reports || animalsHelped,
     badgesEarned: earnedBadges.length, leaderboardOptIn: leaderboardOptedIn,
-    careLevel: missionsCompleted === 0 ? 'New Helper' : 'Kindness Keeper',
+    careLevel: (verifiedImpact.stats.completed_missions || missionsCompleted) === 0 ? 'New Helper' : 'Verified Helper',
     name: name || 'Friend', avatarTone: 'jungle', earnedBadgeIds: earnedBadges,
   };
 
@@ -3164,11 +3329,11 @@ export default function App() {
         <motion.div key={screen} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} style={{ flex: 1, overflowY: 'auto', paddingTop: 8, paddingBottom: 100 }}>
           {screen === 'home' && (
             <HomeScreen
-              setScreen={navigate} missions={mockMissions} missionStatus={missionStatus}
-              points={points} streak={streak} hearts={hearts} missionsCompleted={missionsCompleted}
-              animalsHelped={animalsHelped} earnedBadges={earnedBadges}
+              setScreen={navigate} missions={missionFeed} missionStatus={missionStatusView as MissionStatus}
+              points={profile.points} streak={profile.streak} hearts={hearts} missionsCompleted={profile.missionsCompleted}
+              animalsHelped={profile.animalsHelped} earnedBadges={earnedBadges}
               onSelectMission={(id) => {
-                const st = missionStatus[id as keyof MissionStatus];
+                const st = missionStatusView[id as keyof typeof missionStatusView];
                 setActiveMission(id);
                 if (st === 'in_progress') navigate('task');
                 else if (st === 'proof_required') navigate('proof');
@@ -3183,7 +3348,7 @@ export default function App() {
               mission={activeMissionData}
               onBack={() => navigate('home')}
               onStart={() => handleStartMission(activeMissionData.id)}
-              status={missionStatus[activeMissionData.id as keyof MissionStatus] || 'available'}
+              status={missionStatusView[activeMissionData.id as keyof typeof missionStatusView] || 'available'}
             />
           )}
           {screen === 'task' && activeMissionData && (

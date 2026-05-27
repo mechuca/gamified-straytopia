@@ -15,6 +15,7 @@ import { COLOR } from '@/app/lib/theme';
 import { AlertTriangle, CheckCircle2, Clock, MapPin, Shield, Home } from 'lucide-react-native';
 import { ensureAuthed, hasSupabase, supabase } from '@/app/lib/supabase';
 import { mapSpineStatusToMobileStatus, processQueuedSpineSync, syncReportToSpine } from '@/app/lib/spineSync';
+import { useReportTracking } from '@/app/lib/useReportTracking';
 import { getSyncOutboxCount } from '@/app/lib/syncOutbox';
 
 export default function ReportSubmittedScreen() {
@@ -25,6 +26,7 @@ export default function ReportSubmittedScreen() {
   const updateReport = useReports((s) => s.updateReport);
   const neighborhood = useUser((s) => s.neighborhood);
   const [pendingSync, setPendingSync] = useState(0);
+  useReportTracking();
 
   useEffect(() => {
     // This screen is the “success” for the report form.
@@ -55,8 +57,8 @@ export default function ReportSubmittedScreen() {
           filter: `external_id=eq.${lastReport.id}`,
         },
         (payload) => {
-          const next = payload.new as any;
-          const spineStatus = (next?.status || 'submitted') as any;
+          const next = payload.new as { status?: Parameters<typeof mapSpineStatusToMobileStatus>[0] };
+          const spineStatus = next.status || 'submitted';
           const mapped = mapSpineStatusToMobileStatus(spineStatus);
           updateReport(lastReport.id, {
             status: mapped,
@@ -145,7 +147,7 @@ export default function ReportSubmittedScreen() {
             <Button variant="jungle" size="lg" onPress={() => router.replace('/(tabs)')} rightIcon={<Home size={20} color="#fff" />}>
               Back home
             </Button>
-            <Button variant="ghost" size="md" onPress={() => router.replace('/(tabs)')}>
+            <Button variant="ghost" size="md" onPress={() => router.replace(`/report/track?id=${lastReport?.id ?? ''}`)}>
               Track report
             </Button>
           </View>

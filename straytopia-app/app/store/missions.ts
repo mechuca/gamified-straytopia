@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUser } from '@/app/store/user';
 import { usePoints } from '@/app/store/points';
-import { insertMissionProof, updateMissionProofStatus, upsertMissionTask } from '@/app/lib/spineSync';
+import { insertMissionProof, respondToOpsTaskAssignment, updateMissionProofStatus, upsertMissionTask } from '@/app/lib/spineSync';
 
 const storage = createJSONStorage(() => AsyncStorage);
 
@@ -13,6 +13,9 @@ export type AnimalType = 'dog' | 'cat' | 'bird' | 'other';
 
 export interface Mission {
   id: string;
+  source?: 'local' | 'ops';
+  opsTaskId?: string | null;
+  caseId?: string | null;
   type: MissionType;
   title: string;
   description: string;
@@ -30,11 +33,15 @@ export interface Mission {
   verificationResult: 'verified' | 'review' | 'rejected' | null;
 }
 
+export type OpsMissionInput = Pick<Mission, 'id' | 'opsTaskId' | 'caseId' | 'type' | 'title' | 'description' | 'animalType' | 'location' | 'distance' | 'estimatedTime' | 'urgency' | 'proofRequired' | 'impactPoints' | 'safetyNote' | 'status'>;
+
 export interface MissionState {
   missions: Mission[];
   activeMissionId: string | null;
   completedCount: number;
+  syncOpsMissions: (missions: OpsMissionInput[]) => void;
   acceptMission: (id: string) => void;
+  declineMission: (id: string) => void;
   startProof: (id: string) => void;
   submitProof: (id: string) => void;
   verifyMission: (id: string, result: 'verified' | 'review' | 'rejected') => void;
@@ -102,6 +109,23 @@ export const useMissions = create<MissionState>()(
       missions: seedMissions,
       activeMissionId: null,
       completedCount: 0,
+      syncOpsMissions: (incoming) => set((state) => {
+        const localMissions = state.missions.filter((m) => m.source !== 'ops');
+        const existingById = new Map(state.missions.map((m) => [m.id, m]));
+        const opsMissions = incoming.map((mission) => {
+          const existing = existingById.get(mission.id);
+          return {
+            ...mission,
+            source: 'ops' as const,
+            acceptedAt: existing?.acceptedAt ?? null,
+            completedAt: existing?.completedAt ?? null,
+            verificationResult: existing?.verificationResult ?? null,
+            status: existing?.status === 'completed' || existing?.status === 'verifying' ? existing.status : mission.status,
+          };
+        });
+        const activeStillVisible = state.activeMissionId ? [...localMissions, ...opsMissions].some((m) => m.id === state.activeMissionId) : false;
+        return { missions: [...opsMissions, ...localMissions], activeMissionId: activeStillVisible ? state.activeMissionId : null };
+      }),
       acceptMission: (id) => {
         const mission = get().missions.find((m) => m.id === id);
         set((state) => ({
@@ -112,14 +136,28 @@ export const useMissions = create<MissionState>()(
         }));
 
         if (mission) {
-          void upsertMissionTask({
-            missionId: mission.id,
-            missionType: mission.type,
-            missionTitle: mission.title,
-            severity: mission.urgency,
-            status: 'assigned',
-            blockName: useUser.getState().neighborhood?.name ?? null,
-          });
+          if (mission.source === 'ops' && mission.opsTaskId) {
+            void respondToOpsTaskAssignment({ taskId: mission.opsTaskId, response: 'accepted' });
+          } else {
+            void upsertMissionTask({
+              missionId: mission.id,
+              missionType: mission.type,
+              missionTitle: mission.title,
+              severity: mission.urgency,
+              status: 'assigned',
+              blockName: useUser.getState().neighborhood?.name ?? null,
+            });
+          }
+        }
+      },
+      declineMission: (id) => {
+        const mission = get().missions.find((m) => m.id === id);
+        set((state) => ({
+          missions: state.missions.map((m) => (m.id === id ? { ...m, status: 'rejected' as const } : m)),
+          activeMissionId: state.activeMissionId === id ? null : state.activeMissionId,
+        }));
+        if (mission?.source === 'ops' && mission.opsTaskId) {
+          void respondToOpsTaskAssignment({ taskId: mission.opsTaskId, response: 'declined', reason: 'Declined from mobile.' });
         }
       },
       startProof: (id) => {
@@ -132,6 +170,7 @@ export const useMissions = create<MissionState>()(
         if (mission) {
           void upsertMissionTask({
             missionId: mission.id,
+            opsTaskId: mission.opsTaskId ?? null,
             missionType: mission.type,
             missionTitle: mission.title,
             severity: mission.urgency,
@@ -150,6 +189,7 @@ export const useMissions = create<MissionState>()(
         if (mission) {
           void upsertMissionTask({
             missionId: mission.id,
+            opsTaskId: mission.opsTaskId ?? null,
             missionType: mission.type,
             missionTitle: mission.title,
             severity: mission.urgency,
@@ -182,6 +222,7 @@ export const useMissions = create<MissionState>()(
         if (mission) {
           void upsertMissionTask({
             missionId: mission.id,
+            opsTaskId: mission.opsTaskId ?? null,
             missionType: mission.type,
             missionTitle: mission.title,
             severity: mission.urgency,
@@ -190,6 +231,7 @@ export const useMissions = create<MissionState>()(
           });
           void updateMissionProofStatus({
             missionId: mission.id,
+            opsTaskId: mission.opsTaskId ?? null,
             verificationStatus: result === 'verified' ? 'verified' : result === 'review' ? 'needs_review' : 'rejected',
           });
         }

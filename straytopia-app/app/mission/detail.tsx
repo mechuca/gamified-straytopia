@@ -23,6 +23,7 @@ export default function MissionDetailScreen() {
   const { id } = useLocalSearchParams();
   const mission = useMissions((s) => s.missions.find((m) => m.id === id));
   const acceptMission = useMissions((s) => s.acceptMission);
+  const declineMission = useMissions((s) => s.declineMission);
 
   if (!mission) {
     return (
@@ -74,6 +75,7 @@ export default function MissionDetailScreen() {
         <Card tone="paper-2" style={{ marginBottom: 16, padding: 16 }}>
           <Text variant="h" style={{ marginBottom: 8 }}>What's needed</Text>
           <Text variant="body">{mission.proofRequired}</Text>
+          {mission.source === 'ops' && <Text variant="meta" style={{ marginTop: 8 }}>Assigned by shelter ops. Accepting writes back to dispatch.</Text>}
         </Card>
 
         <Card tone="goldSoft" style={{ marginBottom: 24, padding: 16 }}>
@@ -84,8 +86,13 @@ export default function MissionDetailScreen() {
         </Card>
 
         <Button variant="jungle" size="lg" onPress={handleAccept}>
-          Accept Mission
+          {mission.source === 'ops' ? 'Accept Assignment' : 'Accept Mission'}
         </Button>
+        {mission.source === 'ops' && (
+          <Button variant="ghost" size="md" onPress={() => { declineMission(mission.id); router.replace('/(tabs)'); }} style={{ marginTop: 8 }}>
+            Decline Assignment
+          </Button>
+        )}
       </View>
     </ScreenContainer>
   );

@@ -15,6 +15,7 @@ type PickedMedia = {
 
 type MissionTaskParams = {
   missionId: string;
+  opsTaskId?: string | null;
   missionType: MissionType;
   missionTitle: string;
   severity: 'low' | 'medium' | 'high' | 'critical';
@@ -25,11 +26,14 @@ type MissionTaskParams = {
 
 type MissionProofParams = {
   missionId: string;
+  opsTaskId?: string | null;
   photoUri: string;
   note?: string;
   media?: PickedMedia | null;
   locationMetadata?: CareLocationMetadata | null;
 };
+
+export type VolunteerAvailabilityStatus = 'available' | 'busy' | 'offline' | 'paused';
 
 type SpineCaseStatus =
   | 'submitted'
@@ -159,6 +163,17 @@ async function upsertMissionTaskDirect(params: MissionTaskParams, enqueueOnFailu
   if (!supabase) return;
   try {
     await ensureAuthed();
+    if (params.opsTaskId) {
+      const nextStatus = params.status === 'assigned' ? 'in_progress' : params.status;
+      const synced = await supabase.rpc('mobile_update_assigned_task_status', {
+        p_task_id: params.opsTaskId,
+        p_next_status: nextStatus,
+        p_reason: null,
+      });
+      if (synced.error) throw synced.error;
+      return;
+    }
+
     const deviceId = await getDeviceId();
     const externalRef = `mission:${deviceId}:${params.missionId}`;
 
@@ -207,11 +222,19 @@ async function insertMissionProofDirect(params: MissionProofParams, enqueueOnFai
     await ensureAuthed();
     const deviceId = await getDeviceId();
     const externalRef = `mission:${deviceId}:${params.missionId}`;
-    const { data: task } = await supabase
-      .from('tasks')
-      .select('id')
-      .eq('external_ref', externalRef)
-      .maybeSingle();
+    const { data: task } = params.opsTaskId
+      ? await supabase
+          .from('tasks')
+          .select('id')
+          .eq('id', params.opsTaskId)
+          .eq('assigned_to_type', 'citizen')
+          .eq('assigned_to_id', deviceId)
+          .maybeSingle()
+      : await supabase
+          .from('tasks')
+          .select('id')
+          .eq('external_ref', externalRef)
+          .maybeSingle();
 
     if (!task?.id) throw new Error('Mission task not found for proof upload');
 
@@ -251,6 +274,7 @@ export async function insertMissionProof(params: MissionProofParams) {
 
 export async function updateMissionProofStatus(params: {
   missionId: string;
+  opsTaskId?: string | null;
   verificationStatus: 'verified' | 'rejected' | 'needs_review';
 }) {
   if (!supabase) return;
@@ -258,11 +282,19 @@ export async function updateMissionProofStatus(params: {
     await ensureAuthed();
     const deviceId = await getDeviceId();
     const externalRef = `mission:${deviceId}:${params.missionId}`;
-    const { data: task } = await supabase
-      .from('tasks')
-      .select('id')
-      .eq('external_ref', externalRef)
-      .maybeSingle();
+    const { data: task } = params.opsTaskId
+      ? await supabase
+          .from('tasks')
+          .select('id')
+          .eq('id', params.opsTaskId)
+          .eq('assigned_to_type', 'citizen')
+          .eq('assigned_to_id', deviceId)
+          .maybeSingle()
+      : await supabase
+          .from('tasks')
+          .select('id')
+          .eq('external_ref', externalRef)
+          .maybeSingle();
     if (!task?.id) return;
 
     await supabase
@@ -273,6 +305,45 @@ export async function updateMissionProofStatus(params: {
   } catch {
     // ignore
   }
+}
+
+export async function respondToOpsTaskAssignment(params: {
+  taskId: string;
+  response: 'accepted' | 'declined';
+  reason?: string | null;
+}) {
+  if (!supabase) return;
+  await ensureAuthed();
+  const result = await supabase.rpc('mobile_respond_to_task_assignment', {
+    p_task_id: params.taskId,
+    p_response: params.response,
+    p_reason: params.reason ?? null,
+  });
+  if (result.error) throw result.error;
+}
+
+export async function setVolunteerAvailability(params: {
+  status: VolunteerAvailabilityStatus;
+  skills?: string[];
+  transportModes?: string[];
+  note?: string;
+  openTaskLimit?: number;
+  availableUntil?: string | null;
+}) {
+  if (!supabase) return null;
+  await ensureAuthed();
+  const deviceId = await getDeviceId();
+  const result = await supabase.rpc('mobile_set_volunteer_availability', {
+    p_device_id: deviceId,
+    p_status: params.status,
+    p_skills: params.skills ?? [],
+    p_transport_modes: params.transportModes ?? [],
+    p_note: params.note ?? '',
+    p_open_task_limit: params.openTaskLimit ?? 1,
+    p_available_until: params.availableUntil ?? null,
+  });
+  if (result.error) throw result.error;
+  return result.data;
 }
 
 export async function processQueuedSpineSync() {

@@ -9,23 +9,19 @@ import { Avatar } from '@/app/components/primitives/Avatar';
 import { Button } from '@/app/components/primitives/Button';
 import { RiseIn } from '@/app/components/motion/RiseIn';
 import { useUser } from '@/app/store/user';
-import { usePoints } from '@/app/store/points';
-import { useMissions } from '@/app/store/missions';
 import { useBadges } from '@/app/store/badges';
-import { useReports } from '@/app/store/reports';
+import { useVerifiedImpact } from '@/app/lib/useVerifiedImpact';
 import { COLOR } from '@/app/lib/theme';
 import { Flame, Zap, Settings, ChevronRight, Shield, Award, BookOpen } from 'lucide-react-native';
 
 export default function YouScreen() {
   const router = useRouter();
   const user = useUser();
-  const totalPoints = usePoints((s) => s.total);
-  const completedCount = useMissions((s) => s.completedCount);
-  const reports = useReports((s) => s.reports);
+  const { impact } = useVerifiedImpact();
   const badges = useBadges((s) => s.badges);
-  const earnedBadges = badges.filter((b) => b.earned);
-  const localStreak = completedCount > 0 ? 1 : 0;
-  const resolvedReports = reports.filter((report) => report.status === 'resolved').length;
+  const completedCount = impact.stats.completed_missions;
+  const verifiedPoints = impact.stats.verified_points;
+  const verifiedStreak = completedCount > 0 ? 1 : 0;
 
   return (
     <ScreenContainer bg="paper" tabBar statusBarStyle="dark">
@@ -50,8 +46,8 @@ export default function YouScreen() {
             <Text variant="eyebrow" style={{ color: 'rgba(255,255,255,0.7)' }}>YOUR FIRE</Text>
             <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 8 }}>
               <View>
-                <Text variant="display-1" style={{ color: '#fff' }}>{localStreak}</Text>
-                <Text variant="body" style={{ color: 'rgba(255,255,255,0.8)' }}>days on a roll</Text>
+                <Text variant="display-1" style={{ color: '#fff' }}>{verifiedStreak}</Text>
+                <Text variant="body" style={{ color: 'rgba(255,255,255,0.8)' }}>verified care days</Text>
               </View>
               <Flame size={56} color={COLOR.gold} />
             </View>
@@ -59,11 +55,11 @@ export default function YouScreen() {
               {Array.from({ length: 7 }).map((_, i) => (
                 <View key={i} style={{
                   flex: 1, height: 8, borderRadius: 4,
-                  backgroundColor: i < localStreak ? '#fff' : 'rgba(255,255,255,0.22)',
+                  backgroundColor: i < verifiedStreak ? '#fff' : 'rgba(255,255,255,0.22)',
                 }} />
               ))}
             </View>
-            <Text variant="meta" style={{ color: 'rgba(255,255,255,0.7)', marginTop: 8 }}>local streak only</Text>
+            <Text variant="meta" style={{ color: 'rgba(255,255,255,0.7)', marginTop: 8 }}>updates after ops verification</Text>
           </Card>
         </RiseIn>
 
@@ -71,18 +67,18 @@ export default function YouScreen() {
         <RiseIn delay={100}>
           <Card style={{ marginBottom: 12, padding: 16 }}>
             <Text variant="eyebrow">LEVEL · IMPACT POINTS</Text>
-            <Text variant="display-3" style={{ marginTop: 4 }}>{totalPoints}</Text>
-            <Text variant="body">Local points. Ops-verified scoring is not connected yet.</Text>
+            <Text variant="display-3" style={{ marginTop: 4 }}>{verifiedPoints}</Text>
+            <Text variant="body">Proof-backed points from completed, verified care work.</Text>
           </Card>
         </RiseIn>
 
         {/* Stats Grid */}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
             {[
-            { label: 'Local completions', value: completedCount.toString(), color: 'jungle' as const, soft: COLOR.jungleSoft },
-            { label: 'Reports filed', value: reports.length.toString(), color: 'coral' as const, soft: COLOR.coralSoft },
-            { label: 'Cases resolved', value: resolvedReports.toString(), color: 'plum' as const, soft: COLOR.plumSoft },
-            { label: 'Avg response', value: 'n/a', color: 'sky' as const, soft: COLOR.skySoft },
+            { label: 'Verified completions', value: completedCount.toString(), color: 'jungle' as const, soft: COLOR.jungleSoft },
+            { label: 'Reports filed', value: impact.stats.reports_filed.toString(), color: 'coral' as const, soft: COLOR.coralSoft },
+            { label: 'Cases resolved', value: impact.stats.resolved_reports.toString(), color: 'plum' as const, soft: COLOR.plumSoft },
+            { label: 'Verified points', value: verifiedPoints.toString(), color: 'sky' as const, soft: COLOR.skySoft },
           ].map((stat, i) => (
             <RiseIn key={i} delay={150 + i * 70}>
               <Card tone="paper-2" style={{ width: '48%', padding: 16, borderBottomWidth: 4, borderBottomColor: COLOR[stat.color] }}>
@@ -128,7 +124,7 @@ export default function YouScreen() {
         <RiseIn delay={400}>
           <Card style={{ marginTop: 16, padding: 0, overflow: 'hidden' }}>
             {[
-              { icon: <BookOpen size={20} color={COLOR.plum} />, title: 'Stories you\'re in', sub: 'Not connected yet', route: '/(tabs)/stories' },
+              { icon: <BookOpen size={20} color={COLOR.plum} />, title: 'Stories you\'re in', sub: `${impact.stories.length} verified`, route: '/(tabs)/stories' },
               { icon: <Shield size={20} color={COLOR.jungle} />, title: 'Privacy settings', sub: 'Control your visibility', route: '/settings' },
               { icon: <Award size={20} color={COLOR.gold} />, title: 'Impact report', sub: 'Your monthly summary', route: '/profile' },
             ].map((item, i) => (

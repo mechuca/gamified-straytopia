@@ -17,7 +17,8 @@ This folder contains the database schema used by both:
 9. Then run `migrations/008_forecast_generation_job.sql`.
 10. Then run `migrations/009_activation_workflows.sql`.
 11. Then run `migrations/010_system_coherence_automation.sql`.
-12. Configure environment variables.
+12. Then run `migrations/011_mobile_ops_closure.sql`.
+13. Configure environment variables.
 
 ### Ops hub (`straytopia-hub`)
 
@@ -98,3 +99,9 @@ RLS policies are tightened in `003_security_and_rls.sql`:
 - Incremental trust events and trust score updates for device, shelter, and reviewer subjects.
 - Verified-proof animal lifecycle events when proof rows are linked to animal records.
 - A shared trust bump helper for future orchestration workflows.
+
+`011_mobile_ops_closure.sql` adds:
+- Volunteer availability and mobile assignment accept/decline RPCs.
+- Mobile-safe verified impact and report tracking RPCs.
+- Case status notifications into the provider-neutral outbox plus an in-app processing worker RPC.
+- Trust, availability, skills, capacity, and locality weighted assignment recommendation refresh.

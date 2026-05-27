@@ -15,6 +15,7 @@ export default function MissionTaskScreen() {
   const activeMissionId = useMissions((s) => s.activeMissionId);
   const mission = useMissions((s) => s.missions.find((m) => m.id === activeMissionId));
   const startProof = useMissions((s) => s.startProof);
+  const declineMission = useMissions((s) => s.declineMission);
 
   if (!mission) {
     return (
@@ -70,8 +71,8 @@ export default function MissionTaskScreen() {
         <Button variant="jungle" size="lg" onPress={handleStart}>
           I Completed This
         </Button>
-        <Button variant="ghost" size="md" onPress={() => router.replace('/(tabs)')} style={{ marginTop: 8 }}>
-          Cancel Mission
+        <Button variant="ghost" size="md" onPress={() => { if (mission.source === 'ops') declineMission(mission.id); router.replace('/(tabs)'); }} style={{ marginTop: 8 }}>
+          {mission.source === 'ops' ? 'Decline Assignment' : 'Cancel Mission'}
         </Button>
       </View>
     </ScreenContainer>

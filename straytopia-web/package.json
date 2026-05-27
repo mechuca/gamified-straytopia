@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@rive-app/react-webgl2": "^4.28.5",
+    "@supabase/supabase-js": "^2.106.2",
     "clsx": "^2.1.1",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.16.0",

@@ -15,6 +15,7 @@ import { usePoints } from '@/app/store/points';
 import { useReports } from '@/app/store/reports';
 import { useUser } from '@/app/store/user';
 import { useOpsTasks } from '@/app/lib/useOpsTasks';
+import { useReportTracking } from '@/app/lib/useReportTracking';
 import { processQueuedSpineSync } from '@/app/lib/spineSync';
 import { getSyncOutboxCount } from '@/app/lib/syncOutbox';
 import { COLOR } from '@/app/lib/theme';
@@ -27,10 +28,12 @@ export default function HomeScreen() {
   const neighborhood = useUser((s) => s.neighborhood);
   const reports = useReports((s) => s.reports);
   const opsTasks = useOpsTasks();
+  useReportTracking();
   const [refreshing, setRefreshing] = useState(false);
   const [pendingSync, setPendingSync] = useState(0);
 
-  const availableMissions = missions.filter((m) => m.status === 'available');
+  const opsMissionCount = missions.filter((m) => m.source === 'ops').length;
+  const availableMissions = missions.filter((m) => m.status === 'available' && (opsMissionCount > 0 ? m.source === 'ops' : m.source !== 'ops'));
   const urgentMissions = availableMissions.filter((m) => m.urgency === 'critical' || m.urgency === 'high');
   const completedCount = useMissions((s) => s.completedCount);
   const localStreak = completedCount > 0 ? 1 : 0;
@@ -88,10 +91,10 @@ export default function HomeScreen() {
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <View>
                 <Text variant="eyebrow" style={{ color: 'rgba(255,255,255,0.7)' }}>
-                  LOCAL CARE MISSIONS
+                  {opsMissionCount > 0 ? 'OPS CARE MISSIONS' : 'LOCAL PRACTICE MISSIONS'}
                 </Text>
                 <Text variant="title" style={{ color: '#fff', marginTop: 4 }}>
-                  {availableMissions.length} local mission options
+                  {availableMissions.length} {opsMissionCount > 0 ? 'assigned care option' : 'offline practice option'}{availableMissions.length === 1 ? '' : 's'}
                 </Text>
               </View>
               <BookOpen size={28} color="#fff" />
@@ -102,6 +105,23 @@ export default function HomeScreen() {
         {pendingSync > 0 && (
           <Card tone="goldSoft" style={{ marginBottom: 16, padding: 14 }}>
             <Text variant="body" color="goldDeep">{pendingSync} update{pendingSync === 1 ? '' : 's'} waiting to sync. Pull down to retry.</Text>
+          </Card>
+        )}
+
+        {reports.length > 0 && (
+          <Card tone="paper-2" style={{ marginBottom: 16, padding: 14 }}>
+            <Text variant="eyebrow" style={{ marginBottom: 8 }}>REPORT TRACKING</Text>
+            {reports.slice(0, 2).map((report) => (
+              <View key={report.id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8, borderTopWidth: 1, borderTopColor: COLOR.hairline, borderStyle: 'dashed' }}>
+                <View style={{ flex: 1, paddingRight: 12 }}>
+                  <Text variant="body" style={{ fontWeight: '800' }}>{report.id}</Text>
+                  <Text variant="meta">{report.status.replace('_', ' ')}</Text>
+                </View>
+                <Pill tone={report.status === 'resolved' ? 'jungle' : report.status === 'failed' ? 'coral' : report.status === 'dispatched' ? 'sky' : 'gold'} variant="soft">
+                  {report.severity}
+                </Pill>
+              </View>
+            ))}
           </Card>
         )}
 
@@ -152,7 +172,7 @@ export default function HomeScreen() {
         )}
 
         {/* All Missions */}
-        <Text variant="eyebrow" style={{ marginBottom: 8, marginTop: 8 }}>ALL MISSIONS</Text>
+        <Text variant="eyebrow" style={{ marginBottom: 8, marginTop: 8 }}>{opsMissionCount > 0 ? 'ASSIGNED CARE WORK' : 'OFFLINE PRACTICE'}</Text>
         {availableMissions.map((m, i) => (
           <RiseIn key={m.id} delay={200 + i * 70}>
             <MissionCard

@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useEffect, useMemo, useState } from 'react';
 import { getSupabase } from '@/lib/supabase/client';
-import type { AreaForecastRow, Block, CaseRow, CitizenRow, ProofRow, ProofVerificationStatus, Shelter, TaskRow, TaskTemplateRow } from '@/lib/types';
+import type { AreaForecastRow, AssignmentRecommendationRow, Block, CaseRow, CitizenRow, ProofRow, ProofVerificationStatus, Shelter, TaskRow, TaskTemplateRow } from '@/lib/types';
 import { ActionStatus } from '@/components/ui/ActionStatus';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -303,6 +303,7 @@ export default function ActionQueuePage() {
   const [shelters, setShelters] = useState<Shelter[]>([]);
   const [citizens, setCitizens] = useState<CitizenRow[]>([]);
   const [forecasts, setForecasts] = useState<AreaForecastRow[]>([]);
+  const [recommendations, setRecommendations] = useState<AssignmentRecommendationRow[]>([]);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
   const caseById = useMemo(() => new Map(cases.map((c) => [c.id, c])), [cases]);
@@ -325,11 +326,12 @@ export default function ActionQueuePage() {
       setShelters(demoShelters);
       setCitizens(demoCitizens);
       setForecasts([]);
+      setRecommendations([]);
       setLastUpdated(new Date());
       return;
     }
 
-    const [c, t, p, tt, b, s, cz, f] = await Promise.all([
+    const [c, t, p, tt, b, s, cz, f, ar] = await Promise.all([
       supabase.from('cases').select('*').order('created_at', { ascending: false }).limit(300),
       supabase.from('tasks').select('*').order('created_at', { ascending: false }).limit(300),
       supabase.from('proofs').select('*').order('submitted_at', { ascending: false }).limit(300),
@@ -338,6 +340,7 @@ export default function ActionQueuePage() {
       supabase.from('shelters').select('id,name,block_id,status').order('name', { ascending: true }),
       supabase.from('citizens').select('id,device_id,block_id,created_at,user_id').order('created_at', { ascending: false }).limit(300),
       supabase.from('area_forecasts').select('*').gte('risk_score', 35).order('risk_score', { ascending: false }).order('created_at', { ascending: false }).limit(50),
+      supabase.from('assignment_recommendations').select('*').eq('status', 'suggested').order('score', { ascending: false }).limit(500),
     ]);
 
     const failure = [c.error, t.error, p.error, tt.error, b.error, s.error, cz.error].find(Boolean);
@@ -353,6 +356,7 @@ export default function ActionQueuePage() {
     setShelters(((s.data ?? []) as unknown) as Shelter[]);
     setCitizens(((cz.data ?? []) as unknown) as CitizenRow[]);
     setForecasts((((f.error ? [] : f.data) ?? []) as unknown) as AreaForecastRow[]);
+    setRecommendations(((((ar.error ? [] : ar.data) ?? []) as unknown) as AssignmentRecommendationRow[]));
     setLastUpdated(new Date());
   }
 
@@ -366,6 +370,7 @@ export default function ActionQueuePage() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'proofs' }, () => load())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'citizens' }, () => load())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'area_forecasts' }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'assignment_recommendations' }, () => load())
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
@@ -502,8 +507,21 @@ export default function ActionQueuePage() {
   const selectedShelter = selected?.taskRow?.shelter_id ? shelterById.get(selected.taskRow.shelter_id) : selected?.caseRow?.shelter_id ? shelterById.get(selected.caseRow.shelter_id) : null;
   const selectedCitizen = selected?.taskRow?.assigned_to_type === 'citizen' && selected.taskRow.assigned_to_id ? citizenByDevice.get(selected.taskRow.assigned_to_id) : selected?.caseRow?.citizen_id ? citizenById.get(selected.caseRow.citizen_id) : null;
   const selectedTemplate = selected?.taskRow?.template_id ? templateById.get(selected.taskRow.template_id) : null;
-  const selectedShelterSuggestions = useMemo(() => rankedShelterSuggestions(shelters, tasks, selectedBlock?.id), [selectedBlock?.id, shelters, tasks]);
-  const selectedCitizenSuggestions = useMemo(() => rankedCitizenSuggestions(citizens, tasks, selectedBlock?.id), [citizens, selectedBlock?.id, tasks]);
+  const selectedRecommendationRows = useMemo(() => recommendations.filter((row) => row.task_id === selected?.taskRow?.id), [recommendations, selected?.taskRow?.id]);
+  const selectedShelterSuggestions = useMemo(() => {
+    const byAssignee = new Map(selectedRecommendationRows.filter((row) => row.assignee_type === 'shelter').map((row) => [row.assignee_id, row]));
+    return rankedShelterSuggestions(shelters, tasks, selectedBlock?.id).map((suggestion) => {
+      const recommendation = byAssignee.get(suggestion.shelter.id);
+      return recommendation ? { ...suggestion, score: recommendation.score, reasons: recommendation.reasons.length > 0 ? recommendation.reasons : suggestion.reasons } : suggestion;
+    }).sort((a, b) => b.score - a.score);
+  }, [selectedBlock?.id, selectedRecommendationRows, shelters, tasks]);
+  const selectedCitizenSuggestions = useMemo(() => {
+    const byAssignee = new Map(selectedRecommendationRows.filter((row) => row.assignee_type === 'citizen').map((row) => [row.assignee_id, row]));
+    return rankedCitizenSuggestions(citizens, tasks, selectedBlock?.id).map((suggestion) => {
+      const recommendation = byAssignee.get(suggestion.citizen.device_id);
+      return recommendation ? { ...suggestion, score: recommendation.score, reasons: recommendation.reasons.length > 0 ? recommendation.reasons : suggestion.reasons } : suggestion;
+    }).sort((a, b) => b.score - a.score);
+  }, [citizens, selectedBlock?.id, selectedRecommendationRows, tasks]);
   const recommendedShelterId = selectedShelterSuggestions.find((suggestion) => suggestion.shelter.status !== 'inactive')?.shelter.id ?? defaultShelterId;
   const nearbySignals = selectedBlock ? cases.filter((c) => c.block_id === selectedBlock.id && !['rejected', 'resolved', 'closed'].includes(c.status)).length : 0;
 
@@ -598,6 +616,40 @@ export default function ActionQueuePage() {
       await load();
     } catch (caught) {
       setActionError(caught instanceof Error ? caught.message : 'Task assignment failed. Try again.');
+    } finally {
+      setBusyItem(null);
+    }
+  }
+
+  async function refreshRecommendations() {
+    if (!supabase || !selected?.taskRow) return;
+    setBusyItem(selected.key);
+    setActionError(null);
+    setActionMessage(null);
+    try {
+      const result = await supabase.rpc('refresh_assignment_recommendations', { p_task_id: selected.taskRow.id });
+      if (result.error) throw result.error;
+      setActionMessage('Dispatch scoring refreshed from trust, availability, skills, capacity, and locality.');
+      await load();
+    } catch (caught) {
+      setActionError(caught instanceof Error ? caught.message : 'Recommendation refresh failed.');
+    } finally {
+      setBusyItem(null);
+    }
+  }
+
+  async function processNotifications() {
+    if (!supabase) return;
+    setBusyItem('notifications');
+    setActionError(null);
+    setActionMessage(null);
+    try {
+      const result = await supabase.rpc('process_notification_outbox', { p_limit: 50 });
+      if (result.error) throw result.error;
+      setActionMessage(`Notification worker processed ${result.data ?? 0} in-app update${result.data === 1 ? '' : 's'}.`);
+      await load();
+    } catch (caught) {
+      setActionError(caught instanceof Error ? caught.message : 'Notification worker failed.');
     } finally {
       setBusyItem(null);
     }
@@ -819,6 +871,9 @@ export default function ActionQueuePage() {
           <div className="flex flex-wrap items-center gap-2">
             <Pill tone={supabase ? 'jungle' : 'gold'} variant="soft">{supabase ? 'live sync' : 'demo ledger'}</Pill>
             <Pill tone="paper" variant="soft">{lastUpdated ? `updated ${lastUpdated.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}` : 'loading'}</Pill>
+            <Button size="sm" variant="paper" disabled={!supabase || busyItem === 'notifications'} onClick={processNotifications} type="button">
+              {busyItem === 'notifications' ? 'Processing...' : 'Process notifications'}
+            </Button>
           </div>
         </div>
 
@@ -1012,6 +1067,7 @@ export default function ActionQueuePage() {
                           <div className="fredoka mt-1 text-[20px] font-semibold">Best owner for this task</div>
                         </div>
                         <Pill tone="paper" variant="soft">{nearbySignals} nearby open</Pill>
+                        <Button size="sm" variant="paper" disabled={!supabase || busyItem === selected.key} onClick={refreshRecommendations} type="button">Refresh scoring</Button>
                       </div>
                     <div className="mt-4 grid gap-3 md:grid-cols-2">
                       {selectedShelterSuggestions.slice(0, 2).map((suggestion, index) => (

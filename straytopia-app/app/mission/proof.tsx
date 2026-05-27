@@ -60,6 +60,7 @@ export default function ProofSubmissionScreen() {
     const metadata = locationMetadata ?? (await getCareLocation());
     void insertMissionProof({
       missionId: mission.id,
+      opsTaskId: mission.opsTaskId ?? null,
       photoUri,
       note,
       media: photoAsset ? { uri: photoAsset.uri, fileName: photoAsset.fileName, fileSize: photoAsset.fileSize, mimeType: photoAsset.mimeType } : null,

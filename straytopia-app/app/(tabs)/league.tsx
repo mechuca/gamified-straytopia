@@ -6,24 +6,20 @@ import { Card } from '@/app/components/primitives/Card';
 import { Pill } from '@/app/components/primitives/Pill';
 import { Avatar } from '@/app/components/primitives/Avatar';
 import { RiseIn } from '@/app/components/motion/RiseIn';
-import { useLeaderboard, LeaderboardScope } from '@/app/store/leaderboard';
+import { useVerifiedImpact } from '@/app/lib/useVerifiedImpact';
 import { useUser } from '@/app/store/user';
 import { COLOR } from '@/app/lib/theme';
-import { Trophy, TrendingUp, TrendingDown, Minus } from 'lucide-react-native';
+import { Trophy, ShieldCheck } from 'lucide-react-native';
 
-const scopes: { key: LeaderboardScope; label: string }[] = [
-  { key: 'today', label: 'Today' },
-  { key: 'week', label: 'This Week' },
-  { key: 'month', label: 'This Month' },
-  { key: 'all', label: 'All Time' },
-  { key: 'nearby', label: 'Nearby' },
-];
+const scopes = ['Verified', 'Nearby', 'All time'];
 
 const medalColors = ['#FFC83D', '#C0C0C0', '#CD7F32'];
 
 export default function LeagueScreen() {
-  const { scope, entries, setScope } = useLeaderboard();
+  const [scope, setScope] = React.useState('Verified');
+  const { impact, loading } = useVerifiedImpact();
   const leaderboardOptedIn = useUser((s) => s.leaderboardOptedIn);
+  const entries = impact.leaderboard;
 
   if (!leaderboardOptedIn) {
     return (
@@ -43,28 +39,28 @@ export default function LeagueScreen() {
     <ScreenContainer bg="paper" tabBar statusBarStyle="dark">
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
         <View style={{ marginBottom: 16 }}>
-          <Text variant="eyebrow">LOCAL PREVIEW · NOT OPS VERIFIED</Text>
-          <Text variant="display-3">Gold League</Text>
+          <Text variant="eyebrow">OPS VERIFIED</Text>
+          <Text variant="display-3">Care Standings</Text>
         </View>
 
         {/* Promotion Banner */}
         <Card tone="gold" style={{ marginBottom: 20, padding: 16 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <Trophy size={32} color={COLOR.goldInk} />
-            <View style={{ flex: 1 }}>
-              <Text variant="h" color="goldInk">Prototype ranking</Text>
-              <Text variant="body" color="goldInk">Live rank moderation and anti-abuse scoring are not connected yet.</Text>
+              <Trophy size={32} color={COLOR.goldInk} />
+              <View style={{ flex: 1 }}>
+                <Text variant="h" color="goldInk">Verified impact only</Text>
+                <Text variant="body" color="goldInk">Standings count tasks after ops evidence review, not local taps.</Text>
+              </View>
             </View>
-          </View>
-        </Card>
+          </Card>
 
         {/* Scope Toggle */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             {scopes.map((s) => (
-              <Pressable key={s.key} onPress={() => setScope(s.key)}>
-                <Pill tone={scope === s.key ? 'ink' : 'paper'} variant={scope === s.key ? 'solid' : 'soft'}>
-                  {s.label}
+              <Pressable key={s} onPress={() => setScope(s)}>
+                <Pill tone={scope === s ? 'ink' : 'paper'} variant={scope === s ? 'solid' : 'soft'}>
+                  {s}
                 </Pill>
               </Pressable>
             ))}
@@ -74,13 +70,13 @@ export default function LeagueScreen() {
         {/* Standings */}
         <Card style={{ padding: 0, overflow: 'hidden' }}>
           {entries.map((entry, i) => (
-            <RiseIn key={entry.rank} delay={i * 50}>
+            <RiseIn key={`${entry.rank}-${entry.name}`} delay={i * 50}>
               <View style={{
                 flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12,
-                backgroundColor: entry.isMe ? COLOR.jungleSoft : 'transparent',
+                backgroundColor: entry.is_me ? COLOR.jungleSoft : 'transparent',
                 borderBottomWidth: i < entries.length - 1 ? 1 : 0,
                 borderBottomColor: COLOR.hairline,
-                ...(entry.isMe ? { borderLeftWidth: 3, borderLeftColor: COLOR.jungle } : {}),
+                ...(entry.is_me ? { borderLeftWidth: 3, borderLeftColor: COLOR.jungle } : {}),
               }}>
                 <View style={{
                   width: 30, height: 30, borderRadius: 10,
@@ -89,28 +85,29 @@ export default function LeagueScreen() {
                 }}>
                   <Text variant="num" style={{ fontSize: 14, color: i < 3 ? '#fff' : COLOR.muted }}>{entry.rank}</Text>
                 </View>
-                <Avatar name={entry.name} size={40} tone={entry.avatarTone as any} />
+                <Avatar name={entry.name} size={40} tone={entry.is_me ? 'jungle' : 'sky'} />
                 <View style={{ flex: 1 }}>
-                  <Text variant="h">{entry.name}{entry.isMe ? ' (You)' : ''}</Text>
-                  <Text variant="meta">{entry.missionCount} missions · {entry.badgeCount} badges</Text>
+                  <Text variant="h">{entry.name}{entry.is_me ? ' (You)' : ''}</Text>
+                  <Text variant="meta">{entry.mission_count} verified tasks</Text>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
                   <Text variant="display-4" style={{ fontSize: 20 }}>{entry.points}</Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-                    {entry.rankChange === 'up' && <TrendingUp size={12} color={COLOR.jungle} />}
-                    {entry.rankChange === 'down' && <TrendingDown size={12} color={COLOR.coral} />}
-                    {entry.rankChange === 'same' && <Minus size={12} color={COLOR.muted} />}
-                    <Text variant="meta" style={{ fontSize: 10 }}>{entry.rankChange === 'new' ? 'New' : ''}</Text>
-                  </View>
+                  <ShieldCheck size={12} color={COLOR.jungle} />
                 </View>
               </View>
             </RiseIn>
           ))}
+          {entries.length === 0 && (
+            <View style={{ padding: 24, alignItems: 'center' }}>
+              <Text variant="h">{loading ? 'Loading verified standings' : 'No verified standings yet'}</Text>
+              <Text variant="meta" align="center" style={{ marginTop: 4 }}>Complete assigned care work and wait for proof review.</Text>
+            </View>
+          )}
         </Card>
 
         <Card tone="paper-2" style={{ marginTop: 16, padding: 14 }}>
           <Text variant="meta" align="center">
-            Preview standings use local seed data. Ops-verified scoring requires proof review, abuse checks, and regional aggregation.
+            Rankings are anonymous and proof-backed. Trust signals remain private to ops.
           </Text>
         </Card>
       </ScrollView>
